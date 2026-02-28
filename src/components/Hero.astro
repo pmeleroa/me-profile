@@ -22,7 +22,7 @@ import { hero } from "../data/hero";
                 </svg>
               </div>
               <img
-                src="/avatar.png"
+                src={`${import.meta.env.BASE_URL}avatar.png`}
                 alt={`${hero.firstName} ${hero.lastName}`}
                 class="hero-photo"
                 onerror="this.style.opacity='0'"
