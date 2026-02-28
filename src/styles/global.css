@@ -909,7 +909,6 @@ img, video {
 .timeline {
   position: relative;
   margin-top: 3.5rem;
-  max-width: 680px;
 }
 
 .timeline::before {
