@@ -1,0 +1,54 @@
+---
+const experience = [
+  {
+    date: '2023 — Presente',
+    role: 'Senior Full Stack Developer',
+    company: 'Empresa Actual',
+    description:
+      'Lidero el desarrollo de la plataforma principal de la compañía, coordinando un equipo de 5 desarrolladores. Implementé una arquitectura de microservicios que redujo el tiempo de carga en un 60% y mejoró la escalabilidad del sistema.',
+    tags: ['React', 'Node.js', 'AWS', 'PostgreSQL', 'Docker'],
+  },
+  {
+    date: '2021 — 2023',
+    role: 'Full Stack Developer',
+    company: 'Empresa Anterior',
+    description:
+      'Desarrollé y mantuve múltiples aplicaciones web de alto tráfico. Lideré la migración de una aplicación monolítica a una arquitectura serverless, mejorando la disponibilidad del 99.5% al 99.99%.',
+    tags: ['Vue.js', 'Python', 'FastAPI', 'GCP', 'Redis'],
+  },
+  {
+    date: '2019 — 2021',
+    role: 'Frontend Developer',
+    company: 'Primera Empresa',
+    description:
+      'Desarrollé interfaces de usuario para aplicaciones B2B. Implementé un sistema de diseño desde cero utilizado por todo el equipo de producto y mejoré la puntuación de accesibilidad de la plataforma a nivel AA.',
+    tags: ['React', 'TypeScript', 'GraphQL', 'Storybook'],
+  },
+];
+---
+
+<section class="experience" id="experience">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Experiencia</span>
+      <h2 class="section-title">Trayectoria profesional</h2>
+    </div>
+
+    <div class="timeline">
+      {experience.map((item, i) => (
+        <div class={`timeline-item reveal reveal-delay-${i + 1}`}>
+          <div class="timeline-dot"></div>
+          <p class="timeline-date">{item.date}</p>
+          <h3 class="timeline-role">{item.role}</h3>
+          <p class="timeline-company">{item.company}</p>
+          <p class="timeline-description">{item.description}</p>
+          <div class="timeline-tags">
+            {item.tags.map((tag) => (
+              <span class="timeline-tag">{tag}</span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

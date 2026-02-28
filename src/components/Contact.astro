@@ -1,0 +1,23 @@
+---
+import { contact } from "../data/contact";
+import { hero } from "../data/hero";
+---
+
+<section class="contact" id="contact">
+  <div class="contact-glow"></div>
+
+  <div class="container">
+    <div class="contact-inner">
+      <div class="reveal">
+        <span class="section-label">{contact.label}</span>
+        <h2 class="section-title">{contact.title}</h2>
+        <p class="section-description">{contact.description}</p>
+      </div>
+
+      <a href={`mailto:${contact.email}`} class="contact-email reveal reveal-delay-1">
+        {contact.email}
+      </a>
+
+    </div>
+  </div>
+</section>

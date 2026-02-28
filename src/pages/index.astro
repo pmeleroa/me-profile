@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import About from '../components/About.astro';
+import Projects from '../components/Projects.astro';
+import Experience from '../components/Experience.astro';
+import Contact from '../components/Contact.astro';
+import Footer from '../components/Footer.astro';
+import { sections } from '../data/sections';
+---
+
+<Layout title="Pablo Melero Alonso - Architect & Software Lover">
+  <Header />
+  <main>
+    {sections.hero && <Hero />}
+    {sections.about && <About />}
+    {sections.projects && <Projects />}
+    {sections.experience && <Experience />}
+    {sections.contact && <Contact />}
+  </main>
+  <Footer />
+</Layout>

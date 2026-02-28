@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 190">
+  <rect width="560" height="190" fill="white"/>
+  <defs>
+    <linearGradient id="mg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00C8E0"/>
+      <stop offset="100%" stop-color="#0090C0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Formas solapadas (plectrum) con mezcla multiplicativa -->
+  <g style="mix-blend-mode: multiply" transform="translate(118, 95)">
+    <!-- Amarillo -->
+    <path fill="#F5C200"
+          d="M 0,-75 C 18,-75 52,-12 52,32 C 52,68 -52,68 -52,32 C -52,-12 -18,-75 0,-75 Z"
+          transform="rotate(-35)"/>
+    <!-- Rojo -->
+    <path fill="#C81025"
+          d="M 0,-75 C 18,-75 52,-12 52,32 C 52,68 -52,68 -52,32 C -52,-12 -18,-75 0,-75 Z"
+          transform="rotate(20)"/>
+    <!-- Verde -->
+    <path fill="#3CA028"
+          d="M 0,-75 C 18,-75 52,-12 52,32 C 52,68 -52,68 -52,32 C -52,-12 -18,-75 0,-75 Z"
+          transform="rotate(145)"/>
+    <!-- Magenta -->
+    <path fill="#C81875"
+          d="M 0,-75 C 18,-75 52,-12 52,32 C 52,68 -52,68 -52,32 C -52,-12 -18,-75 0,-75 Z"
+          transform="rotate(-145)"/>
+  </g>
+
+  <!-- Texto "me" -->
+  <text x="238" y="147"
+        font-family="'Arial Rounded MT Bold', Arial, sans-serif"
+        font-size="122"
+        font-weight="bold"
+        fill="url(#mg)">me</text>
+</svg>

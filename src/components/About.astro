@@ -1,0 +1,75 @@
+---
+const skills = [
+  'Arquitectura Empresarial',
+  'Arquitectura de Soluciones',
+  'Estrategia Tecnológica',
+  'Transformación Digital',
+  'DevOps',
+  'CI/CD',
+  'Platform Engineering',
+  'Cloud Computing',
+  'Gobierno IT',
+  'Automatización',
+  'Arquitectura de Datos',
+  'Integración de Sistemas',
+  'Ingeniería de Software',
+  'IA Generativa',
+  'Optimización de Procesos',
+  'Liderazgo Técnico',
+];
+---
+
+<section class="about" id="about">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Sobre mí</span>
+      <h2 class="section-title">Quién soy</h2>
+    </div>
+
+    <div class="about-grid">
+      <div class="about-text reveal reveal-delay-1">
+        <p>
+          Soy un <strong>Arquitecto Tecnológico y Enterprise Architect</strong> 
+          con más de <strong>20 años de experiencia</strong> liderando iniciativas 
+          de transformación en grandes organizaciones. 
+          Me especializo en alinear <strong>estrategia tecnológica, arquitectura y negocio</strong>, 
+          convirtiendo la complejidad en soluciones escalables, resilientes 
+          y orientadas a resultados.
+        </p>
+
+        <p>
+          Trabajo en entornos de alta exigencia diseñando y evolucionando 
+          <strong>plataformas DevOps, CI/CD y modelos de arquitectura empresarial</strong>, 
+          integrando prácticas modernas de ingeniería con un gobierno tecnológico efectivo. 
+          Impulso el uso estratégico de la <strong>IA generativa</strong> 
+          como acelerador real de productividad, calidad y toma de decisiones.
+        </p>
+
+        <p>
+          Disfruto construyendo visión, definiendo marcos de trabajo 
+          y ayudando a equipos a crecer. 
+          Combino <strong>pensamiento sistémico</strong>, 
+          mentalidad de producto y cultura de automatización 
+          para transformar la tecnología en 
+          <strong>ventaja competitiva sostenible</strong>.
+        </p>
+
+        <p class="skills-heading">// stack tecnológico</p>
+        <div class="skills-grid">
+          {skills.map((skill) => (
+            <span class="skill-tag">{skill}</span>
+          ))}
+        </div>
+      </div>
+
+      <div class="about-image reveal reveal-delay-3">
+        <div class="image-wrapper">
+          <div class="image-frame">
+            <img src="/about.png" alt="Pablo Melero Alonso" />
+          </div>
+          <div class="image-frame-deco"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

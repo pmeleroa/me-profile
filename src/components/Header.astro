@@ -1,0 +1,49 @@
+---
+import { sections } from '../data/sections';
+---
+
+<header class="header" id="header">
+  <nav class="container">
+    <a href="/" class="logo" aria-label="Inicio">
+      <img src="/logo.png" alt="Logo" class="logo-img" />
+    </a>
+
+    <div class="nav-links" id="nav-links">
+      {sections.about && <a href="#about">Sobre mí</a>}
+      {sections.projects && <a href="#projects">Proyectos</a>}
+      {sections.experience && <a href="#experience">Experiencia</a>}
+      {sections.contact && <a href="#contact" class="btn-nav">Contactar</a>}
+    </div>
+
+    <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+</header>
+
+<script>
+  const header = document.getElementById('header')!;
+  const menuToggle = document.getElementById('menu-toggle')!;
+  const navLinks = document.getElementById('nav-links')!;
+
+  // Scroll effect
+  window.addEventListener('scroll', () => {
+    header.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // Mobile menu toggle
+  menuToggle.addEventListener('click', () => {
+    navLinks.classList.toggle('open');
+    menuToggle.classList.toggle('active');
+  });
+
+  // Close menu on link click
+  navLinks.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+      menuToggle.classList.remove('active');
+    });
+  });
+</script>
