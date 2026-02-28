@@ -10,9 +10,9 @@ export const hero = {
     secondary: { label: "Contactar", href: "#contact" },
   },
   social: {
-    github: { url: "https://github.com/tu-usuario", enabled: true },
-    linkedin: { url: "https://linkedin.com/in/tu-usuario", enabled: true },
-    twitter: { url: "https://twitter.com/tu-usuario", enabled: false },
+    github: { url: "https://github.com/pmeleroa", enabled: true },
+    linkedin: { url: "https://linkedin.com/in/pmeleroa", enabled: true },
+    twitter: { url: "https://twitter.com/pmeleroa", enabled: false },
   },
   roles: [
     "Software Lover",
