@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://yoursite.com',
+  site: 'https://pmeleroa.github.io',
+  base: '/me-profile',
   compressHTML: true,
 });
