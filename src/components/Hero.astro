@@ -47,21 +47,25 @@ import { hero } from "../data/hero";
         <div class="hero-description" set:html={hero.description} />
 
         <div class="hero-actions">
-          <a href={hero.actions.primary.href} class="btn btn-primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1"/>
-              <rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/>
-              <rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-            {hero.actions.primary.label}
-          </a>
-          <a href={hero.actions.secondary.href} class="btn btn-secondary">
-            {hero.actions.secondary.label}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </a>
+          {hero.actions.primary.enabled && (
+            <a href={hero.actions.primary.href} class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              {hero.actions.primary.label}
+            </a>
+          )}
+          {hero.actions.secondary.enabled && (
+            <a href={hero.actions.secondary.href} class="btn btn-secondary">
+              {hero.actions.secondary.label}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          )}
         </div>
 
         <div class="hero-social">

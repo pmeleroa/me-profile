@@ -1034,6 +1034,13 @@ img, video {
 .contact .section-description {
   max-width: 100%;
   margin-bottom: 3rem;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+}
+
+.contact .section-description strong {
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .contact-email {

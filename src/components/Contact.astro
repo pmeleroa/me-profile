@@ -11,7 +11,7 @@ import { hero } from "../data/hero";
       <div class="reveal">
         <span class="section-label">{contact.label}</span>
         <h2 class="section-title">{contact.title}</h2>
-        <p class="section-description">{contact.description}</p>
+        <p class="section-description" set:html={contact.description} />
       </div>
 
       <a href={`mailto:${contact.email}`} class="contact-email reveal reveal-delay-1">

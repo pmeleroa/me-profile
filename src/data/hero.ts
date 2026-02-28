@@ -6,8 +6,8 @@ export const hero = {
     Impulso la <strong>transformación empresarial a través de la IA</strong>, alineando estrategia tecnológica y negocio con más de 20 años de experiencia en grandes compañías TIC, combinando visión estratégica, evangelización tecnológica y curiosidad constante para afrontar nuevos retos.
   `,
   actions: {
-    primary: { label: "Ver proyectos", href: "#projects" },
-    secondary: { label: "Contactar", href: "#contact" },
+    primary: { label: "Ver proyectos", href: "#projects", enabled: false },
+    secondary: { label: "Contactar", href: "#contact", enabled: true },
   },
   social: {
     github: { url: "https://github.com/pmeleroa", enabled: true },
