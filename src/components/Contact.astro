@@ -1,22 +1,41 @@
 ---
 import { contact } from "../data/contact";
-import { hero } from "../data/hero";
 ---
 
 <section class="contact" id="contact">
   <div class="contact-glow"></div>
+  <div class="contact-glow contact-glow--secondary"></div>
 
   <div class="container">
     <div class="contact-inner">
+
       <div class="reveal">
         <span class="section-label">{contact.label}</span>
         <h2 class="section-title">{contact.title}</h2>
-        <p class="section-description" set:html={contact.description} />
       </div>
 
-      <a href={`mailto:${contact.email}`} class="contact-email reveal reveal-delay-1">
-        {contact.email}
-      </a>
+      <div class="contact-body">
+        {contact.paragraphs.map((p, i) => (
+          <p class={`contact-paragraph reveal reveal-delay-${i + 1}`} set:html={p} />
+        ))}
+      </div>
+
+      <div class="contact-topics reveal reveal-delay-4">
+        {contact.topics.map((topic) => (
+          <span class="contact-topic">{topic}</span>
+        ))}
+      </div>
+
+      <div class="contact-cta reveal reveal-delay-4">
+        <a href={`mailto:${contact.email}`} class="contact-cta-btn">
+          <span>{contact.cta}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+        <span class="contact-email-label">{contact.email}</span>
+      </div>
 
     </div>
   </div>
