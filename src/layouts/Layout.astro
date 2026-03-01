@@ -10,6 +10,8 @@ const {
   title,
   description = 'Portfolio personal — Desarrollador Full Stack apasionado por crear experiencias digitales excepcionales.',
 } = Astro.props;
+
+const gaId = import.meta.env.PUBLIC_GA_ID;
 ---
 
 <!doctype html>
@@ -24,6 +26,15 @@ const {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+
+    <!-- Google Analytics -->
+    <script type="text/partytown" is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+    <script type="text/partytown" is:inline define:vars={{ gaId }}>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', gaId);
+    </script>
 
     <!-- Theme color -->
     <meta name="theme-color" content="#08080f" />
