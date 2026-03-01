@@ -3,8 +3,10 @@ export const hero = {
   firstName: "Pablo",
   lastName: "Melero Alonso",
   description: `
-    Impulso la <strong>transformación empresarial a través de la IA</strong>, alineando estrategia tecnológica y negocio con más de 20 años de experiencia en grandes compañías TIC, combinando visión estratégica, evangelización tecnológica y curiosidad constante para afrontar nuevos retos.
-  `,
+    <p>
+Me apasiona entender cómo funcionan las organizaciones y cómo la <strong>arquitectura</strong> puede ayudarlas a evolucionar.
+Trabajo conectando <strong>negocio, tecnología, procesos y personas</strong> para construir capacidades que permitan a las empresas adaptarse a un mundo cada vez más complejo y acelerado.
+</p>`,
   actions: {
     primary: { label: "Ver proyectos", href: "#projects", enabled: false },
     secondary: { label: "Contactar", href: "#contact", enabled: true },
@@ -15,9 +17,9 @@ export const hero = {
     twitter: { url: "https://twitter.com/pmeleroa", enabled: false },
   },
   roles: [
-    "Software Lover",
-    "Architect",
-    "People Fan",
-    "AI Enthusiast",
+  "Enterprise Architect",
+  "Systems Thinker",
+  "People Advocate",
+  "AI-Augmented"
   ],
 };
