@@ -1,6 +1,6 @@
 export const about = {
   label: "Sobre mí",
-  title: "Mis pilares",
+  title: "Mi arquitectura personal",
   pillars: [
     {
       id: "who-i-am",
