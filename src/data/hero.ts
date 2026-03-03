@@ -2,11 +2,14 @@ export const hero = {
   label: "Hola 👋, soy",
   firstName: "Pablo",
   lastName: "Melero Alonso",
-  description: `
-    <p>
-Me apasiona entender cómo funcionan las organizaciones y cómo la <strong>arquitectura</strong> puede ayudarlas a evolucionar.
-Trabajo conectando <strong>organizaciones, tecnología, procesos y personas</strong> para construir capacidades que permitan a las empresas adaptarse a un mundo cada vez más complejo y acelerado.
-</p>`,
+  description: `<p>
+  Me apasiona entender <strong>cómo funcionan las organizaciones</strong> y cómo
+  <strong>la arquitectura puede ayudarlas a evolucionar</strong>.
+  Trabajo <strong>conectando organizaciones, tecnología, procesos y personas</strong>
+  para <strong>construir capacidades</strong> que permitan a las empresas
+  <strong>adaptarse a un mundo cada vez más complejo y acelerado</strong>,
+  , explorando también cómo la <strong style="color: var(--color-accent-light); font-weight: 600;">inteligencia artificial puede amplificar</strong> nuestra forma de pensar, diseñar y construir tecnología.
+  </p>`,
   actions: {
     primary: { label: "Ver proyectos", href: "#projects", enabled: false },
     secondary: { label: "Contactar", href: "#contact", enabled: true },
