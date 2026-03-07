@@ -14,6 +14,7 @@ const {
 } = Astro.props;
 
 const gaId = import.meta.env.PUBLIC_GA_ID;
+const isProd = import.meta.env.PROD;
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://pablomeleroalonso.me';
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const ogImageUrl = new URL(image, siteUrl).toString();
@@ -47,14 +48,16 @@ const ogImageUrl = new URL(image, siteUrl).toString();
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
 
-    <!-- Google Analytics -->
-    <script type="text/partytown" is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
-    <script type="text/partytown" is:inline define:vars={{ gaId }}>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', gaId);
-    </script>
+    <!-- Google Analytics (solo en producción) -->
+    {isProd && gaId && (
+      <script type="text/partytown" is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+      <script type="text/partytown" is:inline define:vars={{ gaId }}>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', gaId);
+      </script>
+    )}
 
     <!-- Theme color -->
     <meta name="theme-color" content="#08080f" />
