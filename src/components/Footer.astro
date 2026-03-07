@@ -1,5 +1,15 @@
 ---
 import { sections } from '../data/sections';
+import { pageSections, type PageSection } from '../data/pageSections';
+
+const footerPageOrder: PageSection[] = ['experience', 'skills'];
+const footerPageItems = footerPageOrder
+  .filter((section) => pageSections[section].enabled)
+  .map((section) => ({
+    slug: section,
+    label: pageSections[section].navLabel,
+  }));
+
 const year = new Date().getFullYear();
 ---
 
@@ -13,9 +23,10 @@ const year = new Date().getFullYear();
 
       <nav class="footer-links" aria-label="Footer navigation">
         {sections.about && <a href={`${import.meta.env.BASE_URL}#about`}>Sobre mí</a>}
-        {sections.skills && <a href={`${import.meta.env.BASE_URL}skills`}>Skills</a>}
+        {footerPageItems.map((item) => (
+          <a href={`${import.meta.env.BASE_URL}${item.slug}`}>{item.label}</a>
+        ))}
         {sections.projects && <a href={`${import.meta.env.BASE_URL}#projects`}>Proyectos</a>}
-        {sections.experience && <a href={`${import.meta.env.BASE_URL}#experience`}>Experiencia</a>}
         {sections.contact && <a href={`${import.meta.env.BASE_URL}#contact`}>Contacto</a>}
       </nav>
     </div>

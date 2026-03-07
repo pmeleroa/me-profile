@@ -908,119 +908,479 @@ img, video {
 }
 
 /* ============================================================
-   EXPERIENCE
+   EXPERIENCE — Storytelling Journey
    ============================================================ */
 
 .experience {
-  padding: 8rem 0;
+  padding: calc(var(--header-height) + 4rem) 0 8rem;
   position: relative;
+  overflow: hidden;
 }
 
-.experience::before {
-  content: '';
+/* Ambient glow */
+.experience-ambient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent, rgba(13, 13, 26, 0.5) 50%, transparent);
   pointer-events: none;
+}
+
+.experience-glow {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.experience-glow--1 {
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(0, 189, 212, 0.07), transparent 65%);
+  top: 5%;
+  left: -15%;
+  filter: blur(60px);
+}
+
+.experience-glow--2 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 153, 200, 0.05), transparent 65%);
+  bottom: 20%;
+  right: -10%;
+  filter: blur(80px);
+}
+
+.experience-glow--3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(213, 66, 96, 0.03), transparent 65%);
+  top: 45%;
+  left: 30%;
+  filter: blur(100px);
 }
 
 .experience .container {
   position: relative;
 }
 
-.timeline {
-  position: relative;
-  margin-top: 3.5rem;
+.experience-header {
+  text-align: center;
+  margin-bottom: 3rem;
 }
 
-.timeline::before {
-  content: '';
+.experience-subtitle {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.75;
+  max-width: 60ch;
+  margin: 0 auto;
+}
+
+/* --- Journey Timeline --- */
+
+.journey {
+  position: relative;
+  margin-top: 4rem;
+  padding: 0 0 2rem 3.5rem;
+}
+
+/* Left vertical line */
+.journey-line {
   position: absolute;
-  left: 0;
-  top: 8px;
+  left: 7px;
+  top: 0;
   bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg, var(--color-accent) 0%, rgba(0, 153, 200, 0.3) 60%, transparent 100%);
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--color-border) 3%,
+    var(--color-border) 97%,
+    transparent
+  );
 }
 
-.timeline-item {
-  position: relative;
-  padding-left: 2.75rem;
-  padding-bottom: 3rem;
-}
-
-.timeline-item:last-child {
-  padding-bottom: 0;
-}
-
-.timeline-dot {
+.journey-line-progress {
   position: absolute;
-  left: -4px;
-  top: 6px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow:
-    0 0 0 3px var(--color-bg),
-    0 0 0 4.5px rgba(0, 189, 212, 0.35),
-    0 0 15px rgba(0, 189, 212, 0.25);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(
+    180deg,
+    var(--color-accent),
+    var(--color-accent-2),
+    rgba(0, 189, 212, 0.2)
+  );
+  border-radius: 2px;
+  transition: height 0.1s linear;
+  box-shadow: 0 0 14px rgba(0, 189, 212, 0.35), 0 0 4px rgba(0, 189, 212, 0.6);
 }
 
-.timeline-date {
+/* --- Stage (career phase grouping roles) --- */
+
+.stage {
+  position: relative;
+  margin-bottom: 5rem;
+}
+
+.stage:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Stage marker on the timeline --- */
+
+.stage-marker {
+  position: absolute;
+  left: -3.5rem;
+  top: 0.25rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: 2.5px solid var(--color-accent);
+  position: relative;
+  display: block;
+  box-shadow:
+    0 0 0 4px var(--color-bg),
+    0 0 20px rgba(0, 189, 212, 0.35);
+  transition: all 0.3s ease;
+}
+
+.stage--current .stage-dot {
+  background: var(--color-accent);
+  width: 18px;
+  height: 18px;
+  box-shadow:
+    0 0 0 4px var(--color-bg),
+    0 0 30px rgba(0, 189, 212, 0.5);
+}
+
+.stage-pulse {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 189, 212, 0.4);
+  animation: stagePulse 2.5s ease-in-out infinite;
+}
+
+@keyframes stagePulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50%      { transform: scale(1.8); opacity: 0; }
+}
+
+/* --- Stage head (big number + title) --- */
+
+.stage-head {
+  margin-bottom: 1.25rem;
+}
+
+.stage-number {
+  font-family: var(--font-mono);
+  font-size: clamp(3rem, 6vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 189, 212, 0.2),
+    rgba(0, 153, 200, 0.08)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: block;
+  margin-bottom: 0.5rem;
+  user-select: none;
+}
+
+.stage--current .stage-number {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 189, 212, 0.35),
+    rgba(0, 153, 200, 0.15)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.stage-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.stage-period {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   color: var(--color-accent);
-  margin-bottom: 0.5rem;
   letter-spacing: 0.05em;
   opacity: 0.85;
 }
 
-.timeline-role {
-  font-size: 1.125rem;
-  font-weight: 700;
+.stage-badge {
+  padding: 0.1875rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-bg);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+  border-radius: var(--r-full);
+  line-height: 1.5;
+  box-shadow: 0 0 16px rgba(0, 189, 212, 0.3);
+}
+
+.stage-name {
+  font-size: clamp(1.375rem, 3vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  line-height: 1.2;
   margin-bottom: 0.25rem;
-  letter-spacing: -0.01em;
 }
 
-.timeline-company {
+.stage-theme {
+  font-size: 0.9375rem;
+  color: var(--color-text-subtle);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* --- Stage narrative --- */
+
+.stage-narrative {
   font-size: 0.9375rem;
   color: var(--color-text-muted);
-  margin-bottom: 0.875rem;
+  line-height: 1.8;
+  max-width: 70ch;
+  margin-bottom: 1.75rem;
+  padding-left: 0.125rem;
+}
+
+/* --- Role cards grid --- */
+
+.stage-roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 1.25rem;
+}
+
+/* --- Individual role card --- */
+
+.role-card {
+  position: relative;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px) scale(0.97);
+  transition: opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition-delay: var(--delay, 0s);
+}
+
+.role-card--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Animated gradient border */
+.role-card-border {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-lg);
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 189, 212, 0.25),
+    rgba(0, 153, 200, 0.08),
+    rgba(0, 189, 212, 0.15)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.4s ease;
+}
+
+.role-card:hover .role-card-border {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 189, 212, 0.5),
+    rgba(0, 153, 200, 0.2),
+    rgba(0, 189, 212, 0.4)
+  );
+}
+
+.role-card-inner {
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 1.75rem;
+  border-radius: var(--r-lg);
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  transition: background 0.3s ease, box-shadow 0.4s ease;
+}
+
+.role-card:hover .role-card-inner {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.2),
+    0 0 40px rgba(0, 189, 212, 0.06);
+}
+
+.stage--current .role-card-inner {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.role-card-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-lg);
+  pointer-events: none;
+  z-index: 0;
+  transition: background 0.25s ease;
+}
+
+/* --- Role card content --- */
+
+.role-header {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.375rem;
 }
 
-.timeline-company::before {
-  content: '@';
-  color: var(--color-accent);
+.role-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.role-period {
   font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-text-subtle);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 0.2rem;
+}
+
+.role-company {
+  display: inline-block;
+  font-size: 0.8125rem;
+  color: var(--color-accent);
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  opacity: 0.8;
+}
+
+.role-description {
   font-size: 0.875rem;
-}
-
-.timeline-description {
-  font-size: 0.9375rem;
   color: var(--color-text-muted);
-  line-height: 1.75;
+  line-height: 1.7;
+  margin-bottom: 1rem;
 }
 
-.timeline-tags {
+.role-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
-  margin-top: 1rem;
 }
 
-.timeline-tag {
-  padding: 0.2rem 0.6rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
+.role-tag {
+  padding: 0.25rem 0.625rem;
+  background: rgba(0, 189, 212, 0.05);
+  border: 1px solid rgba(0, 189, 212, 0.1);
+  border-radius: var(--r-sm);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-subtle);
-  letter-spacing: 0.02em;
+  font-size: 0.6875rem;
+  color: var(--color-accent-light);
+  letter-spacing: 0.03em;
+  transition: all 0.25s ease;
+}
+
+.role-tag:hover {
+  background: rgba(0, 189, 212, 0.12);
+  border-color: rgba(0, 189, 212, 0.3);
+  box-shadow: 0 0 8px rgba(0, 189, 212, 0.15);
+}
+
+/* --- Experience Responsive --- */
+
+@media (max-width: 768px) {
+  .journey {
+    padding-left: 2.5rem;
+  }
+
+  .journey-line {
+    left: 6px;
+  }
+
+  .stage-marker {
+    left: -2.5rem;
+  }
+
+  .stage-number {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+  }
+
+  .stage {
+    margin-bottom: 4rem;
+  }
+
+  .role-card-inner {
+    padding: 1.375rem;
+  }
+
+  .role-header {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .experience {
+    padding: calc(var(--header-height) + 2.5rem) 0 5rem;
+  }
+
+  .journey {
+    margin-top: 2.5rem;
+    padding-left: 2rem;
+  }
+
+  .stage-marker {
+    left: -2rem;
+  }
+
+  .stage-dot {
+    width: 12px;
+    height: 12px;
+  }
+
+  .stage--current .stage-dot {
+    width: 14px;
+    height: 14px;
+  }
+
+  .role-card-inner {
+    padding: 1.125rem;
+  }
+
+  .stage-name {
+    font-size: 1.25rem;
+  }
 }
 
 /* ============================================================

@@ -1,0 +1,206 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="404 - Pagina no encontrada"
+  description="La pagina que buscas no existe o no esta disponible."
+>
+  <Header />
+  <main class="not-found">
+    <div class="not-found-ambient" aria-hidden="true">
+      <div class="not-found-grid"></div>
+      <div class="not-found-glow not-found-glow--1"></div>
+      <div class="not-found-glow not-found-glow--2"></div>
+      <div class="not-found-glow not-found-glow--3"></div>
+    </div>
+
+    <section class="container not-found-shell">
+      <p class="section-label reveal">404 / ROUTE OFFLINE</p>
+      <h1 class="not-found-code reveal">404</h1>
+      <h2 class="section-title reveal reveal-delay-1">Pagina no encontrada</h2>
+      <p class="not-found-copy reveal reveal-delay-2">
+        Esta URL no existe, esta desactivada o se ha movido. Te dejo accesos directos para volver al flujo.
+      </p>
+
+      <div class="not-found-status reveal reveal-delay-2">
+        <span class="status-dot" aria-hidden="true"></span>
+        Route integrity check: failed
+      </div>
+
+      <div class="not-found-actions reveal reveal-delay-3">
+        <a class="btn btn-primary" href={import.meta.env.BASE_URL}>Volver al inicio</a>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .not-found {
+    position: relative;
+    min-height: calc(100vh - var(--header-height));
+    padding: calc(var(--header-height) + 3rem) 0 5rem;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .not-found-ambient {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .not-found-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 58px 58px;
+    -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, black 0%, transparent 85%);
+    mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, black 0%, transparent 85%);
+  }
+
+  .not-found-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    animation: nfFloat 9s ease-in-out infinite;
+  }
+
+  .not-found-glow--1 {
+    width: 560px;
+    height: 560px;
+    background: radial-gradient(circle, rgba(0, 189, 212, 0.22), transparent 68%);
+    top: -20%;
+    left: -10%;
+  }
+
+  .not-found-glow--2 {
+    width: 520px;
+    height: 520px;
+    background: radial-gradient(circle, rgba(0, 153, 200, 0.16), transparent 70%);
+    right: -12%;
+    bottom: -14%;
+    animation-delay: -2.5s;
+  }
+
+  .not-found-glow--3 {
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, rgba(212, 32, 96, 0.12), transparent 70%);
+    top: 26%;
+    left: 50%;
+    transform: translateX(-50%);
+    animation-delay: -5s;
+  }
+
+  .not-found-shell {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    text-align: center;
+  }
+
+  .not-found-code {
+    font-family: var(--font-mono);
+    font-size: clamp(4.6rem, 21vw, 11rem);
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    line-height: 0.9;
+    margin-bottom: 1rem;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.95),
+      rgba(0, 189, 212, 0.95) 38%,
+      rgba(0, 153, 200, 0.95) 78%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 28px rgba(0, 189, 212, 0.28);
+  }
+
+  .not-found-copy {
+    max-width: 64ch;
+    margin: 0 auto;
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .not-found-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1.5rem auto 0;
+    padding: 0.5rem 0.875rem;
+    border-radius: var(--r-full);
+    border: 1px solid rgba(212, 32, 96, 0.34);
+    background: rgba(212, 32, 96, 0.08);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: rgba(255, 173, 200, 0.95);
+    text-transform: uppercase;
+  }
+
+  .status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #ff4a8b;
+    box-shadow: 0 0 0 0 rgba(255, 74, 139, 0.55);
+    animation: nfPulse 1.8s ease-in-out infinite;
+  }
+
+  .not-found-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.875rem;
+  }
+
+  @keyframes nfFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-16px); }
+  }
+
+  @keyframes nfPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 74, 139, 0.55); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 74, 139, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 74, 139, 0); }
+  }
+
+  @media (max-width: 768px) {
+    .not-found {
+      padding: calc(var(--header-height) + 2rem) 0 4rem;
+    }
+
+    .not-found-copy {
+      font-size: 0.9375rem;
+    }
+
+    .not-found-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .not-found-actions .btn {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .not-found-glow,
+    .status-dot {
+      animation: none;
+    }
+  }
+</style>

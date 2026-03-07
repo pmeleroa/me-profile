@@ -1,35 +1,72 @@
 ---
-import { experience } from '../data/experience';
+import { experience } from "../data/experience";
 ---
 
 <section class="experience" id="experience">
+  <div class="experience-ambient">
+    <div class="experience-glow experience-glow--1"></div>
+    <div class="experience-glow experience-glow--2"></div>
+    <div class="experience-glow experience-glow--3"></div>
+  </div>
+
   <div class="container">
-    <div class="reveal">
-      <span class="section-label">Experiencia</span>
-      <h2 class="section-title">Trayectoria profesional</h2>
+    <div class="experience-header reveal">
+      <span class="section-label">{experience.label}</span>
+      <h2 class="section-title">{experience.title}</h2>
+      <p class="experience-subtitle">{experience.subtitle}</p>
     </div>
 
-    <div class="timeline">
-      {experience.map((item, i) => (
-        <div class={`timeline-item reveal reveal-delay-${i + 1}`}>
-          <div class="timeline-dot"></div>
-          <p class="timeline-date">{item.date}</p>
-          <h3 class="timeline-role">{item.role}</h3>
-          <div class="timeline-company-row">
-            {item.logo && (
-              <img
-                src={`${import.meta.env.BASE_URL}${item.logo}`}
-                alt={`Logo ${item.company}`}
-                class="timeline-company-logo"
-                onerror="this.style.display='none'"
-              />
-            )}
-            <p class="timeline-company">{item.company}</p>
+    <div class="journey">
+      <div class="journey-line" aria-hidden="true">
+        <div class="journey-line-progress" id="journey-progress"></div>
+      </div>
+
+      {experience.stages.map((stage) => (
+        <div
+          class={`stage ${stage.current ? "stage--current" : ""} reveal`}
+          data-stage={stage.number}
+        >
+          {/* --- Stage node on the timeline --- */}
+          <div class="stage-marker" aria-hidden="true">
+            <span class="stage-dot">
+              {stage.current && <span class="stage-pulse"></span>}
+            </span>
           </div>
-          <p class="timeline-description">{item.description}</p>
-          <div class="timeline-tags">
-            {item.tags.map((tag) => (
-              <span class="timeline-tag">{tag}</span>
+
+          {/* --- Stage header --- */}
+          <div class="stage-head">
+            <span class="stage-number">{String(stage.number).padStart(2, "0")}</span>
+            <div class="stage-meta">
+              <span class="stage-period">{stage.period}</span>
+              {stage.current && <span class="stage-badge">Ahora</span>}
+            </div>
+            <h3 class="stage-name">{stage.name}</h3>
+            <p class="stage-theme">{stage.theme}</p>
+          </div>
+
+          {/* --- Narrative --- */}
+          <p class="stage-narrative">{stage.narrative}</p>
+
+          {/* --- Roles within this stage --- */}
+          <div class="stage-roles">
+            {stage.roles.map((role, j) => (
+              <article class="role-card" style={`--delay: ${j * 0.08}s`}>
+                <div class="role-card-border" aria-hidden="true"></div>
+                <div class="role-card-inner">
+                  <div class="role-header">
+                    <h4 class="role-title">{role.title}</h4>
+                    <span class="role-period">{role.period}</span>
+                  </div>
+                  <span class="role-company">{role.company}</span>
+                  <p class="role-description">{role.description}</p>
+                  <div class="role-tags">
+                    {role.tags.map((tag) => (
+                      <span class="role-tag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                <div class="role-card-shine" aria-hidden="true"></div>
+              </article>
             ))}
           </div>
         </div>
@@ -38,23 +75,65 @@ import { experience } from '../data/experience';
   </div>
 </section>
 
-<style>
-  .timeline-company-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+<script>
+  // Animate journey line on scroll
+  const journeyProgress = document.getElementById('journey-progress');
+  const journeySection = document.querySelector('.journey') as HTMLElement;
+
+  if (journeyProgress && journeySection) {
+    const updateProgress = () => {
+      const rect = journeySection.getBoundingClientRect();
+      const windowH = window.innerHeight;
+      const sectionTop = rect.top;
+      const sectionH = rect.height;
+
+      if (sectionTop > windowH) {
+        journeyProgress.style.height = '0%';
+        return;
+      }
+
+      const scrolled = windowH - sectionTop;
+      const total = sectionH + windowH * 0.3;
+      const pct = Math.min(Math.max((scrolled / total) * 100, 0), 100);
+      journeyProgress.style.height = `${pct}%`;
+    };
+
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
   }
 
-  .timeline-company-logo {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    object-fit: contain;
-    flex-shrink: 0;
-  }
+  // Card mouse shine effect
+  document.querySelectorAll('.role-card').forEach((card) => {
+    const shine = card.querySelector('.role-card-shine') as HTMLElement;
+    if (!shine) return;
 
-  .timeline-company-row .timeline-company {
-    margin-bottom: 0;
-  }
-</style>
+    card.addEventListener('mousemove', (e: Event) => {
+      const evt = e as MouseEvent;
+      const rect = (card as HTMLElement).getBoundingClientRect();
+      const x = evt.clientX - rect.left;
+      const y = evt.clientY - rect.top;
+      shine.style.background = `radial-gradient(400px circle at ${x}px ${y}px, rgba(0, 189, 212, 0.08), transparent 40%)`;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      shine.style.background = 'transparent';
+    });
+  });
+
+  // Stagger role cards on reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const cards = entry.target.querySelectorAll('.role-card');
+        cards.forEach((card, i) => {
+          setTimeout(() => {
+            card.classList.add('role-card--visible');
+          }, i * 120);
+        });
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.stage-roles').forEach((el) => observer.observe(el));
+</script>

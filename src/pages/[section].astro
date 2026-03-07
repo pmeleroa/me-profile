@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Experience from '../components/Experience.astro';
+import SkillsGrid from '../components/SkillsGrid.astro';
+import Footer from '../components/Footer.astro';
+import { pageSections, type PageSection } from '../data/pageSections';
+
+const sectionComponents = {
+  experience: Experience,
+  skills: SkillsGrid,
+} as const;
+
+type PageSectionEntry = (typeof pageSections)[PageSection];
+
+export function getStaticPaths() {
+  return (Object.entries(pageSections) as [PageSection, PageSectionEntry][])
+    .filter(([, page]) => page.enabled)
+    .map(([section]) => ({
+      params: { section },
+    }));
+}
+
+const { section } = Astro.params as { section: PageSection };
+const page = pageSections[section];
+const SectionComponent = sectionComponents[section];
+---
+
+<Layout title={page.title} description={page.description}>
+  <Header />
+  <main>
+    <SectionComponent />
+  </main>
+  <Footer />
+</Layout>
+
