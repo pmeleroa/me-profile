@@ -9,10 +9,11 @@ import { sections } from '../data/sections';
     </a>
 
     <div class="nav-links" id="nav-links">
-      {sections.about && <a href="#about">Sobre mí</a>}
-      {sections.projects && <a href="#projects">Proyectos</a>}
-      {sections.experience && <a href="#experience">Experiencia</a>}
-      {sections.contact && <a href="#contact" class="btn-nav">Contactar</a>}
+      {sections.about && <a href={`${import.meta.env.BASE_URL}#about`}>Sobre mí</a>}
+      {sections.skills && <a href={`${import.meta.env.BASE_URL}skills`}>Skills</a>}
+      {sections.projects && <a href={`${import.meta.env.BASE_URL}#projects`}>Proyectos</a>}
+      {sections.experience && <a href={`${import.meta.env.BASE_URL}#experience`}>Experiencia</a>}
+      {sections.contact && <a href={`${import.meta.env.BASE_URL}#contact`} class="btn-nav">Contactar</a>}
     </div>
 
     <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">

@@ -1,0 +1,564 @@
+---
+import { skillCategories, skills, skillsPage, levelLabels } from '../data/skills';
+
+// Build a color map for categories
+const categoryColorMap = Object.fromEntries(skillCategories.map((c) => [c.id, c.color]));
+---
+
+<section class="skills-section">
+  <div class="container">
+    <!-- Header -->
+    <div class="skills-header reveal">
+      <span class="section-label">{skillsPage.label}</span>
+      <h1 class="section-title">{skillsPage.title}</h1>
+      <p class="section-description">{skillsPage.description}</p>
+    </div>
+
+    <!-- Filter Chips -->
+    <div class="skills-filters reveal reveal-delay-1">
+      <button class="filter-chip active" data-category="all">
+        <span class="filter-icon">✦</span>
+        Todas
+      </button>
+      {skillCategories.map((cat) => (
+        <button class="filter-chip" data-category={cat.id} style={`--chip-color: ${cat.color}`}>
+          <img class="filter-icon" src={`${import.meta.env.BASE_URL}${cat.image}`} alt="" width="16" height="16" />
+          {cat.label}
+        </button>
+      ))}
+    </div>
+
+    <!-- Counter -->
+    <div class="skills-counter reveal reveal-delay-2">
+      <span class="counter-number" id="skills-count">{skills.length}</span>
+      <span class="counter-label">skills</span>
+    </div>
+
+    <!-- Bento Grid -->
+    <div class="skills-grid" id="skills-grid">
+      {skills.map((skill, i) => {
+        const category = skillCategories.find((c) => c.id === skill.categoryId);
+        const catColor = category?.color ?? '#00BDD4';
+        return (
+          <article
+            class={`skill-card ${skill.featured ? 'skill-card--featured' : ''} reveal reveal-delay-${(i % 4) + 1}`}
+            data-category={skill.categoryId}
+            style={`--cat-color: ${catColor}`}
+          >
+            <div class="skill-card-border" />
+            <div class="skill-card-glow" />
+            <div class="skill-card-content">
+              <div class="skill-card-top">
+                <div class="skill-icon-wrapper">
+                  <img class="skill-icon" src={`${import.meta.env.BASE_URL}${skill.image}`} alt={skill.name} width="32" height="32" />
+                </div>
+                <span class="skill-category-badge">{category?.label}</span>
+              </div>
+              <h3 class="skill-name">{skill.name}</h3>
+              <p class="skill-tagline">{skill.tagline}</p>
+              <div class="skill-level">
+                <div class="skill-level-bar">
+                  {[1, 2, 3, 4, 5].map((seg) => (
+                    <div class={`skill-level-segment ${seg <= skill.level ? 'filled' : ''}`} />
+                  ))}
+                </div>
+                <span class="skill-level-label">{levelLabels[skill.level]}</span>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+
+    <!-- Back link -->
+    <div class="skills-back reveal">
+      <a href={import.meta.env.BASE_URL} class="btn btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Volver al inicio
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+  const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
+  const cards = document.querySelectorAll<HTMLElement>('.skill-card');
+  const counter = document.getElementById('skills-count');
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      chips.forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      const category = chip.dataset.category;
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        if (category === 'all' || card.dataset.category === category) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      if (counter) {
+        counter.classList.add('counter-updating');
+        setTimeout(() => {
+          counter.textContent = String(visibleCount);
+          counter.classList.remove('counter-updating');
+        }, 150);
+      }
+    });
+  });
+</script>
+
+<style>
+  /* ============================================================
+     SKILLS SECTION
+     ============================================================ */
+  .skills-section {
+    padding: calc(var(--header-height) + 4rem) 0 6rem;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  .skills-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 189, 212, 0.08), transparent),
+      radial-gradient(ellipse 50% 50% at 80% 80%, rgba(0, 153, 200, 0.05), transparent);
+    pointer-events: none;
+  }
+
+  .skills-section .container {
+    position: relative;
+  }
+
+  /* ============================================================
+     HEADER
+     ============================================================ */
+  .skills-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .skills-header .section-description {
+    max-width: 60ch;
+    margin: 0 auto;
+  }
+
+  /* ============================================================
+     FILTER CHIPS
+     ============================================================ */
+  .skills-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.125rem;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-full);
+    cursor: pointer;
+    transition: all var(--ease);
+    white-space: nowrap;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--chip-color, rgba(0, 189, 212, 0.35));
+    color: var(--color-text);
+    background: color-mix(in srgb, var(--chip-color, #00BDD4) 8%, transparent);
+  }
+
+  .filter-chip.active {
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 20px var(--color-accent-glow);
+  }
+
+  .filter-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     COUNTER
+     ============================================================ */
+  .skills-counter {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .counter-number {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .counter-number.counter-updating {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  .counter-label {
+    font-size: 0.9375rem;
+    color: var(--color-text-muted);
+    font-weight: 400;
+  }
+
+  /* ============================================================
+     BENTO GRID
+     ============================================================ */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 4rem;
+  }
+
+  /* ============================================================
+     SKILL CARD
+     ============================================================ */
+  .skill-card {
+    --cat-color: #00BDD4;
+    position: relative;
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    padding: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+
+  /* Animated gradient border on hover */
+  .skill-card-border {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-md);
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      transparent 30%,
+      color-mix(in srgb, var(--cat-color) 40%, transparent) 50%,
+      transparent 70%
+    );
+    background-size: 300% 300%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease, background-position 0.6s ease;
+    pointer-events: none;
+  }
+
+  .skill-card-glow {
+    position: absolute;
+    top: -60%;
+    left: -60%;
+    width: 220%;
+    height: 220%;
+    background: radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--cat-color) 8%, transparent),
+      transparent 55%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+
+  .skill-card:hover {
+    border-color: color-mix(in srgb, var(--cat-color) 45%, transparent);
+    transform: translateY(-6px);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.3),
+      0 0 0 1px color-mix(in srgb, var(--cat-color) 15%, transparent),
+      0 0 40px color-mix(in srgb, var(--cat-color) 10%, transparent);
+  }
+
+  .skill-card:hover .skill-card-border {
+    opacity: 1;
+    background-position: 100% 100%;
+  }
+
+  .skill-card:hover .skill-card-glow {
+    opacity: 1;
+  }
+
+  .skill-card:hover .skill-icon-wrapper {
+    box-shadow: 0 0 20px color-mix(in srgb, var(--cat-color) 20%, transparent);
+  }
+
+  .skill-card:hover .skill-tagline {
+    color: var(--color-text-muted);
+  }
+
+  /* Featured cards span 2 columns */
+  .skill-card--featured {
+    grid-column: span 2;
+  }
+
+  .skill-card--featured .skill-icon-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+
+  .skill-card--featured .skill-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .skill-card--featured .skill-name {
+    font-size: 1.25rem;
+  }
+
+  /* Hidden state for filtering */
+  .skill-card.hidden {
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+    position: absolute;
+    visibility: hidden;
+  }
+
+  .skill-card-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .skill-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  /* Icon wrapper with glassmorphism circle */
+  .skill-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--cat-color) 8%, rgba(255, 255, 255, 0.03));
+    border: 1px solid color-mix(in srgb, var(--cat-color) 15%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.4s ease, background 0.4s ease;
+    flex-shrink: 0;
+  }
+
+  .skill-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  .skill-category-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--cat-color);
+    opacity: 0.8;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .skill-name {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.375rem;
+    color: var(--color-text);
+  }
+
+  .skill-tagline {
+    font-size: 0.8125rem;
+    color: var(--color-text-subtle);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    transition: color 0.3s ease;
+  }
+
+  /* ============================================================
+     LEVEL INDICATOR
+     ============================================================ */
+  .skill-level {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .skill-level-bar {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .skill-level-segment {
+    height: 4px;
+    flex: 1;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.06);
+    transition: background 0.3s ease;
+  }
+
+  .skill-level-segment.filled {
+    background: linear-gradient(90deg, var(--cat-color), color-mix(in srgb, var(--cat-color) 70%, #fff));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--cat-color) 30%, transparent);
+  }
+
+  .skill-level-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-subtle);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    min-width: 5.5ch;
+    text-align: right;
+  }
+
+  /* ============================================================
+     BACK LINK
+     ============================================================ */
+  .skills-back {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 1024px) {
+    .skills-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .skill-card--featured {
+      grid-column: span 2;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skills-section {
+      padding-top: calc(var(--header-height) + 3rem);
+      padding-bottom: 4rem;
+    }
+
+    .skills-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .skill-card--featured {
+      grid-column: span 2;
+    }
+
+    .skills-filters {
+      gap: 0.375rem;
+    }
+
+    .filter-chip {
+      padding: 0.4375rem 0.875rem;
+      font-size: 0.8125rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .skills-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.625rem;
+    }
+
+    .skill-card--featured {
+      grid-column: span 2;
+    }
+
+    .skill-card {
+      padding: 1rem;
+    }
+
+    .skill-icon-wrapper {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .skill-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .skill-card--featured .skill-icon-wrapper {
+      width: 36px;
+      height: 36px;
+    }
+
+    .skill-card--featured .skill-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .skill-name {
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .skill-card--featured .skill-name {
+      font-size: 1rem;
+    }
+
+    .skill-tagline {
+      font-size: 0.6875rem;
+      margin-bottom: 0.625rem;
+      line-height: 1.4;
+    }
+
+    .skill-card-top {
+      margin-bottom: 0.625rem;
+    }
+
+    .skill-category-badge {
+      font-size: 0.5625rem;
+    }
+
+    .skill-level-label {
+      font-size: 0.5625rem;
+      min-width: 4ch;
+    }
+
+    .skill-level {
+      padding-top: 0.5rem;
+    }
+  }
+</style>

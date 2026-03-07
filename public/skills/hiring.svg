@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Magnifying glass over person -->
+  <circle cx="26" cy="24" r="5" fill="#FC8181" opacity="0.6"/>
+  <path d="M26 32 C20 32 16 36 16 40 L36 40 C36 36 32 32 26 32Z" fill="#FC8181" opacity="0.4"/>
+  <!-- Magnifying glass -->
+  <circle cx="38" cy="28" r="14" stroke="#FC8181" stroke-width="2.5" fill="none" opacity="0.8"/>
+  <line x1="48" y1="38" x2="56" y2="46" stroke="#FC8181" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <!-- Check mark -->
+  <path d="M42 18 L46 22 L54 12" stroke="#68D391" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

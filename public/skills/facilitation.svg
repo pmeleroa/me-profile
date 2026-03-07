@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Whiteboard -->
+  <rect x="12" y="8" width="40" height="30" rx="3" stroke="#FC8181" stroke-width="2" fill="#FC8181" opacity="0.1"/>
+  <!-- Sticky notes on board -->
+  <rect x="16" y="12" width="10" height="8" rx="1" fill="#FBBF24" opacity="0.6"/>
+  <rect x="28" y="12" width="10" height="8" rx="1" fill="#68D391" opacity="0.6"/>
+  <rect x="40" y="12" width="8" height="8" rx="1" fill="#63B3ED" opacity="0.6"/>
+  <rect x="16" y="24" width="10" height="8" rx="1" fill="#FC8181" opacity="0.5"/>
+  <rect x="28" y="24" width="10" height="8" rx="1" fill="#D6BCFA" opacity="0.6"/>
+  <!-- Stand -->
+  <line x1="32" y1="38" x2="32" y2="50" stroke="#FC8181" stroke-width="2" opacity="0.5"/>
+  <line x1="22" y1="50" x2="42" y2="50" stroke="#FC8181" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <!-- Pointer -->
+  <line x1="46" y1="42" x2="54" y2="54" stroke="#FC8181" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <circle cx="54" cy="54" r="2" fill="#FC8181" opacity="0.7"/>
+</svg>

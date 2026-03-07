@@ -14,7 +14,7 @@ export const about = {
       id: "what-i-believe",
       heading: "💡 <span>| En qué creo</span>",
       paragraphs: [
-        `Creo firmemente que las soluciones tecnológicas sostenibles nacen cuando <strong>tecnología, procesos y personas están alineados</strong>. La arquitectura no trata solo de sistemas o herramientas, sino de crear el contexto adecuado para que los equipos puedan construir, evolucionar y operar software con confianza.`,
+        `Creo firmemente que las soluciones tecnológicas sostenibles nacen cuando <strong  style="color: var(--color-accent-light); font-weight: 600;">tecnología, procesos y personas están alineados</strong>. La arquitectura no trata solo de sistemas o herramientas, sino de crear el contexto adecuado para que los equipos puedan construir, evolucionar y operar software con confianza.`,
         `También creo que la <strong>simplicidad, el criterio técnico y la capacidad de aprender continuamente</strong> son elementos esenciales para construir tecnología que perdure en el tiempo.`,
       ],
     },
