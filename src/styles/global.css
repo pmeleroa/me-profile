@@ -1073,54 +1073,93 @@ img, video {
   50%      { transform: scale(1.8); opacity: 0; }
 }
 
-/* --- Stage head (big number + title) --- */
+/* --- Stage banner (header image) --- */
 
-.stage-head {
-  margin-bottom: 1.25rem;
+.stage-cover {
+  position: relative;
+  margin-bottom: 0;
 }
+
+.stage-banner {
+  width: 100%;
+  height: 192px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--stage-color) 22%, transparent);
+}
+
+.stage-banner-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--stage-color) 11%, #0d0d1a),
+    color-mix(in srgb, var(--stage-color) 4%, #08080f)
+  );
+}
+
+.stage-banner-art {
+  position: absolute;
+  inset: 0;
+  color: var(--stage-color);
+}
+
+.stage-banner-art svg {
+  width: 100%;
+  height: 100%;
+}
+
+.stage-banner-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(180deg, transparent, rgba(8, 8, 15, 0.72));
+  pointer-events: none;
+}
+
+/* Big number overlapping banner bottom + stage head top */
 
 .stage-number {
-  font-family: var(--font-mono);
-  font-size: clamp(3rem, 6vw, 4.5rem);
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 189, 212, 0.2),
-    rgba(0, 153, 200, 0.08)
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   display: block;
-  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: clamp(4.5rem, 9vw, 7rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+  color: var(--stage-color);
+  padding-left: 1.75rem;
+  margin-top: -0.5em;
+  position: relative;
+  z-index: 2;
   user-select: none;
+  text-shadow:
+    0 0 80px color-mix(in srgb, var(--stage-color) 45%, transparent),
+    0 0 30px color-mix(in srgb, var(--stage-color) 25%, transparent);
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--stage-color) 30%, transparent);
 }
 
-.stage--current .stage-number {
-  background: linear-gradient(
-    135deg,
-    rgba(0, 189, 212, 0.35),
-    rgba(0, 153, 200, 0.15)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
+/* --- Stage head (name, period, theme) --- */
+
+.stage-head {
+  padding: 0.5rem 0 1.125rem 1.75rem;
 }
 
 .stage-meta {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.375rem;
 }
 
 .stage-period {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  color: var(--color-accent);
+  color: var(--stage-color);
   letter-spacing: 0.05em;
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
 .stage-badge {
@@ -1130,10 +1169,10 @@ img, video {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-bg);
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+  background: var(--stage-color);
   border-radius: var(--r-full);
   line-height: 1.5;
-  box-shadow: 0 0 16px rgba(0, 189, 212, 0.3);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--stage-color) 35%, transparent);
 }
 
 .stage-name {
@@ -1160,7 +1199,7 @@ img, video {
   line-height: 1.8;
   max-width: 70ch;
   margin-bottom: 1.75rem;
-  padding-left: 0.125rem;
+  padding-left: 1.75rem;
 }
 
 /* --- Role cards grid --- */
@@ -1332,12 +1371,25 @@ img, video {
     left: -2.5rem;
   }
 
-  .stage-number {
-    font-size: clamp(2.5rem, 5vw, 3.5rem);
-  }
-
   .stage {
     margin-bottom: 4rem;
+  }
+
+  .stage-banner {
+    height: 160px;
+  }
+
+  .stage-number {
+    font-size: clamp(3.5rem, 8vw, 5.5rem);
+    padding-left: 1.25rem;
+  }
+
+  .stage-head {
+    padding-left: 1.25rem;
+  }
+
+  .stage-narrative {
+    padding-left: 1.25rem;
   }
 
   .role-card-inner {
@@ -1372,6 +1424,23 @@ img, video {
   .stage--current .stage-dot {
     width: 14px;
     height: 14px;
+  }
+
+  .stage-banner {
+    height: 140px;
+  }
+
+  .stage-number {
+    font-size: clamp(3rem, 7vw, 4.5rem);
+    padding-left: 1rem;
+  }
+
+  .stage-head {
+    padding-left: 1rem;
+  }
+
+  .stage-narrative {
+    padding-left: 1rem;
   }
 
   .role-card-inner {

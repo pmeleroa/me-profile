@@ -25,6 +25,7 @@ export const skillCategories: SkillCategory[] = [
   { id: 'tecnologia', label: 'Tecnología', image: 'skills/categories/tecnologia.svg', color: '#61DAFB' },
   { id: 'procesos', label: 'Procesos', image: 'skills/categories/procesos.svg', color: '#F6AD55' },
   { id: 'personas', label: 'Personas', image: 'skills/categories/personas.svg', color: '#FC8181' },
+  { id: 'ia', label: 'Inteligencia Artificial', image: 'skills/categories/ia.svg', color: '#A78BFA' },
 ];
 
 export const skills: Skill[] = [
@@ -52,9 +53,18 @@ export const skills: Skill[] = [
   { name: 'GCP', categoryId: 'tecnologia', level: 3, image: 'skills/gcp.svg', tagline: 'Cloud Run, BigQuery y Firebase' },
   { name: 'Docker', categoryId: 'tecnologia', level: 4, image: 'skills/docker.svg', tagline: 'Contenedores para desarrollo y despliegue consistente' },
   { name: 'Kubernetes', categoryId: 'tecnologia', level: 3, image: 'skills/kubernetes.svg', tagline: 'Orquestación de contenedores a escala' },
-  // IA & Visualización
-  { name: 'OpenAI / LLMs', categoryId: 'tecnologia', level: 3, image: 'skills/openai.svg', tagline: 'Integración de modelos de lenguaje en productos reales' },
+  // Visualización
   { name: 'D3.js', categoryId: 'tecnologia', level: 3, image: 'skills/d3js.svg', tagline: 'Visualizaciones de datos interactivas y personalizadas' },
+
+  // ── Inteligencia Artificial ────────────────────────────────
+  { name: 'Prompt Engineering', categoryId: 'ia', level: 4, image: 'skills/prompt-engineering.svg', featured: true, tagline: 'Diseño de prompts efectivos, chain-of-thought y técnicas avanzadas' },
+  { name: 'OpenAI / LLMs', categoryId: 'ia', level: 3, image: 'skills/openai.svg', featured: true, tagline: 'Integración de modelos de lenguaje en productos reales' },
+  { name: 'AI Agents & Orquestación', categoryId: 'ia', level: 3, image: 'skills/ai-agents.svg', tagline: 'Agentes autónomos, tool-use y flujos multi-step con LLMs' },
+  { name: 'RAG', categoryId: 'ia', level: 3, image: 'skills/rag.svg', tagline: 'Búsqueda semántica y generación aumentada con conocimiento propio' },
+  { name: 'AI-Assisted Development', categoryId: 'ia', level: 4, image: 'skills/ai-dev.svg', featured: true, tagline: 'Copilot, Claude Code y herramientas de IA para acelerar el desarrollo' },
+  { name: 'Embeddings & Vector DBs', categoryId: 'ia', level: 3, image: 'skills/embeddings.svg', tagline: 'Representaciones vectoriales y bases de datos como Pinecone o pgvector' },
+  { name: 'Evaluación & Observabilidad de IA', categoryId: 'ia', level: 2, image: 'skills/ai-observability.svg', tagline: 'Métricas, evals y monitorización de sistemas basados en LLMs' },
+  { name: 'Ética & Gobernanza de IA', categoryId: 'ia', level: 3, image: 'skills/ai-ethics.svg', tagline: 'Uso responsable, sesgos, privacidad y marcos de gobernanza de IA' },
 
   // ── Procesos ────────────────────────────────────────────────
   { name: 'Arquitectura de Software', categoryId: 'procesos', level: 5, image: 'skills/software-architecture.svg', featured: true, tagline: 'Decisiones técnicas que equilibran pragmatismo y visión' },

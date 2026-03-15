@@ -13,6 +13,7 @@ export interface Stage {
   period: string;
   theme: string;
   narrative: string;
+  color: string;
   roles: Role[];
   current?: boolean;
 }
@@ -29,6 +30,7 @@ export const experience = {
       name: "Los cimientos",
       period: "2006 — 2010",
       theme: "Codigo, curiosidad y primeras cicatrices",
+      color: "#5CB845",
       narrative:
         "Todo empezo escribiendo codigo. Aprendi los fundamentos construyendo aplicaciones desde cero, entendiendo que el software no es solo logica — es comunicacion entre personas a traves de la tecnologia.",
       roles: [
@@ -56,6 +58,7 @@ export const experience = {
       name: "El crecimiento",
       period: "2010 — 2014",
       theme: "Liderazgo tecnico y vision de equipo",
+      color: "#F5C200",
       narrative:
         "Empece a liderar decisiones tecnicas y a entender que la calidad del software depende tanto del codigo como del contexto en el que se construye. Aqui descubri la importancia de los procesos y la colaboracion.",
       roles: [
@@ -83,6 +86,7 @@ export const experience = {
       name: "La vision sistemica",
       period: "2014 — 2018",
       theme: "Pensar en sistemas, no solo en codigo",
+      color: "#00BDD4",
       narrative:
         "Di el salto a pensar en sistemas completos. Disenar arquitecturas que escalan, que son mantenibles y que permiten a los equipos trabajar con autonomia. Descubri que la mejor arquitectura es la que nadie nota.",
       roles: [
@@ -110,6 +114,7 @@ export const experience = {
       name: "El impacto organizacional",
       period: "2018 — 2022",
       theme: "Plataformas, equipos y estrategia",
+      color: "#D42060",
       narrative:
         "La arquitectura dejo de ser solo tecnica para convertirse en una herramienta de transformacion organizacional. Empece a trabajar en la interseccion entre plataformas, equipos y estrategia.",
       roles: [
@@ -137,6 +142,7 @@ export const experience = {
       name: "El capitulo actual",
       period: "2022 — Presente",
       theme: "IA, sistemas complejos y nuevos paradigmas",
+      color: "#8B5CF6",
       narrative:
         "Hoy combino todo lo aprendido: arquitectura, plataformas, personas y una nueva dimension — la inteligencia artificial como amplificador del pensamiento y la construccion de software.",
       roles: [

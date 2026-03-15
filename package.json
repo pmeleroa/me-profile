@@ -12,5 +12,8 @@
   "dependencies": {
     "@astrojs/partytown": "^2.1.4",
     "astro": "^5.18.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }
