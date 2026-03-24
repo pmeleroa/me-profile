@@ -1,0 +1,191 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import BlogCard from '../../components/BlogCard.astro';
+import { sections } from '../../data/sections';
+
+if (!sections.blog) return Astro.redirect('/404');
+
+const allPosts = await getCollection('blog', ({ data }) => !data.draft);
+const posts = allPosts.sort(
+  (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
+);
+
+const categories = ['Arquitectura', 'DevOps', 'IA Generativa', 'Liderazgo', 'Opinión'] as const;
+
+const [featured, ...rest] = posts;
+---
+
+<Layout
+  title="Blog · Pablo Melero Alonso"
+  description="Reflexiones sobre arquitectura de software, plataformas de ingeniería, DevOps e inteligencia artificial generativa."
+>
+  <Header />
+  <main>
+    <section class="blog-header">
+      <div class="container">
+        <div class="reveal">
+          <span class="section-label">Blog</span>
+          <h1 class="blog-title">Ideas en voz alta</h1>
+          <p class="blog-subtitle">
+            Reflexiones sobre arquitectura, plataformas, DevOps e IA. Sin posts de relleno.
+          </p>
+        </div>
+
+        {categories.length > 0 && (
+          <div class="blog-filters reveal reveal-delay-1" id="blog-filters">
+            <button class="filter-chip active" data-filter="all">
+              Todos <span class="filter-count" id="count-all">{posts.length}</span>
+            </button>
+            {categories.map((cat) => {
+              const count = posts.filter((p) => p.data.category === cat).length;
+              return count > 0 ? (
+                <button class="filter-chip" data-filter={cat}>
+                  {cat} <span class="filter-count">{count}</span>
+                </button>
+              ) : null;
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+
+    <section class="blog-content">
+      <div class="container">
+        {posts.length === 0 ? (
+          <p class="blog-empty">Pronto habrá artículos aquí. Vuelve en breve.</p>
+        ) : (
+          <div class="blog-grid" id="blog-grid">
+            {featured && (
+              <BlogCard
+                title={featured.data.title}
+                description={featured.data.description}
+                publishDate={featured.data.publishDate}
+                category={featured.data.category}
+                tags={featured.data.tags}
+                slug={featured.slug}
+                featured={true}
+              />
+            )}
+            {rest.map((post) => (
+              <BlogCard
+                title={post.data.title}
+                description={post.data.description}
+                publishDate={post.data.publishDate}
+                category={post.data.category}
+                tags={post.data.tags}
+                slug={post.slug}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<script>
+  const filters = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
+  const cards = document.querySelectorAll<HTMLElement>('[data-category]');
+
+  filters.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter!;
+
+      filters.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      cards.forEach((card) => {
+        const match = filter === 'all' || card.dataset.category === filter;
+        card.style.display = match ? '' : 'none';
+      });
+    });
+  });
+</script>
+
+<style>
+  .blog-header {
+    padding: calc(var(--header-height) + 4rem) 0 3rem;
+    text-align: center;
+  }
+
+  .blog-title {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    margin-top: 0.5rem;
+    background: linear-gradient(135deg, var(--color-text) 0%, var(--color-accent-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .blog-subtitle {
+    margin-top: 1rem;
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .blog-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 2.5rem;
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--ease);
+  }
+
+  .filter-chip:hover,
+  .filter-chip.active {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: var(--color-accent-glow);
+  }
+
+  .filter-count {
+    font-size: 0.72rem;
+    opacity: 0.7;
+  }
+
+  .blog-content {
+    padding-bottom: 6rem;
+  }
+
+  .blog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .blog-empty {
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: 4rem 0;
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 768px) {
+    .blog-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

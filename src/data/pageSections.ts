@@ -4,16 +4,16 @@ export const pageSections = {
   experience: {
     enabled: sections.experience,
     navLabel: 'Experiencia',
-    title: 'Pablo Melero Alonso - Me! Experience',
+    title: 'Pablo Melero Alonso - Experiencia',
     description:
-      'Mi historia profesional: arquitectura de software, plataformas de ingenieria, DevOps y liderazgo tecnico.',
+      'Mi historia profesional: arquitectura de software, plataformas de ingeniería, DevOps y liderazgo técnico.',
   },
   skills: {
     enabled: sections.skills,
     navLabel: 'Skills',
-    title: 'Pablo Melero Alonso - Me! Skills',
+    title: 'Pablo Melero Alonso - Skills',
     description:
-      'Stack tecnologico y competencias de Pablo Melero Alonso: Frontend, Backend, Cloud & DevOps, Data & AI y liderazgo tecnico.',
+      'Stack tecnológico y competencias de Pablo Melero Alonso: Tecnología, IA Generativa, Procesos y Personas.',
   },
 } as const;
 

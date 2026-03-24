@@ -1,19 +1,33 @@
 ---
+import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import About from '../components/About.astro';
+import SkillsPreview from '../components/SkillsPreview.astro';
+import BlogPreview from '../components/BlogPreview.astro';
 import Projects from '../components/Projects.astro';
 import Contact from '../components/Contact.astro';
 import Footer from '../components/Footer.astro';
 import { sections } from '../data/sections';
+
+const latestPosts = sections.blog
+  ? (await getCollection('blog', ({ data }) => !data.draft))
+      .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())
+      .slice(0, 3)
+  : [];
 ---
 
-<Layout title="Pablo Melero Alonso - Me! Profile">
+<Layout
+  title="Pablo Melero Alonso — Arquitecto Tecnológico"
+  description="Arquitecto tecnológico especializado en plataformas de ingeniería, DevOps y arquitectura empresarial. Exploro cómo la IA amplifica el trabajo de los equipos técnicos."
+>
   <Header />
   <main>
     {sections.hero && <Hero />}
     {sections.about && <About />}
+    {sections.skills && <SkillsPreview />}
+    {sections.blog && latestPosts.length > 0 && <BlogPreview posts={latestPosts} />}
     {sections.projects && <Projects />}
     {sections.contact && <Contact />}
   </main>

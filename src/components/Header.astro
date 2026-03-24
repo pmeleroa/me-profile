@@ -22,8 +22,9 @@ const pageNavItems = pageNavOrder
       {pageNavItems.map((item) => (
         <a href={`${import.meta.env.BASE_URL}${item.slug}`}>{item.label}</a>
       ))}
+      {sections.blog && <a href={`${import.meta.env.BASE_URL}blog`}>Blog</a>}
       {sections.projects && <a href={`${import.meta.env.BASE_URL}#projects`}>Proyectos</a>}
-      {sections.contact && <a href={`${import.meta.env.BASE_URL}#contact`} class="btn-nav">Contactar</a>}
+      {sections.contact && <a href={`${import.meta.env.BASE_URL}contacto`} class="btn-nav">Contactar</a>}
     </div>
 
     <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">

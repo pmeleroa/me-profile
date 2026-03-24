@@ -1,0 +1,158 @@
+---
+const categories = [
+  {
+    name: 'Tecnología',
+    color: '#61DAFB',
+    icon: '⚡',
+    description: 'Plataformas, Cloud, Backend, Frontend y arquitectura de sistemas.',
+  },
+  {
+    name: 'IA Generativa',
+    color: '#A78BFA',
+    icon: '🤖',
+    description: 'LLMs, agentes, herramientas de código y flujos aumentados con IA.',
+  },
+  {
+    name: 'Procesos',
+    color: '#F6AD55',
+    icon: '⚙️',
+    description: 'DevOps, Platform Engineering, SRE y mejora continua.',
+  },
+  {
+    name: 'Personas',
+    color: '#FC8181',
+    icon: '🤝',
+    description: 'Liderazgo técnico, mentoría, estructuras de equipo y cultura de ingeniería.',
+  },
+];
+---
+
+<section class="skills-preview" id="skills-preview">
+  <div class="container">
+    <div class="section-header reveal">
+      <div>
+        <span class="section-label">Especialización</span>
+        <h2 class="section-title">Áreas de trabajo</h2>
+      </div>
+      <a href="/skills" class="section-link">
+        Ver todas las skills
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </a>
+    </div>
+
+    <div class="categories-grid">
+      {categories.map((cat, i) => (
+        <a href={`/skills`} class={`category-card reveal reveal-delay-${i + 1}`} style={`--cat-color: ${cat.color};`}>
+          <span class="category-icon">{cat.icon}</span>
+          <h3 class="category-name" style={`color: ${cat.color};`}>{cat.name}</h3>
+          <p class="category-desc">{cat.description}</p>
+          <div class="category-bar" style={`background: ${cat.color};`}></div>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .skills-preview {
+    padding: 6rem 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .section-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    transition: gap var(--ease);
+    white-space: nowrap;
+  }
+
+  .section-link:hover {
+    gap: 0.6rem;
+  }
+
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+  }
+
+  .category-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    position: relative;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-lg);
+    padding: 1.75rem 1.5rem 1.5rem;
+    overflow: hidden;
+    text-decoration: none;
+    transition: border-color var(--ease), transform var(--ease), box-shadow var(--ease);
+  }
+
+  .category-card:hover {
+    border-color: var(--cat-color, var(--color-border-2));
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .category-icon {
+    font-size: 1.75rem;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .category-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .category-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    flex-grow: 1;
+  }
+
+  .category-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    opacity: 0;
+    transition: opacity var(--ease);
+  }
+
+  .category-card:hover .category-bar {
+    opacity: 1;
+  }
+
+  @media (max-width: 1024px) {
+    .categories-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .categories-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
