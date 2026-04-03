@@ -1,5 +1,8 @@
 ---
 import { contact } from "../data/contact";
+
+// El email se codifica en build-time; nunca aparece en texto plano en el HTML.
+const encodedEmail = Buffer.from(contact.email).toString("base64");
 ---
 
 <section class="contact" id="contact">
@@ -27,16 +30,33 @@ import { contact } from "../data/contact";
       </div>
 
       <div class="contact-cta reveal reveal-delay-4">
-        <a href={`mailto:${contact.email}`} class="contact-cta-btn">
+        <!-- href y texto se inyectan por JS; el HTML solo contiene Base64 -->
+        <a
+          id="contact-email-link"
+          data-e={encodedEmail}
+          class="contact-cta-btn"
+          href="#"
+          aria-label={contact.cta}
+        >
           <span>{contact.cta}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>
           </svg>
         </a>
-        <span class="contact-email-label">{contact.email}</span>
+        <span id="contact-email-label" class="contact-email-label" aria-hidden="true"></span>
       </div>
 
     </div>
   </div>
 </section>
+
+<script>
+  const link = document.getElementById("contact-email-link") as HTMLAnchorElement | null;
+  const label = document.getElementById("contact-email-label");
+  if (link && label) {
+    const email = atob(link.dataset.e ?? "");
+    link.href = "mailto:" + email;
+    label.textContent = email;
+  }
+</script>
