@@ -41,4 +41,4 @@ yarn-error.log*
 # ─── Tool directories ───────────────────────────────────────────────
 .claude/
 .codex.backups/
-.scripts/
+scripts/
