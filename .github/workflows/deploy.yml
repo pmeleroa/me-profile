@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -48,8 +48,86 @@ jobs:
         with:
           path: ./dist
 
-  deploy:
+  release:
     needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: tag
+        run: echo "value=v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - id: notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD~1"
+          fi
+
+          # Agrupar commits por tipo semántico (excluye el merge commit)
+          ALL_COMMITS=$(git log --pretty=format:"%s|%h" "$BASE"..HEAD)
+
+          FEATS=""
+          FIXES=""
+          OTHERS=""
+
+          while IFS='|' read -r subject hash; do
+            # Saltar el merge commit
+            if echo "$subject" | grep -qE '^Merge pull request'; then
+              continue
+            fi
+            # Extraer descripción sin el prefijo convencional
+            desc=$(echo "$subject" | sed -E 's/^[a-z]+(\([^)]*\))?!?:\s*//')
+            if echo "$subject" | grep -qE '^feat(\([^)]*\))?!?:'; then
+              FEATS="${FEATS}- ${desc} (${hash})\n"
+            elif echo "$subject" | grep -qE '^fix(\([^)]*\))?!?:'; then
+              FIXES="${FIXES}- ${desc} (${hash})\n"
+            elif echo "$subject" | grep -qiE '^(chore|docs?)(\([^)]*\))?!?:'; then
+              : # ignorar chore y docs en el changelog
+            else
+              OTHERS="${OTHERS}- ${subject} (${hash})\n"
+            fi
+          done <<< "$ALL_COMMITS"
+
+          # Construir badge de tipo según los grupos que tengan contenido
+          TYPES=""
+          [ -n "$FEATS" ] && TYPES="✨ Feature"
+          [ -n "$FIXES" ] && TYPES="${TYPES:+$TYPES · }🐛 Fix"
+          [ -z "$TYPES" ]  && TYPES="🔀 Merge"
+
+          # Cabecera de PR con título real
+          PR_LINE=""
+          MERGE_MSG=$(git log -1 --pretty=%s)
+          if echo "$MERGE_MSG" | grep -qE 'Merge pull request #([0-9]+)'; then
+            PR_NUM=$(echo "$MERGE_MSG" | grep -oE '[0-9]+' | head -1)
+            PR_TITLE=$(gh pr view "$PR_NUM" --json title --jq '.title')
+            PR_LINE="${TYPES} — **PR #${PR_NUM}:** ${PR_TITLE}\n\n"
+          fi
+
+          # Componer cuerpo agrupado
+          BODY="${PR_LINE}"
+          [ -n "$FEATS" ] && BODY="${BODY}### ✨ Features\n${FEATS}\n"
+          [ -n "$FIXES" ] && BODY="${BODY}### 🐛 Fixes\n${FIXES}\n"
+          [ -n "$OTHERS" ] && BODY="${BODY}### 🔧 Other\n${OTHERS}\n"
+
+          printf "%b" "$BODY" > release_notes.md
+
+      - run: |
+          gh release create "${{ steps.tag.outputs.value }}" \
+            --title "Release ${{ steps.tag.outputs.value }}" \
+            --notes-file release_notes.md \
+            --target "${{ github.sha }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    needs: release
     runs-on: ubuntu-latest
     environment:
       name: github-pages
