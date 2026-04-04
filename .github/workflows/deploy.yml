@@ -15,7 +15,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check-commit:
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.check.outputs.should-deploy }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          MSG=$(git log -1 --pretty=%s)
+          if echo "$MSG" | grep -qiE '^(chore|docs?)(\(.*\))?[!]?:'; then
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          else
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: check-commit
+    if: needs.check-commit.outputs.should-deploy == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
