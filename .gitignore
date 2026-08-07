@@ -42,3 +42,6 @@ yarn-error.log*
 .claude/
 .codex.backups/
 scripts/
+
+# ─── Backup files ───────────────────────────────────────────────────
+*backup*
