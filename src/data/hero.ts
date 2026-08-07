@@ -5,10 +5,10 @@ export const hero = {
   description: `<p>
   Me apasiona entender <strong>cómo funcionan las organizaciones</strong> y cómo
   <strong>la arquitectura puede ayudarlas a evolucionar</strong>.
-  Trabajo <strong>conectando organizaciones, </strong><strong style="color: var(--color-accent-light); font-weight: 600;">tecnología, procesos y personas</strong>
+  Trabajo <strong>conectando </strong><strong style="color: var(--color-accent-light); font-weight: 600;">tecnología, procesos y personas</strong>
   para <strong>construir capacidades</strong> que permitan a las empresas
   <strong>adaptarse a un mundo cada vez más complejo y acelerado</strong>, 
-  explorando también cómo la <strong style="color: var(--color-accent-light); font-weight: 600;">inteligencia artificial puede amplificar</strong> nuestra forma de pensar, diseñar y construir tecnología.
+  explorando también cómo la <strong style="color: var(--color-accent-light); font-weight: 600;">inteligencia artificial puede amplificar</strong> nuestra forma de <strong>pensar, diseñar y construir tecnología</strong>.
   </p>`,
   actions: {
     primary: { label: "Ver proyectos", href: "#projects", enabled: false },

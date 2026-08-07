@@ -1,0 +1,70 @@
+---
+title: "Perdidos en el medio: por qué tu memoria y un LLM fallan igual"
+description: "Un test de 15 palabras que puedes hacer en dos minutos explica uno de los fallos más caros de los modelos de lenguaje: el contenido enterrado en mitad del prompt se diluye. Más información no es mejor contexto."
+publishDate: 2026-08-06
+category: "IA Generativa"
+tags: ["ia-generativa", "memoria"]
+# draft: true -> el post no se publica (no se lista ni se genera su página)
+draft: false
+---
+
+Antes de seguir leyendo, para dos minutos y haz el test: **[Memory Test](/gamification/test-memoria.html)**. 
+Son 15 palabras, 1.5 segundos para recordar cada una, y al final demuestras lo que recuerdas. 
+Sin trampa, sin registro, sin nada que instalar.
+
+Lo que pasa después es lo interesante.
+
+## Lo que casi todo el mundo obtiene
+
+Cuando hagas el test, comprueba el resultado final. 
+Es muy probable que tus aciertos estén agrupados en los extremos: las primeras palabras y las últimas. 
+El centro de la lista es un "agujero".
+
+No es tu culpa ni tiene que ver con tu capacidad. 
+Es el **efecto de lo primero y de lo último**, uno de los resultados más replicados de la psicología cognitiva. 
+Los primeros elementos tuvieron tiempo de consolidarse hacia memoria a largo plazo, y los últimos siguen calientes
+en memoria a corto plazo cuando te piden que los recuerdes. 
+Los del medio no tuvieron ninguna de las dos ventajas.
+
+Hay un segundo detalle que suele pasar desapercibido: las "alucinaciones". 
+
+Mucha gente escribe alguna palabra que nunca estuvo en la lista, pero que encaja semánticamente con las que sí estaban. 
+No recuerdas la lista, recuerdas su *forma*, y el hueco lo rellenas con algo plausible.
+
+Guarda esas dos observaciones. Vamos a verlas otra vez en un sitio distinto.
+
+## El mismo patrón, en una máquina
+
+En 2023, Liu et al. publicaron [*"Lost in the Middle: How Language Models Use Long Contexts"*](https://arxiv.org/pdf/2307.03172). El experimento es sencillo: le dan a un modelo un conjunto de documentos, uno de los cuales contiene la respuesta a una pregunta, y van cambiando la **posición** de ese documento dentro del contexto.
+
+El contenido es idéntico. Solo cambia dónde está.
+
+El resultado es una curva en U. La precisión es alta cuando el documento relevante está al principio, alta cuando está al final, y cae de forma notable cuando está en el medio. En algunos casos, el modelo con el documento enterrado a mitad de contexto rinde peor que el mismo modelo **sin acceso a los documentos**.
+
+Es la misma curva que, posiblemente, acabas de dibujar tú con 15 palabras.
+
+Quiero ser cuidadoso aquí, porque la analogía es fácil de sobrevender: **no es el mismo mecanismo**. Tú no tienes ventanas de atención ni codificación posicional, y un transformer no tiene memoria a corto plazo ni consolidación. Que dos sistemas produzcan la misma curva no significa que funcionen igual por dentro. Lo que sí significa es que ambos tienen un presupuesto limitado que repartir sobre una secuencia, y que ninguno de los dos lo reparte de forma uniforme.
+
+## Por qué esto te cuesta dinero
+
+Si trabajas con LLMs en producción, esto deja de ser una curiosidad y pasa a ser una decisión de diseño:
+
+- **La ventana de contexto es capacidad, no atención.** Que un modelo acepte 200.000 tokens no significa que atienda a los 200.000 con la misma intensidad. Llenar el contexto "por si acaso" tiene un coste real de precisión, además del coste por token.
+- **La posición de tus instrucciones importa.** Las reglas críticas —restricciones, formato de salida, lo que el modelo no debe hacer— enterradas en la mitad de un system prompt de tres páginas se cumplen con menos fiabilidad que las mismas reglas al principio o al final. Es la corrección más barata que existe y casi nadie la hace.
+- **En RAG, el ranking es funcional, no cosmético.** Si tu recuperador devuelve diez fragmentos y mete el bueno en la posición cinco, has recuperado la información correcta y aun así puedes obtener la respuesta equivocada. Recuperar bien y **ordenar** bien son dos problemas, no uno.
+- **Menos contexto, mejor colocado, gana.** Tres fragmentos relevantes rinden mejor que veinte fragmentos entre los que están esos tres. La tentación de "meterlo todo y que el modelo decida" es exactamente el fallo.
+- **Y lo de las alucinadas también se repite.** Cuando la información no está accesible —porque no está, o porque está en la zona muerta— ni tú ni el modelo devolvéis un hueco. Devolvéis algo plausible. La ausencia de información no se siente como ausencia; se siente como una respuesta.
+
+## Lo que hago con esto
+
+Nada exótico: pongo las instrucciones que no se pueden incumplir al principio y las repito comprimidas al final; recorto contexto de forma agresiva en lugar de acumularlo; y cuando algo depende de un fragmento concreto, me aseguro de que ese fragmento esté en los extremos, no sepultado en el montón.
+
+Ninguna de esas tres cosas es una técnica avanzada. Son consecuencias directas de aceptar que la atención es un recurso escaso y que se distribuye de forma desigual.
+
+---
+
+Si has llegado hasta aquí sin hacer el test, hazlo ahora: **[Memory Test](/gamification/test-memoria.html)**. Vas a entender el resto del artículo mejor cuando veas tu propia curva en U, con tus propias palabras perdidas.
+
+Y si al terminar te descubres pensando "es que el medio no lo he leído con atención" — enhorabuena, acabas de describir el problema.
+
+Referencia: Liu, N. F. et al., [*"Lost in the Middle: How Language Models Use Long Contexts"* (2023)](https://arxiv.org/pdf/2307.03172).

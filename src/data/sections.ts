@@ -5,5 +5,5 @@ export const sections = {
   skills: false,
   projects: false,
   contact: true,
-  blog: false,
+  blog: true,
 };

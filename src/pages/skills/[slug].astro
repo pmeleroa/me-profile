@@ -1,0 +1,441 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import {
+  getSkillCategory,
+  getSkillDetail,
+  getSkillIconLabel,
+  getSkillImageSrc,
+  getSkillSlug,
+  isExternalSkillImage,
+  levelLabels,
+  skills,
+  usesGenericSkillIcon,
+} from '../../data/skills';
+
+export function getStaticPaths() {
+  return skills.map((skill) => ({
+    params: { slug: getSkillSlug(skill) },
+    props: { skill },
+  }));
+}
+
+const { skill } = Astro.props;
+const category = getSkillCategory(skill);
+const detail = getSkillDetail(skill);
+const relatedSkills = detail.related
+  .map((slug) => skills.find((candidate) => getSkillSlug(candidate) === slug))
+  .filter(Boolean);
+---
+
+<Layout
+  title={`Pablo Melero Alonso - ${skill.name}`}
+  description={detail.summary}
+>
+  <Header />
+  <main>
+    <section class="skill-detail">
+      <div class="container">
+        <a href={`${import.meta.env.BASE_URL}skills`} class="skill-back reveal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Skills
+        </a>
+
+        <article class="skill-hero reveal reveal-delay-1" style={`--cat-color: ${category?.color ?? '#00BDD4'}`}>
+          <div class="skill-hero-main">
+            <div class={`skill-icon-frame ${usesGenericSkillIcon(skill) ? '' : 'skill-icon-frame--logo'} ${isExternalSkillImage(skill.image) ? 'skill-icon-frame--external' : ''}`}>
+              {usesGenericSkillIcon(skill) ? (
+                <span class="skill-icon-label" aria-hidden="true">{getSkillIconLabel(skill)}</span>
+              ) : (
+                <img src={getSkillImageSrc(skill, import.meta.env.BASE_URL)} alt={skill.name} width="48" height="48" />
+              )}
+            </div>
+            <div>
+              <span class="skill-category">
+                <span class="skill-category-dot" aria-hidden="true"></span>
+                {category?.label}
+              </span>
+              <h1>{skill.name}</h1>
+            </div>
+          </div>
+
+          <div class="skill-hero-meta">
+            <span>{levelLabels[skill.level]}</span>
+            {skill.featured && <span>Destacada</span>}
+          </div>
+        </article>
+
+        <div class="skill-detail-grid">
+          <section class="skill-panel skill-panel--primary reveal reveal-delay-2">
+            <span class="panel-label">Enfoque</span>
+            <p class="skill-summary">{detail.summary}</p>
+          </section>
+
+          <section class="skill-panel reveal reveal-delay-3">
+            <span class="panel-label">Cómo la uso</span>
+            <ul class="usage-list">
+              {detail.usage.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </section>
+
+          {relatedSkills.length > 0 && (
+            <section class="skill-panel reveal reveal-delay-4">
+              <span class="panel-label">Relacionadas</span>
+              <div class="related-skills">
+                {relatedSkills.map((related) => {
+                  const relatedCategory = getSkillCategory(related);
+                  return (
+                    <a
+                      href={`${import.meta.env.BASE_URL}skills/${getSkillSlug(related)}`}
+                      class="related-skill"
+                      style={`--cat-color: ${relatedCategory?.color ?? '#00BDD4'}`}
+                    >
+                      {usesGenericSkillIcon(related) ? (
+                        <span class="related-skill-label" aria-hidden="true">{getSkillIconLabel(related)}</span>
+                      ) : (
+                        <span class={`related-skill-icon-frame ${isExternalSkillImage(related.image) ? 'related-skill-icon-frame--external' : ''}`}>
+                          <img src={getSkillImageSrc(related, import.meta.env.BASE_URL)} alt="" width="20" height="20" />
+                        </span>
+                      )}
+                      <span>{related.name}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .skill-detail {
+    min-height: 100vh;
+    padding: calc(var(--header-height) + 3rem) 0 6rem;
+    position: relative;
+  }
+
+  .skill-detail::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 78% 46% at 50% 0%, rgba(0, 189, 212, 0.055), transparent 70%);
+    pointer-events: none;
+  }
+
+  .skill-detail .container {
+    position: relative;
+    max-width: 920px;
+  }
+
+  .skill-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    transition: color var(--ease), gap var(--ease);
+  }
+
+  .skill-back:hover {
+    gap: 0.65rem;
+    color: var(--color-text);
+  }
+
+  .skill-hero {
+    --cat-color: #00BDD4;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.026);
+    border: 1px solid color-mix(in srgb, var(--cat-color) 28%, var(--color-border));
+    border-radius: var(--r-md);
+  }
+
+  .skill-hero-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .skill-icon-frame {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid color-mix(in srgb, var(--cat-color) 22%, transparent);
+    flex-shrink: 0;
+  }
+
+  .skill-icon-frame--logo {
+    background:
+      radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--cat-color) 17%, transparent), transparent 58%),
+      rgba(255, 255, 255, 0.045);
+    border-color: color-mix(in srgb, var(--cat-color) 24%, rgba(255, 255, 255, 0.06));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 22px color-mix(in srgb, var(--cat-color) 8%, transparent);
+  }
+
+  .skill-icon-frame--external {
+    background:
+      radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--cat-color) 19%, transparent), transparent 58%),
+      rgba(255, 255, 255, 0.05);
+  }
+
+  .skill-icon-frame img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    filter:
+      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.48))
+      drop-shadow(0 0 9px rgba(255, 255, 255, 0.10));
+  }
+
+  .skill-icon-frame img[src*="oracle-logo.svg"],
+  .skill-icon-frame img[src*="cncf-color.svg"] {
+    width: 48px;
+    height: 22px;
+  }
+
+  .skill-icon-frame img[src*="simple-icons@latest/icons/hyperledger.svg"],
+  .related-skill-icon-frame img[src*="simple-icons@latest/icons/hyperledger.svg"] {
+    filter:
+      invert(1)
+      brightness(1.15)
+      drop-shadow(0 0 7px color-mix(in srgb, var(--cat-color) 26%, transparent));
+  }
+
+  .skill-icon-frame img[src*="github?viewbox"],
+  .skill-icon-frame img[src*="githubcopilot?viewbox"],
+  .related-skill-icon-frame img[src*="github?viewbox"],
+  .related-skill-icon-frame img[src*="githubcopilot?viewbox"] {
+    filter:
+      invert(1)
+      brightness(1.12)
+      drop-shadow(0 0 7px color-mix(in srgb, var(--cat-color) 24%, transparent));
+  }
+
+  .skill-icon-label {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--cat-color);
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+
+  .skill-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .skill-category-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: var(--r-full);
+    background: var(--cat-color);
+    opacity: 0.75;
+  }
+
+  .skill-hero h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+  }
+
+  .skill-hero-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .skill-hero-meta span {
+    padding: 0.35rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: var(--r-full);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+  }
+
+  .skill-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 1rem;
+  }
+
+  .skill-panel {
+    background: rgba(255, 255, 255, 0.024);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    padding: 1.25rem;
+  }
+
+  .skill-panel--primary {
+    grid-column: 1 / -1;
+  }
+
+  .panel-label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .skill-summary {
+    max-width: 78ch;
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .usage-list {
+    display: grid;
+    gap: 0.8rem;
+    list-style: none;
+  }
+
+  .usage-list li {
+    position: relative;
+    padding-left: 1.05rem;
+    color: var(--color-text-muted);
+    font-size: 0.925rem;
+    line-height: 1.7;
+  }
+
+  .usage-list li::before {
+    content: '';
+    position: absolute;
+    top: 0.72em;
+    left: 0;
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: var(--r-full);
+    background: var(--color-accent);
+    opacity: 0.75;
+  }
+
+  .related-skills {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .related-skill {
+    --cat-color: #00BDD4;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-sm);
+    color: var(--color-text-muted);
+    transition: color var(--ease), background var(--ease), border-color var(--ease);
+  }
+
+  .related-skill:hover {
+    color: var(--color-text);
+    background: rgba(255, 255, 255, 0.035);
+    border-color: color-mix(in srgb, var(--cat-color) 38%, transparent);
+  }
+
+  .related-skill-icon-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background:
+      radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--cat-color) 16%, transparent), transparent 58%),
+      rgba(255, 255, 255, 0.045);
+    border: 1px solid color-mix(in srgb, var(--cat-color) 22%, rgba(255, 255, 255, 0.06));
+    flex-shrink: 0;
+  }
+
+  .related-skill-icon-frame--external {
+    background:
+      radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--cat-color) 18%, transparent), transparent 58%),
+      rgba(255, 255, 255, 0.05);
+  }
+
+  .related-skill-icon-frame img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter:
+      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45))
+      drop-shadow(0 0 6px rgba(255, 255, 255, 0.10));
+  }
+
+  .related-skill-icon-frame img[src*="oracle-logo.svg"],
+  .related-skill-icon-frame img[src*="cncf-color.svg"] {
+    width: 20px;
+    height: 12px;
+  }
+
+  .related-skill-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    min-width: 20px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: var(--cat-color);
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+
+  @media (max-width: 760px) {
+    .skill-detail {
+      padding-top: calc(var(--header-height) + 2rem);
+      padding-bottom: 4rem;
+    }
+
+    .skill-hero {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .skill-hero-meta {
+      justify-content: flex-start;
+    }
+
+    .skill-detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
