@@ -65,7 +65,7 @@ const [featured, ...rest] = posts;
                 publishDate={featured.data.publishDate}
                 category={featured.data.category}
                 tags={featured.data.tags}
-                slug={featured.slug}
+                slug={featured.id}
                 featured={true}
               />
             )}
@@ -76,7 +76,7 @@ const [featured, ...rest] = posts;
                 publishDate={post.data.publishDate}
                 category={post.data.category}
                 tags={post.data.tags}
-                slug={post.slug}
+                slug={post.id}
               />
             ))}
           </div>
