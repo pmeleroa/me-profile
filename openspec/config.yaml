@@ -1,0 +1,144 @@
+schema: spec-driven
+
+# Project references ( optional )
+#references:
+#  - platform-specs                                              # forma corta
+#  - id: billing-specs                                           # forma larga
+#    remote: git@github.com:acme/billing-specs.git
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  ## Reglas de redacción y estilo
+  Idioma: Español (es-ES)
+  Todos los artefactos deben escribirse en español.
+  Mantén en inglés: encabezados estructurales de OpenSpec, keywords
+  normativas (SHALL/MUST), IDs de change, rutas y ejemplos de código.
+  Mantén en inglés términos técnicos: API, REST, endpoint, deployment.
+
+  ## Contexto funcional del repositorio
+
+  Sitio personal de Pablo Melero Alonso (pablomeleroalonso.me): Astro 5 + MDX,
+  contenido en colecciones (src/content/config.ts) validadas con zod, npm,
+  sin backend ni CMS remoto.
+
+  Posicionamiento: arquitectura y plataformas de ingeniería, con IA aplicada
+  al desarrollo de software. Audiencia primaria: responsables de ingeniería
+  y arquitectura; secundaria: arquitectos y líderes técnicos.
+
+  No inventar logros, testimonios, cifras, empleo o premios no validados.
+  Contenido pendiente se declara explícitamente como pendiente, nunca se
+  sustituye con hechos inventados ni se marca como completado sin evidencia.
+
+  ## Estrategia Git para SDD con OpenSpec
+
+  ### Ramas y trazabilidad
+  - Mantener main protegida, integrable y con código y specs alineados.
+  - Usar una rama corta y una PR por cambio OpenSpec.
+  - Nombrar ramas feat/<change-id>, fix/<change-id> o chore/<change-id>.
+  - Usar el mismo change-id que en openspec/changes/<change-id>/.
+  - Dividir cambios grandes en unidades independientes e integrables.
+  - Para trabajo paralelo, usar un worktree y rama por cambio independiente.
+
+  ### Convención de commits
+  - Formato: <type>(<scope>): <description>.
+  - Tipos: feat, fix, refactor, test, docs, chore y ci.
+  - Scope funcional para código; openspec para artefactos del proceso.
+  - Escribir mensajes descriptivos en inglés, evitando update, changes o WIP.
+  - Añadir el trailer OpenSpec-Change: <change-id> a los commits del cambio.
+  - Añadir Refs: <issue-id> cuando exista una incidencia asociada.
+  - Indicar incompatibilidades mediante ! y el footer BREAKING CHANGE:.
+  - Crear commits por unidad lógica revisable, no por archivo o checkbox.
+  - Incluir código, pruebas y actualización de tasks.md en el mismo commit
+    cuando correspondan a la misma tarea.
+
+  ### Ciclo del cambio
+  1. Crear la rama desde main actualizada.
+  2. Versionar propuesta, delta specs, diseño y tareas según corresponda.
+  3. Abrir una PR en borrador y revisar alcance y diseño antes de implementar.
+  4. Implementar incrementalmente, manteniendo artefactos y código alineados.
+  5. Si cambia el comportamiento acordado, actualizar specs y revisar el alcance.
+  6. Ejecutar pruebas y openspec validate <change-id> --strict.
+  7. Incorporar main y resolver conflictos, incluidos solapamientos semánticos
+     entre especificaciones; repetir las verificaciones afectadas.
+  8. Sincronizar los deltas y archivar el cambio en la misma rama antes del merge.
+  9. Ejecutar openspec validate --all --strict tras el archivado.
+  10. Integrar mediante squash merge con mensaje convencional y trailer OpenSpec.
+
+  ### Pull requests y calidad
+  - Incluir objetivo, change-id, artefactos, escenarios cubiertos, pruebas
+    ejecutadas y consideraciones de compatibilidad, despliegue y reversión.
+  - Exigir revisión y checks de CI antes del merge.
+  - Validar formato OpenSpec, lint, pruebas y controles de seguridad aplicables.
+  - Comprobar la correspondencia entre requisitos, escenarios y pruebas:
+    la validación estructural de OpenSpec no demuestra cumplimiento funcional.
+  - Fijar la versión de OpenSpec utilizada en local y CI.
+  - Usar hooks locales como ayuda y CI como control obligatorio.
+  - Validar también el mensaje final de squash para conservar la trazabilidad.
+
+  ### Configuración del repositorio
+  - Aplicar por repositorio mediante un script de preparación:
+    - pull.ff=only
+    - fetch.prune=true
+    - push.default=simple
+    - push.autoSetupRemote=true
+    - rerere.enabled=true
+    - rerere.autoupdate=false
+    - merge.conflictStyle=zdiff3
+  - Usar rebase en ramas personales y merge de main en ramas compartidas.
+  - Definir en .gitattributes text=auto y finales LF para Markdown, YAML,
+    JSON y scripts shell.
+  - Versionar openspec/specs/, openspec/changes/ incluido archive/,
+    openspec/config.yaml, esquemas propios e instrucciones compartidas.
+  - Excluir secretos, credenciales, logs, cachés y configuración personal.
+  - Bloquear pushes directos y force push a main.
+
+  ### Agentes, releases y excepciones
+  - Comprobar rama y estado de Git antes de modificar archivos.
+  - Preparar únicamente archivos relacionados; preservar cambios ajenos.
+  - Marcar tareas completadas solo con evidencia y registrar pruebas reales.
+  - Realizar push y merge conforme a la autorización vigente del equipo.
+  - Identificar releases mediante tags vMAJOR.MINOR.PATCH sobre main.
+  - Archivar indica finalización para integración, no despliegue.
+  - Mantener el mismo flujo para hotfixes, con documentación proporcional.
+  - Revertir código y specs de forma coherente; documentar el motivo y
+    contemplar acciones compensatorias para migraciones.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+rules:
+  proposal:
+    - Toda propuesta que afecte a una colección de contenido de blog debe indicar si 
+      cambia el contrato de publicación (status/approvedBy/approvedAt) y, si lo hace, por qué.
+
+  design:
+    - Justificar cualquier dependencia nueva frente a usar el stack
+      existente (Astro, colecciones de contenido, gtag vía Partytown); no
+      añadir backend, CMS o tracker adicional por conveniencia.
+
+  tasks:
+    - Cada tarea de implementación de un requisito de contenido público debe
+      incluir su verificación (comando ejecutado + resultado observado), no
+      solo el checkbox marcado.
+    - Registrar el mecanismo de rollback (git checkout/clean o revert)
+      cuando la tarea toca código ya en producción.
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+operations:
+  apply:
+    guidance:
+      - "Requisitos transversales de calidad a verificar por cambio de contenido/UI público: Q01 contenido esencial sin JS, Q02 uso adaptable (360/390/768/1440px sin scroll horizontal), Q03 accesibilidad WCAG 2.2 AA, Q04 prefers-reduced-motion respetado, Q05 rendimiento (Lighthouse móvil >=90, sin regresión >5 puntos), Q06 integridad de publicación (draft/review nunca en salida pública), Q07 integridad de navegación (enlaces/rutas válidos), Q08 seguridad de contenido (sin HTML/JS arbitrario desde datos no confiables, sin secretos ni PII en eventos)."
+      - Usar npm run build + inspección de dist/ como verificación real;
+        preferir fixtures temporales no versionados sobre contenido de
+        prueba permanente en el repositorio.
+      - No publicar la web ni marcar contenido como aprobado por el mero
+        hecho de completar una especificación; distinguir implementación
+        terminada de contenido aprobado y de publicación realizada.
+  archive:
+    guidance:
+      - Al archivar, confirmar que ningún requisito describe contenido
+        real no aprobado (nombres de cliente, cifras, logros) como si ya
+        estuviera publicado.
