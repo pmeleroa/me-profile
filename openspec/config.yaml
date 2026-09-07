@@ -19,8 +19,9 @@ context: |
 
   ## Contexto funcional del repositorio
 
-  Sitio personal de Pablo Melero Alonso (pablomeleroalonso.me): Astro 5 + MDX,
-  contenido en colecciones (src/content/config.ts) validadas con zod, npm,
+  Sitio personal de Pablo Melero Alonso (pablomeleroalonso.me): Astro 7 + MDX,
+  contenido en colecciones (src/content.config.ts) con Content Layer API
+  (loader: glob) validadas con zod, npm, Node >=22.12.0 (CI en Node 24),
   sin backend ni CMS remoto.
 
   Posicionamiento: arquitectura y plataformas de ingeniería, con IA aplicada
