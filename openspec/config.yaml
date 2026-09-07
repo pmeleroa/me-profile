@@ -143,3 +143,8 @@ operations:
       - Al archivar, confirmar que ningún requisito describe contenido
         real no aprobado (nombres de cliente, cifras, logros) como si ya
         estuviera publicado.
+      - Al archivar, si el design.md (o la propuesta) del change cambia el
+        stack técnico (versión de framework, runtime, forma de definir
+        datos/colecciones, herramientas de build), verificar que la sección
+        "Contexto funcional del repositorio" de context en openspec/config.yaml
+        lo refleja, y actualizarla en la misma rama antes de archivar.
