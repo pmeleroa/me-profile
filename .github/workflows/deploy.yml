@@ -24,7 +24,9 @@ jobs:
       - id: check
         run: |
           MSG=$(git log -1 --pretty=%s)
-          if echo "$MSG" | grep -qiE '^(chore|docs?)(\(.*\))?[!]?:'; then
+          if echo "$MSG" | grep -qiE '^chore\([^)]*deps[^)]*\)'; then
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          elif echo "$MSG" | grep -qiE '^(chore|docs?)(\(.*\))?[!]?:'; then
             echo "should-deploy=false" >> $GITHUB_OUTPUT
           else
             echo "should-deploy=true" >> $GITHUB_OUTPUT
