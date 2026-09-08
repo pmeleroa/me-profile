@@ -5,6 +5,9 @@ import mdx from '@astrojs/mdx';
 export default defineConfig({
   site: 'https://pablomeleroalonso.me',
   compressHTML: true,
+  redirects: {
+    '/gamification/test-memoria.html': '/lab/test-memoria',
+  },
   integrations: [
     mdx(),
     partytown({

@@ -1,0 +1,693 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import LabBackLink from '../../components/LabBackLink.astro';
+---
+
+<Layout
+  title="El Test de Memoria — ¿cuántas palabras recuerdas? · Lab"
+  description="Una demo interactiva de memoria de trabajo: 15 palabras, una ventana breve para memorizarlas y una prueba de recuerdo al final. El mismo patrón que aparece en cómo los modelos de lenguaje manejan contextos largos."
+>
+  <LabBackLink href="/blog/perdidos-en-el-medio" label="Volver al artículo" />
+
+  <div class="lab-viewport">
+    <div class="wrap">
+
+      <div class="eyebrow">Una demo de memoria de trabajo</div>
+      <h1>El Test de <em>Memoria</em></h1>
+      <p class="lede">15 palabras, una ventana breve para memorizarlas y una prueba de recuerdo al final. Después, un vistazo al patrón detrás de lo que has conseguido &mdash; el mismo patrón que aparece en cómo los modelos de lenguaje manejan contextos largos.</p>
+
+      <!-- START -->
+      <div class="card" id="screen-start">
+        <div class="start-body">
+          <p><strong>Cómo funciona</strong></p>
+          <ul>
+            <li>Verás 15 palabras, una a una, 1,5 segundos cada una. Sin trucos, solo léelas.</li>
+            <li>Cuando se acabe el tiempo, escribe todas las que recuerdes, en cualquier orden.</li>
+            <li>Verás cuáles se te han quedado, cuáles se te han escapado, y en qué posición de la lista estaban.</li>
+          </ul>
+          <div class="btn-row">
+            <button class="btn-primary" onclick="startStudy()">Empezar el test</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDY -->
+      <div class="card hidden" id="screen-study">
+        <div class="study-head">
+          <h2>Memoriza cada palabra</h2>
+          <div class="timer" id="timerDisplay">5</div>
+        </div>
+        <div class="word-stage">
+          <div class="word-current" id="wordCurrent"></div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="word-position" id="wordPosition">Palabra 1 de 15</div>
+      </div>
+
+      <!-- RECALL -->
+      <div class="card hidden" id="screen-recall">
+        <div class="recall-head">
+          <h2>Ahora, escribe lo que recuerdes</h2>
+          <p class="recall-sub">Una palabra cada vez, pulsa Enter para añadirla. El orden no importa.</p>
+        </div>
+        <div class="recall-input-row">
+          <input type="text" id="recallInput" placeholder="Escribe una palabra y pulsa Enter…" autocomplete="off" onkeydown="handleRecallKey(event)">
+          <button class="btn-primary" onclick="addRecallWord()">Añadir</button>
+        </div>
+        <div class="recall-count" id="recallCount">0 palabras introducidas</div>
+        <div class="chip-area" id="chipArea"></div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="finishRecall()">Terminar recuerdo</button>
+          <button class="btn-ghost" onclick="resetGame()">Empezar de nuevo</button>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="card hidden" id="screen-results">
+        <div class="score-line">
+          <div class="cap">Resultados</div>
+          <div class="big">Has recordado <em id="scoreCount">0</em> de 15</div>
+        </div>
+
+        <div class="pill-grid" id="pillGrid"></div>
+
+        <div id="hallucBlock" class="halluc-block">
+          <div class="halluc-label">Alucinadas</div>
+          <div id="hallucList"></div>
+        </div>
+
+        <div class="spp-title">Posición serial &mdash; tu patrón de recuerdo</div>
+        <div class="spp-chart" id="sppChart"></div>
+        <div class="spp-gradient"></div>
+        <div class="spp-axis"><span>Principio</span><span>Medio</span><span>Final</span></div>
+
+        <div class="insight">
+          <p>Las palabras que recordaste probablemente se agrupan al <strong>principio</strong> y al <strong>final</strong> de la lista. El medio se pierde. Es el <strong>efecto de primacía&ndash;recencia</strong>: los primeros elementos se consolidan en la memoria a largo plazo, y los últimos siguen en la memoria a corto plazo cuando te piden que los recuerdes.</p>
+          <p>Los modelos de lenguaje muestran una versión del mismo sesgo. Las instrucciones colocadas al principio o al final de un prompt largo se siguen con más fiabilidad &mdash; el contenido enterrado en el medio tiene más probabilidades de pasarse por alto o de recibir menos peso. Más contexto no significa automáticamente mejor contexto.</p>
+          <p class="cite">Referencia: Liu et al., «Lost in the Middle: How Language Models Use Long Contexts» (2023).</p>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" onclick="copyForLinkedIn()">Copiar resultado para LinkedIn</button>
+          <button class="link-btn" onclick="resetGame()">Repetir (anula el ejercicio, pero adelante)</button>
+        </div>
+        <div class="copy-toast" id="copyToast">Copiado al portapapeles.</div>
+      </div>
+
+      <footer>Construido como demo complementaria &mdash; recuerdo humano vs. gestión de contexto en LLMs.</footer>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .lab-viewport {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 64px 20px 90px;
+    position: relative;
+  }
+
+  /* ambient glow + grid, matching the site's hero treatment */
+  .lab-viewport::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -10%, rgba(0,189,212,0.12), transparent),
+      radial-gradient(ellipse 35% 35% at 90% 85%, rgba(0,153,200,0.06), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .lab-viewport::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 15%, transparent 70%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 15%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { width: 100%; max-width: 640px; position: relative; z-index: 1; }
+
+  h1 {
+    font-family: var(--font);
+    font-weight: 900;
+    font-size: clamp(28px,5vw,40px);
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    margin: 0 0 14px;
+    color: var(--color-text);
+  }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .eyebrow {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    opacity: 0.9;
+    margin: 0 0 16px;
+  }
+  .eyebrow::before { content: '// '; opacity: 0.45; }
+
+  .lede {
+    color: var(--color-text-muted);
+    font-size: 15px;
+    line-height: 1.75;
+    margin: 0 0 36px;
+    max-width: 56ch;
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-lg);
+    padding: 36px 32px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .card + .card { margin-top: 18px; }
+
+  /* ---- start screen ---- */
+  .start-body p { color: var(--color-text); font-size: 14.5px; margin: 0 0 12px; }
+  .start-body p strong { font-weight: 700; }
+  .start-body ul { margin: 16px 0 28px; padding-left: 20px; color: var(--color-text-muted); font-size: 14.5px; line-height: 1.75; }
+  .start-body li { margin-bottom: 8px; }
+  .start-body li::marker { color: var(--color-accent); }
+
+  button {
+    font-family: var(--font);
+    font-weight: 600;
+    font-size: 14.5px;
+    border: none;
+    border-radius: var(--r-full);
+    padding: 13px 26px;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: all var(--ease);
+    line-height: 1;
+  }
+  button:active { transform: translateY(0) scale(0.98); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+    color: #fff;
+    box-shadow: 0 4px 24px var(--color-accent-glow);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px rgba(0,189,212,0.35);
+  }
+
+  .btn-ghost {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-border-2);
+    background: var(--color-accent-glow);
+    transform: translateY(-2px);
+  }
+
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* ---- study screen ---- */
+  .study-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; }
+  .study-head h2 { font-family: var(--font); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; margin: 0; color: var(--color-text); }
+  .timer {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .timer.urgent { color: var(--color-logo-magenta); }
+
+  .word-stage {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    position: relative;
+    overflow: hidden;
+  }
+  .word-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,189,212,0.08), transparent);
+    pointer-events: none;
+  }
+  .word-current {
+    font-family: var(--font);
+    font-weight: 800;
+    font-size: clamp(28px,7vw,42px);
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    text-shadow: 0 0 40px rgba(0,189,212,0.25);
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+    position: relative;
+  }
+  .word-current.in { animation: wordIn .3s ease forwards; }
+  @keyframes wordIn { to { opacity: 1; transform: none; } }
+
+  .progress-track {
+    height: 3px; background: var(--color-border); border-radius: var(--r-full); margin-top: 20px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-2));
+    width: 100%;
+    transition: width 1s linear;
+    box-shadow: 0 0 10px rgba(0,189,212,0.5);
+  }
+  .word-position {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    text-align: center;
+    margin-top: 14px;
+  }
+
+  /* ---- recall screen ---- */
+  .recall-head h2 { font-family: var(--font); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; margin: 0 0 6px; color: var(--color-text); }
+  .recall-sub { color: var(--color-text-muted); font-size: 14px; margin: 0 0 22px; line-height: 1.6; }
+  .recall-input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  input[type=text] {
+    flex: 1;
+    font-family: var(--font);
+    font-size: 15px;
+    padding: 13px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    background: var(--color-bg-2);
+    color: var(--color-text);
+    outline: none;
+    transition: border-color var(--ease), background var(--ease);
+  }
+  input[type=text]::placeholder { color: var(--color-text-subtle); }
+  input[type=text]:focus { border-color: var(--color-accent); background: rgba(0,189,212,0.04); }
+
+  .chip-area { display: flex; flex-wrap: wrap; gap: 8px; min-height: 38px; margin-bottom: 24px; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: rgba(0,189,212,0.07);
+    border: 1px solid rgba(0,189,212,0.18);
+    color: var(--color-accent-light);
+    border-radius: var(--r-sm);
+    padding: 6px 12px;
+    letter-spacing: 0.02em;
+  }
+  .recall-count { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px; letter-spacing: 0.03em; }
+
+  /* ---- results screen ---- */
+  .score-line { text-align: center; margin-bottom: 28px; }
+  .score-line .big {
+    font-family: var(--font);
+    font-weight: 900;
+    font-size: 34px;
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+  }
+  .score-line .big em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .score-line .cap {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-text-muted);
+  }
+
+  .pill-grid {
+    display: grid;
+    grid-template-columns: repeat(5,1fr);
+    gap: 8px;
+    margin: 22px 0;
+  }
+  .pill {
+    border-radius: var(--r-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+    transition: all var(--ease);
+  }
+  .pill .n {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    display: block;
+    opacity: 0.7;
+    margin-bottom: 2px;
+  }
+  .pill.hit {
+    background: rgba(0,189,212,0.08);
+    border-color: rgba(0,189,212,0.4);
+    color: var(--color-accent-light);
+    font-weight: 600;
+    box-shadow: 0 0 16px rgba(0,189,212,0.12);
+  }
+
+  .halluc-block { text-align: center; margin: 24px 0 4px; }
+  .halluc-label {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--color-logo-magenta); margin-bottom: 12px;
+  }
+  .halluc-pill {
+    display: inline-block;
+    background: rgba(212, 32, 96, 0.12);
+    border: 1px solid rgba(212,32,96,0.4);
+    color: #e888ab;
+    border-radius: var(--r-full);
+    padding: 7px 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    margin: 0 4px 6px;
+  }
+  .none-note { color: var(--color-text-muted); font-size: 13px; font-style: italic; }
+
+  .spp-title {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--color-text-muted); text-align: center; margin-bottom: 22px;
+  }
+  .spp-chart { display: flex; align-items: flex-end; gap: 6px; height: 90px; padding: 0 4px; }
+  .spp-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .spp-bar {
+    width: 100%;
+    border-radius: 4px 4px 2px 2px;
+    background: var(--color-border);
+    transition: height .5s ease;
+  }
+  .spp-bar.hit {
+    background: linear-gradient(180deg, var(--color-accent), var(--color-accent-2));
+    box-shadow: 0 0 12px rgba(0,189,212,0.4);
+  }
+  .spp-num { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-muted); margin-top: 8px; }
+  .spp-axis {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.05em; color: var(--color-text-muted);
+    margin-top: 12px; padding: 0 4px;
+  }
+  .spp-gradient {
+    height: 4px; border-radius: var(--r-full); margin-top: 8px;
+    background: linear-gradient(to right, var(--color-accent) 0%, var(--color-border) 50%, var(--color-accent) 100%);
+  }
+
+  .insight {
+    position: relative;
+    background: linear-gradient(135deg, rgba(0,189,212,0.06), rgba(0,153,200,0.02));
+    border: 1px solid rgba(0,189,212,0.18);
+    border-radius: var(--r-lg);
+    padding: 22px 24px;
+    margin-top: 26px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+  .insight p { margin: 0 0 14px; line-height: 1.75; }
+  .insight p:last-child { margin-bottom: 0; }
+  .insight strong { color: var(--color-text); font-weight: 600; }
+  .insight .cite { color: var(--color-text-subtle); font-size: 12.5px; font-family: var(--font-mono); }
+
+  .actions { display: flex; justify-content: center; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+  .link-btn {
+    background: none; border: none; color: var(--color-text-muted);
+    font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-family: var(--font);
+    padding: 13px 6px;
+  }
+  .link-btn:hover { color: var(--color-accent); }
+
+  .copy-toast {
+    text-align: center; font-size: 12.5px; color: var(--color-accent-light); margin-top: 10px;
+    opacity: 0; transition: opacity .25s ease; height: 14px;
+  }
+  .copy-toast.show { opacity: 1; }
+
+  footer {
+    text-align: center; margin-top: 40px; color: var(--color-text-subtle); font-size: 12px;
+    padding-top: 24px; border-top: 1px solid var(--color-border);
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 480px) {
+    .card { padding: 26px 20px; }
+    .pill-grid { grid-template-columns: repeat(3,1fr); }
+  }
+</style>
+
+<script is:inline>
+const WORDS = ["puente","vela","mármol","bosque","martillo","plata","lápiz","jardín",
+               "trueno","espejo","cobre","manta","aldea","cohete","pluma"];
+const SECONDS_PER_WORD = 1.5;
+
+let timerInterval = null;
+let currentWordIndex = 0;
+let recalledRaw = [];   // words as typed, in entry order
+let recalledSet = new Set();
+let hallucinated = [];
+let matchedPositions = new Set(); // 0-indexed positions in WORDS that were correctly recalled
+
+function $(id){ return document.getElementById(id); }
+function show(id){ $(id).classList.remove('hidden'); }
+function hide(id){ $(id).classList.add('hidden'); }
+function normalize(s){
+  return s.toLowerCase().normalize('NFD').replace(/\p{Mark}/gu, '').trim();
+}
+
+function startStudy(){
+  hide('screen-start');
+  show('screen-study');
+  currentWordIndex = 0;
+  showWord(currentWordIndex);
+}
+
+function showWord(i){
+  const w = WORDS[i];
+  $('wordPosition').textContent = `Palabra ${i+1} de ${WORDS.length}`;
+  $('timerDisplay').textContent = SECONDS_PER_WORD + 's';
+
+  const el = $('wordCurrent');
+  el.classList.remove('in');
+  el.textContent = w;
+  // restart the entry animation
+  void el.offsetWidth;
+  el.classList.add('in');
+
+  const fill = $('progressFill');
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  requestAnimationFrame(() => {
+    fill.style.transition = `width ${SECONDS_PER_WORD}s linear`;
+    fill.style.width = '0%';
+  });
+
+  if (timerInterval) clearTimeout(timerInterval);
+  timerInterval = setTimeout(nextWord, SECONDS_PER_WORD * 1000);
+}
+
+function nextWord(){
+  currentWordIndex += 1;
+  if (currentWordIndex >= WORDS.length){
+    startRecall();
+  } else {
+    showWord(currentWordIndex);
+  }
+}
+
+function startRecall(){
+  hide('screen-study');
+  show('screen-recall');
+  recalledRaw = [];
+  recalledSet = new Set();
+  $('chipArea').innerHTML = '';
+  $('recallCount').textContent = '0 palabras introducidas';
+  $('recallInput').focus();
+}
+
+function handleRecallKey(e){
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    addRecallWord();
+  } else if (e.key === ','){
+    e.preventDefault();
+    addRecallWord();
+  }
+}
+
+function addRecallWord(){
+  const input = $('recallInput');
+  const raw = input.value;
+  input.value = '';
+  if (!raw.trim()) return;
+
+  // support pasting/typing several words separated by commas, semicolons or newlines
+  const parts = raw.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+
+  parts.forEach(part => {
+    const norm = normalize(part);
+    if (recalledSet.has(norm)) return; // no duplicates
+    recalledSet.add(norm);
+    recalledRaw.push(norm);
+
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = part;
+    $('chipArea').appendChild(chip);
+  });
+
+  $('recallCount').textContent = recalledRaw.length + (recalledRaw.length===1 ? ' palabra introducida' : ' palabras introducidas');
+  input.focus();
+}
+
+function finishRecall(){
+  if (timerInterval) clearTimeout(timerInterval);
+  computeResults();
+  hide('screen-recall');
+  show('screen-results');
+}
+
+function computeResults(){
+  matchedPositions = new Set();
+  hallucinated = [];
+
+  const normalizedWords = WORDS.map(normalize);
+
+  recalledRaw.forEach(w => {
+    const idx = normalizedWords.indexOf(w);
+    if (idx !== -1){
+      matchedPositions.add(idx);
+    } else {
+      hallucinated.push(w);
+    }
+  });
+
+  $('scoreCount').textContent = matchedPositions.size;
+
+  // pill grid, in original list order
+  const pillGrid = $('pillGrid');
+  pillGrid.innerHTML = '';
+  WORDS.forEach((w, i) => {
+    const pill = document.createElement('div');
+    pill.className = 'pill' + (matchedPositions.has(i) ? ' hit' : '');
+    pill.innerHTML = `<span class="n">${i+1}</span>${w}`;
+    pillGrid.appendChild(pill);
+  });
+
+  // hallucinated block
+  const hallucList = $('hallucList');
+  const hallucBlockLabel = document.querySelector('.halluc-label');
+  hallucList.innerHTML = '';
+  if (hallucinated.length === 0){
+    hallucBlockLabel.style.display = 'none';
+    const note = document.createElement('div');
+    note.className = 'none-note';
+    note.textContent = 'Ninguna — todas las palabras que escribiste estaban realmente en la lista.';
+    hallucList.appendChild(note);
+  } else {
+    hallucBlockLabel.style.display = 'block';
+    hallucinated.forEach(w => {
+      const pill = document.createElement('span');
+      pill.className = 'halluc-pill';
+      pill.textContent = w;
+      hallucList.appendChild(pill);
+    });
+  }
+
+  // serial position chart
+  const chart = $('sppChart');
+  chart.innerHTML = '';
+  WORDS.forEach((w, i) => {
+    const col = document.createElement('div');
+    col.className = 'spp-bar-col';
+    const bar = document.createElement('div');
+    bar.className = 'spp-bar' + (matchedPositions.has(i) ? ' hit' : '');
+    bar.style.height = matchedPositions.has(i) ? '100%' : '6%';
+    const num = document.createElement('div');
+    num.className = 'spp-num';
+    num.textContent = i+1;
+    col.appendChild(bar);
+    col.appendChild(num);
+    chart.appendChild(col);
+  });
+}
+
+function copyForLinkedIn(){
+  const score = matchedPositions.size;
+  const positions = [...matchedPositions].sort((a,b)=>a-b).map(i=>i+1);
+  const early = positions.filter(p => p <= 5).length;
+  const mid = positions.filter(p => p > 5 && p <= 10).length;
+  const late = positions.filter(p => p > 10).length;
+
+  const lines = [
+    `🧠 Acabo de hacer "El Test de Memoria"`,
+    ``,
+    `✅ Recordé ${score}/15 palabras — mostradas una a una, 1,5s cada una`,
+    ``,
+    `📊 Por posición en la lista:`,
+    `   🔹 Inicio (1–5): ${early}`,
+    `   🔹 Medio (6–10): ${mid}`,
+    `   🔹 Final (11–15): ${late}`,
+  ];
+
+  if (hallucinated.length){
+    lines.push(``, `⚠️ Además "alucinó" ${hallucinated.length} palabra${hallucinated.length===1?'':'s'} que nunca estuvieron en la lista`);
+  }
+
+  lines.push(
+    ``,
+    `💡 Clásico efecto primacía–recencia: recordé el principio y el final, y perdí el medio.`,
+    `Es el mismo fallo que muestran los LLMs con contextos largos 👉 "Lost in the Middle" (Liu et al., 2023)`,
+    ``,
+    `👉 ¿Cuántas recordarías tú? Pruébalo aquí y cuéntame tu resultado en comentarios 👇`,
+    `🔗 https://pablomeleroalonso.me/lab/test-memoria`
+  );
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = $('copyToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  });
+}
+
+function resetGame(){
+  if (timerInterval) clearTimeout(timerInterval);
+  recalledRaw = [];
+  recalledSet = new Set();
+  hallucinated = [];
+  matchedPositions = new Set();
+  hide('screen-study');
+  hide('screen-recall');
+  hide('screen-results');
+  show('screen-start');
+}
+</script>
