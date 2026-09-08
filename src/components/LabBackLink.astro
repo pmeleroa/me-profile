@@ -1,0 +1,44 @@
+---
+interface Props {
+  href: string;
+  label?: string;
+}
+
+const { href, label = 'Volver al artículo' } = Astro.props;
+---
+
+<a href={href} class="lab-back-link">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+  {label}
+</a>
+
+<style>
+  .lab-back-link {
+    position: fixed;
+    top: 1.25rem;
+    left: 1.25rem;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-full);
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: color var(--ease), border-color var(--ease);
+  }
+
+  .lab-back-link:hover {
+    color: var(--color-accent-light);
+    border-color: var(--color-border-2);
+  }
+</style>
