@@ -2,6 +2,9 @@
   "name": "me-ai-profile",
   "type": "module",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
@@ -10,9 +13,9 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4.3.14",
-    "@astrojs/partytown": "^2.1.4",
-    "astro": "^5.18.0"
+    "@astrojs/mdx": "^8.0.0",
+    "@astrojs/partytown": "^2.1.7",
+    "astro": "7.3.1"
   },
   "devDependencies": {
     "sharp": "^0.34.5"
