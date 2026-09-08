@@ -1,13 +1,13 @@
 ## 1. Rama
 
-- [ ] 1.1 Crear la rama `chore/upgrade-github-actions` desde `main` actualizada; verificar con `git branch --show-current`.
+- [x] 1.1 Crear la rama `chore/upgrade-github-actions` desde `main` actualizada; verificar con `git branch --show-current`. **Verificado**: `git branch --show-current` → `chore/upgrade-github-actions`.
 
 ## 2. Actualización de versiones
 
-- [ ] 2.1 Actualizar en `.github/workflows/deploy.yml` las tres apariciones de `actions/checkout@v4` a `actions/checkout@v7.0.1` (jobs `check-commit`, `build`, `release`); verificar con `grep -n "actions/checkout@" .github/workflows/deploy.yml` que las tres quedan en `v7.0.1`.
-- [ ] 2.2 Actualizar `actions/setup-node@v4` a `actions/setup-node@v7.0.0` en el job `build`; verificar con `grep -n "actions/setup-node@" .github/workflows/deploy.yml`.
-- [ ] 2.3 Actualizar `actions/upload-pages-artifact@v3` a `actions/upload-pages-artifact@v5.0.0` en el job `build`; verificar con `grep -n "actions/upload-pages-artifact@" .github/workflows/deploy.yml`.
-- [ ] 2.4 Actualizar `actions/deploy-pages@v4` a `actions/deploy-pages@v5.0.1` en el job `deploy`; verificar con `grep -n "actions/deploy-pages@" .github/workflows/deploy.yml`.
+- [x] 2.1 Actualizar en `.github/workflows/deploy.yml` las tres apariciones de `actions/checkout@v4` a `actions/checkout@v7.0.1` (jobs `check-commit`, `build`, `release`); verificar con `grep -n "actions/checkout@" .github/workflows/deploy.yml` que las tres quedan en `v7.0.1`. **Verificado**: las tres apariciones (líneas 23, 40, 59) muestran `actions/checkout@v7.0.1`.
+- [x] 2.2 Actualizar `actions/setup-node@v4` a `actions/setup-node@v7.0.0` en el job `build`; verificar con `grep -n "actions/setup-node@" .github/workflows/deploy.yml`. **Verificado**: línea 41 → `actions/setup-node@v7.0.0`.
+- [x] 2.3 Actualizar `actions/upload-pages-artifact@v3` a `actions/upload-pages-artifact@v5.0.0` en el job `build`; verificar con `grep -n "actions/upload-pages-artifact@" .github/workflows/deploy.yml`. **Verificado**: línea 49 → `actions/upload-pages-artifact@v5.0.0`.
+- [x] 2.4 Actualizar `actions/deploy-pages@v4` a `actions/deploy-pages@v5.0.1` en el job `deploy`; verificar con `grep -n "actions/deploy-pages@" .github/workflows/deploy.yml`. **Verificado**: línea 139 → `actions/deploy-pages@v5.0.1`.
 
 ## 3. Validación de pipeline y entrega
 

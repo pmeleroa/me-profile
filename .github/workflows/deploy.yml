@@ -20,7 +20,7 @@ jobs:
     outputs:
       should-deploy: ${{ steps.check.outputs.should-deploy }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - id: check
         run: |
           MSG=$(git log -1 --pretty=%s)
@@ -37,8 +37,8 @@ jobs:
     if: needs.check-commit.outputs.should-deploy == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: 24
           cache: npm
@@ -46,7 +46,7 @@ jobs:
       - run: npm run build
         env:
           PUBLIC_GA_ID: ${{ secrets.PUBLIC_GA_ID }}
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: ./dist
 
@@ -56,7 +56,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.value }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -136,4 +136,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5.0.1
