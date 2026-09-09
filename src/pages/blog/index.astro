@@ -5,6 +5,7 @@ import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import BlogCard from '../../components/BlogCard.astro';
 import { sections } from '../../data/sections';
+import { readingTime } from '../../utils/readingTime';
 
 if (!sections.blog) return Astro.redirect('/404');
 
@@ -106,6 +107,8 @@ const [featured, ...rest] = posts;
                   tags={featured.data.tags}
                   slug={featured.id}
                   featured={true}
+                  image={featured.data.image}
+                  readingTimeMinutes={readingTime(featured.body)}
                 />
               )}
               {rest.map((post) => (
@@ -116,6 +119,8 @@ const [featured, ...rest] = posts;
                   category={post.data.category}
                   tags={post.data.tags}
                   slug={post.id}
+                  image={post.data.image}
+                  readingTimeMinutes={readingTime(post.body)}
                 />
               ))}
             </div>
@@ -205,7 +210,7 @@ const [featured, ...rest] = posts;
   function applyFilters() {
     let anyVisible = false;
     cards.forEach((card) => {
-      const slug = slugFromHref(card.getAttribute('href'));
+      const slug = slugFromHref(card.querySelector('a')?.getAttribute('href'));
       const cardTags = postTags[slug] || [];
       const matchesCategory = !state.category || card.dataset.category === state.category;
       const matchesTags = state.tags.size === 0 || cardTags.some((t) => state.tags.has(t));

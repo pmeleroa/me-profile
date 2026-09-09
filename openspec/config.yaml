@@ -117,6 +117,22 @@ rules:
     - Justificar cualquier dependencia nueva frente a usar el stack
       existente (Astro, colecciones de contenido, gtag vía Partytown); no
       añadir backend, CMS o tracker adicional por conveniencia.
+    - "Trabajo futuro pendiente (blog): hacer `image` obligatorio en el
+      schema de la colección `blog` (src/content.config.ts), en vez de
+      opcional con placeholder de marca en BlogCard (ver
+      openspec/changes/archive/redesign-blog-card o specs/blog/spec.md
+      tras archivar). Cualquier propuesta que aborde esto debe incluir:
+      (1) un plan de migración explícito para los posts existentes que
+      hoy no definen `image` (añadirles una imagen real antes de, o como
+      parte de, hacer el campo obligatorio — nunca fijar el campo como
+      requerido dejando posts sin imagen y sin backfill); (2) el checklist
+      de publicación de imagen ya acordado (formato optimizado, tamaño
+      recomendado ~1200x630 por ser también el og:image en Layout.astro,
+      archivo en public/images/blog/<nombre>.<ext>, referenciado como ruta
+      raíz-relativa en el frontmatter); (3) si se sustituye por completo el
+      placeholder de marca, justificar frente a mantenerlo como fallback
+      para fuentes de datos ajenas a la colección `blog` (p.ej. datos de
+      ejemplo) que sigan sin imagen."
 
   tasks:
     - Cada tarea de implementación de un requisito de contenido público debe
