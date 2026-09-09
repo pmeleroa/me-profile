@@ -15,6 +15,15 @@ const posts = allPosts.sort(
 
 const categories = ['Arquitectura', 'DevOps', 'IA Generativa', 'Liderazgo', 'Opinión'] as const;
 
+const tagCounts = new Map<string, number>();
+posts.forEach((post) => {
+  post.data.tags.forEach((tag) => {
+    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  });
+});
+const tags = [...tagCounts.keys()].sort((a, b) => a.localeCompare(b, 'es'));
+const postTags = Object.fromEntries(posts.map((post) => [post.id, post.data.tags]));
+
 const [featured, ...rest] = posts;
 ---
 
@@ -34,19 +43,48 @@ const [featured, ...rest] = posts;
           </p>
         </div>
 
-        {categories.length > 0 && (
-          <div class="blog-filters reveal reveal-delay-1" id="blog-filters">
-            <button class="filter-chip active" data-filter="all">
-              Todos <span class="filter-count" id="count-all">{posts.length}</span>
-            </button>
-            {categories.map((cat) => {
-              const count = posts.filter((p) => p.data.category === cat).length;
-              return count > 0 ? (
-                <button class="filter-chip" data-filter={cat}>
-                  {cat} <span class="filter-count">{count}</span>
+        {(categories.length > 0 || tags.length > 0) && (
+          <div class="filters-row reveal reveal-delay-1" id="blog-filters-row">
+            {categories.length > 0 && (
+              <div class="blog-filters" id="blog-filters">
+                <button class="filter-chip active" data-filter="all" aria-pressed="true">
+                  Todos <span class="filter-count" id="count-all">{posts.length}</span>
                 </button>
-              ) : null;
-            })}
+                {categories.map((cat) => {
+                  const count = posts.filter((p) => p.data.category === cat).length;
+                  return count > 0 ? (
+                    <button class="filter-chip" data-filter={cat} aria-pressed="false">
+                      {cat} <span class="filter-count">{count}</span>
+                    </button>
+                  ) : null;
+                })}
+              </div>
+            )}
+
+            {tags.length > 0 && (
+              <div class="tags-filter" id="tags-filter">
+                <button
+                  type="button"
+                  class="tags-toggle"
+                  id="tags-toggle"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  aria-controls="tags-panel"
+                >
+                  <span id="tags-toggle-label">Filtrar por tags</span>
+                  <svg class="tags-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="tags-panel" id="tags-panel" hidden>
+                  {tags.map((tag) => (
+                    <button type="button" class="filter-chip tag-chip" data-tag={tag} aria-pressed="false">
+                      #{tag} <span class="filter-count">{tagCounts.get(tag)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -57,29 +95,34 @@ const [featured, ...rest] = posts;
         {posts.length === 0 ? (
           <p class="blog-empty">Pronto habrá artículos aquí. Vuelve en breve.</p>
         ) : (
-          <div class="blog-grid" id="blog-grid">
-            {featured && (
-              <BlogCard
-                title={featured.data.title}
-                description={featured.data.description}
-                publishDate={featured.data.publishDate}
-                category={featured.data.category}
-                tags={featured.data.tags}
-                slug={featured.id}
-                featured={true}
-              />
-            )}
-            {rest.map((post) => (
-              <BlogCard
-                title={post.data.title}
-                description={post.data.description}
-                publishDate={post.data.publishDate}
-                category={post.data.category}
-                tags={post.data.tags}
-                slug={post.id}
-              />
-            ))}
-          </div>
+          <>
+            <div class="blog-grid" id="blog-grid">
+              {featured && (
+                <BlogCard
+                  title={featured.data.title}
+                  description={featured.data.description}
+                  publishDate={featured.data.publishDate}
+                  category={featured.data.category}
+                  tags={featured.data.tags}
+                  slug={featured.id}
+                  featured={true}
+                />
+              )}
+              {rest.map((post) => (
+                <BlogCard
+                  title={post.data.title}
+                  description={post.data.description}
+                  publishDate={post.data.publishDate}
+                  category={post.data.category}
+                  tags={post.data.tags}
+                  slug={post.id}
+                />
+              ))}
+            </div>
+            <p class="blog-empty" id="blog-no-results" hidden>
+              No hay artículos que coincidan con estos filtros.
+            </p>
+          </>
         )}
       </div>
     </section>
@@ -87,27 +130,155 @@ const [featured, ...rest] = posts;
   <Footer />
 </Layout>
 
-<script>
-  const filters = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
-  const cards = document.querySelectorAll<HTMLElement>('[data-category]');
+<script define:vars={{ postTags }}>
+  const categoryButtons = document.querySelectorAll('.filter-chip[data-filter]');
+  const tagButtons = document.querySelectorAll('.tag-chip[data-tag]');
+  const cards = document.querySelectorAll('[data-category]');
+  const noResults = document.getElementById('blog-no-results');
+  const tagsFilter = document.getElementById('tags-filter');
+  const tagsToggle = document.getElementById('tags-toggle');
+  const tagsPanel = document.getElementById('tags-panel');
+  const tagsToggleLabel = document.getElementById('tags-toggle-label');
 
-  filters.forEach((btn) => {
+  const state = { category: null, tags: new Set() };
+  // Whether the *current* tags-panel session has already pushed a history
+  // entry. The first tag toggle after opening the panel pushes (preserving
+  // whatever state existed before the panel was opened); subsequent toggles
+  // in the same session replace that entry, so picking several tags in a
+  // row collapses into a single "atrás" step instead of one per click.
+  let tagsSessionPushed = false;
+
+  function slugFromHref(href) {
+    return (href || '').replace(/^\/blog\//, '').replace(/\/$/, '');
+  }
+
+  function readStateFromURL() {
+    const params = new URLSearchParams(location.search);
+    state.category = params.get('category');
+    state.tags = new Set(
+      (params.get('tags') || '').split(',').map((t) => t.trim()).filter(Boolean)
+    );
+  }
+
+  function syncURL(push) {
+    const params = new URLSearchParams();
+    if (state.category) params.set('category', state.category);
+    if (state.tags.size > 0) params.set('tags', [...state.tags].join(','));
+    const query = params.toString();
+    const url = query ? `${location.pathname}?${query}` : location.pathname;
+    const historyState = { category: state.category, tags: [...state.tags] };
+    if (push) {
+      history.pushState(historyState, '', url);
+    } else {
+      history.replaceState(historyState, '', url);
+    }
+  }
+
+  function setPanelVisible(open) {
+    if (!tagsToggle || !tagsPanel) return;
+    tagsPanel.hidden = !open;
+    tagsToggle.setAttribute('aria-expanded', String(open));
+    if (open) {
+      tagsSessionPushed = false;
+    }
+  }
+
+  function updateChipsUI() {
+    categoryButtons.forEach((btn) => {
+      const isActive = btn.dataset.filter === 'all' ? !state.category : btn.dataset.filter === state.category;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+    tagButtons.forEach((btn) => {
+      const isActive = state.tags.has(btn.dataset.tag);
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function updateToggleLabel() {
+    if (!tagsToggleLabel) return;
+    tagsToggleLabel.textContent =
+      state.tags.size > 0 ? `Filtrar por tags (${state.tags.size})` : 'Filtrar por tags';
+  }
+
+  function applyFilters() {
+    let anyVisible = false;
+    cards.forEach((card) => {
+      const slug = slugFromHref(card.getAttribute('href'));
+      const cardTags = postTags[slug] || [];
+      const matchesCategory = !state.category || card.dataset.category === state.category;
+      const matchesTags = state.tags.size === 0 || cardTags.some((t) => state.tags.has(t));
+      const visible = matchesCategory && matchesTags;
+      card.style.display = visible ? '' : 'none';
+      if (visible) anyVisible = true;
+    });
+    if (noResults) noResults.hidden = anyVisible;
+  }
+
+  function render() {
+    updateChipsUI();
+    updateToggleLabel();
+    applyFilters();
+  }
+
+  categoryButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter!;
-
-      filters.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      cards.forEach((card) => {
-        const match = filter === 'all' || card.dataset.category === filter;
-        card.style.display = match ? '' : 'none';
-      });
+      state.category = btn.dataset.filter === 'all' ? null : btn.dataset.filter;
+      render();
+      syncURL(true);
     });
   });
+
+  tagButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tag = btn.dataset.tag;
+      if (state.tags.has(tag)) {
+        state.tags.delete(tag);
+      } else {
+        state.tags.add(tag);
+      }
+      render();
+      syncURL(!tagsSessionPushed);
+      tagsSessionPushed = true;
+    });
+  });
+
+  if (tagsToggle) {
+    tagsToggle.addEventListener('click', () => {
+      setPanelVisible(tagsPanel.hidden);
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!tagsPanel || tagsPanel.hidden) return;
+    if (tagsFilter && !tagsFilter.contains(e.target)) {
+      setPanelVisible(false);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && tagsPanel && !tagsPanel.hidden) {
+      setPanelVisible(false);
+      tagsToggle.focus();
+    }
+  });
+
+  window.addEventListener('popstate', () => {
+    readStateFromURL();
+    setPanelVisible(false);
+    render();
+  });
+
+  readStateFromURL();
+  setPanelVisible(false);
+  render();
 </script>
 
 <style>
   .blog-header {
+    position: relative;
+    z-index: 1;
     padding: calc(var(--header-height) + 4rem) 0 3rem;
     text-align: center;
   }
@@ -131,12 +302,20 @@ const [featured, ...rest] = posts;
     margin-right: auto;
   }
 
+  .filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+
   .blog-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     justify-content: center;
-    margin-top: 2.5rem;
   }
 
   .filter-chip {
@@ -164,6 +343,68 @@ const [featured, ...rest] = posts;
   .filter-count {
     font-size: 0.72rem;
     opacity: 0.7;
+  }
+
+  .tags-filter {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .tags-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--ease);
+  }
+
+  .tags-toggle:hover,
+  .tags-toggle[aria-expanded='true'] {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .tags-toggle-icon {
+    transition: transform var(--ease);
+  }
+
+  .tags-toggle[aria-expanded='true'] .tags-toggle-icon {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tags-toggle-icon {
+      transition: none;
+    }
+  }
+
+  .tags-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    width: max-content;
+    max-width: min(360px, 85vw);
+    padding: 0.75rem;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .tags-panel[hidden] {
+    display: none;
   }
 
   .blog-content {
