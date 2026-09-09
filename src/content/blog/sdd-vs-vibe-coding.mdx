@@ -1,0 +1,62 @@
+---
+title: "SDD vs vibe coding: dos trazabilidades, no una elección"
+description: "SDD y vibe coding se discuten como si fueran dos bandos enfrentados. No lo son: son dos preguntas independientes, y este mismo sitio tiene la evidencia de cómo se responden por separado."
+publishDate: 2026-09-08
+category: "IA Generativa"
+tags: ["ia-generativa", "sdd", "arquitectura", "ingenieria"]
+# draft: true -> el post no se publica (no se lista ni se genera su página)
+draft: true
+demo:
+  slug: "telefono-roto"
+---
+
+Antes de seguir leyendo, prueba esto: **[El teléfono roto del código](/lab/telefono-roto)**. Vas a recorrer la misma cadena de cuatro decisiones dos veces, sobre un requisito ficticio muy simple (un botón de exportar). Menos de tres minutos.
+
+Guarda tu resultado de las dos rondas. Vamos a volver a él.
+
+## La pregunta mal planteada
+
+"SDD o vibe coding" se discute como una elección de bando: proceso formal contra improvisar con un asistente de IA. Planteada así, la pregunta no tiene una buena respuesta, porque asume que hay una sola cosa que decidir.
+
+Hay dos.
+
+## Dos trazabilidades, no una
+
+Cuando alguien "hace SDD", en realidad está decidiendo dos cosas a la vez, y puede decidirlas por separado:
+
+- **Trazabilidad de proceso**: por qué se hizo un cambio, qué se consideró, cómo se verificó, cómo se revierte. Esto no depende de lo que cambie — depende de si alguien (tu equipo, tu yo dentro de seis meses) va a necesitar reconstruir el porqué.
+- **Trazabilidad de requisito**: qué contrato de comportamiento garantiza el sistema hacia fuera — qué puede asumir con seguridad quien lo usa. Esto sí depende de lo que cambie: solo tiene sentido cuando el cambio toca algo observable.
+
+Vibe coding no es "la ausencia de SDD". Es renunciar a las dos trazabilidades a la vez, a cambio de velocidad. Eso es exactamente correcto en algunos casos, y exactamente el problema en otros — pero para saber cuál, hace falta separar las dos preguntas, no tratarlas como una.
+
+## Evidencia, no teoría
+
+No hace falta especular sobre esto. Este propio sitio usa SDD (con OpenSpec) para todos sus cambios, y los cuatro que ya están archivados prueban la separación:
+
+- **Subir Astro dos versiones mayores** (5 → 7), con migración de la API de colecciones de contenido y cambio de versión de Node en el pipeline: cambio con superficie real, pero el contrato público del sitio —rutas, contenido, HTML servido— no cambia una coma.
+- **Actualizar cuatro GitHub Actions** del pipeline de CI/CD a sus últimas versiones, por los parches de seguridad que llevaban acumulados: el cambio más mecánico de los cuatro.
+- **Corregir `sharp`** tras un aviso de seguridad con cuatro CVEs (dos de severidad alta) en los decodificadores de imagen heredados de `libvips`: motivado por riesgo, no por una decisión de producto.
+- **Introducir el espacio `/lab/`** para demos interactivas ligadas a un post — el mismo patrón que estás usando ahora mismo con esta página.
+
+Los cuatro pasaron por proposal, design y tasks: la trazabilidad de proceso se aplicó siempre, sin excepción, porque su coste es bajo y el beneficio —poder auditar cualquier cambio— es constante independientemente de lo que ese cambio toque.
+
+Pero solo uno de los cuatro generó una spec nueva: `/lab/`. Los otros tres llevan `skip_specs: true` en su metadata, y no por pereza — porque ninguno cambia ningún contrato que alguien pudiera observar desde fuera. Un bump de versión de Astro o de una GitHub Action no le debe nada a un lector del sitio; el espacio `/lab/` sí le debe algo a cualquier post que quiera enlazar una demo.
+
+Esa es la distinción operando en código real, no en una diapositiva.
+
+## Lo que el teléfono roto demuestra
+
+El requisito del juego —"el botón de exportar debe funcionar en CSV y en JSON"— es inventado para la ocasión, no un caso real de este sitio. Pero el mecanismo que ilustra sí es real: en la rama sin contrato visible, cada decisión de la cadena es razonable *en el momento en que se toma*. Nadie decide activamente romper el requisito. Simplemente, sin nada escrito a lo que volver a mirar, el requisito se diluye una elección razonable detrás de otra.
+
+En la rama con el contrato de una línea siempre visible, las mismas tentaciones aparecen — pero se ven por lo que son en cuanto entran en conflicto con algo que sigue ahí, delante.
+
+Ninguna de las dos rondas usó más "proceso". La diferencia entera está en si el contrato del requisito seguía siendo visible en la cuarta decisión, no en la primera.
+
+## Qué hacer con esto
+
+Si lideras un equipo, la pregunta útil no es "¿aplicamos SDD o dejamos vibe coding?". Son dos preguntas más pequeñas, para cada cambio:
+
+- **¿Alguien va a necesitar el porqué de esto más adelante?** Si sí, la trazabilidad de proceso es barata y siempre vale la pena — no hace falta que el cambio sea grande ni arriesgado para justificarla.
+- **¿Este cambio toca algo que otra persona o sistema podría estar asumiendo como verdadero?** Si no, no hay spec que escribir, y forzarla es ceremonia sin contenido. Si sí, la ausencia de esa spec no la detecta ningún build ni ningún `npm audit` — la detecta, tarde, quien confiaba en un contrato que nunca estuvo escrito.
+
+Vibe coding sigue siendo la herramienta correcta cuando ninguna de las dos preguntas tiene un "sí" que importe — un spike, un script desechable, una exploración que se tira si no funciona. El error no es usarlo ahí. El error es usarlo por defecto y descubrir, cuatro decisiones después, que nadie sabe ya por qué el botón dejó de exportar JSON.
