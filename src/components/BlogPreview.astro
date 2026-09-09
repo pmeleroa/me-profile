@@ -1,14 +1,17 @@
 ---
 import BlogCard from './BlogCard.astro';
+import { readingTime } from '../utils/readingTime';
 
 interface Post {
   id: string;
+  body?: string;
   data: {
     title: string;
     description: string;
     publishDate: Date;
     category: string;
     tags: string[];
+    image?: string;
   };
 }
 
@@ -45,6 +48,8 @@ const { posts } = Astro.props;
             category={post.data.category}
             tags={post.data.tags}
             slug={post.id}
+            image={post.data.image}
+            readingTimeMinutes={readingTime(post.body)}
           />
         </div>
       ))}
