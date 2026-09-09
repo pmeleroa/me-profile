@@ -61,7 +61,7 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
         {post.data.tags.length > 0 && (
           <div class="article-tags reveal reveal-delay-3">
             {post.data.tags.map((tag) => (
-              <span class="article-tag">#{tag}</span>
+              <a class="article-tag" href={`/blog?tags=${encodeURIComponent(tag)}`}>#{tag}</a>
             ))}
           </div>
         )}
@@ -187,6 +187,12 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     font-size: 0.78rem;
     color: var(--color-text-muted);
     font-family: var(--font-mono);
+    text-decoration: none;
+    transition: color var(--ease);
+  }
+
+  .article-tag:hover {
+    color: var(--color-accent);
   }
 
   /* ── Prose styles ── */
