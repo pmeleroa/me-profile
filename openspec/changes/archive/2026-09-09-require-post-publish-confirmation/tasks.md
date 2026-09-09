@@ -1,0 +1,11 @@
+## 1. Formalizar la regla en `openspec/config.yaml`
+
+- [x] 1.1 Añadir un tercer bullet a `rules.tasks` en `openspec/config.yaml`, a continuación de los 2 existentes: "Toda tarea que fije `draft: false` en un post de `src/content/blog/` debe verificar explícitamente si existe confirmación del owner para publicar ese post concreto (pregunta y respuesta literales registradas en la tarea); si no la hay, la tarea debe dejar o fijar `draft: true` y registrar que no hubo confirmación — nunca fijar `draft: false` por defecto." Verificación: `git diff openspec/config.yaml` muestra el bullet añadido bajo `rules.tasks` sin alterar los 2 bullets existentes.
+- [x] 1.2 Añadir el check `Q09` a la cadena de `operations.apply.guidance` en `openspec/config.yaml` (misma cadena donde viven Q01–Q08), con el texto: "Q09 confirmación de publicación (draft:false en un post solo tras confirmación explícita del owner registrada en la tarea correspondiente de tasks.md; sin confirmación, el post permanece en draft:true)". Verificación: `git diff openspec/config.yaml` muestra Q09 añadido a continuación de Q08 en la misma cadena, sin modificar el texto de Q01–Q08.
+- [x] 1.3 Releer el `openspec/config.yaml` completo tras los cambios y confirmar que el YAML resultante conserva la indentación y el formato de lista de las secciones `rules` y `operations` (sin romper otras claves del fichero). Verificación: inspección visual del fichero completo tras la edición.
+
+## 2. Validar el change
+
+- [x] 2.1 Ejecutar `openspec validate require-post-publish-confirmation --strict` y corregir cualquier hallazgo. Verificación: salida del comando confirmando el change válido (sin errores; el único mensaje informativo esperado es el de `skip_specs`).
+- [x] 2.2 Ejecutar `openspec validate --all --strict` para confirmar que la edición de `openspec/config.yaml` no rompe la validación de ningún otro change existente. Verificación: salida del comando sin errores.
+- [x] 2.3 Registrar el mecanismo de rollback en la descripción de la PR: el change edita únicamente `openspec/config.yaml` (2 bullets nuevos, sin tocar código, schema ni contenido publicado); el rollback es `git revert` del commit/PR, sin migración de datos. Verificación: mecanismo descrito aquí y se incluirá en la descripción de la PR al abrirla.

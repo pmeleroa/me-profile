@@ -124,6 +124,7 @@ rules:
       solo el checkbox marcado.
     - Registrar el mecanismo de rollback (git checkout/clean o revert)
       cuando la tarea toca código ya en producción.
+    - "Toda tarea que fije draft: false en un post de src/content/blog/ debe verificar explícitamente si existe confirmación del owner para publicar ese post concreto (pregunta y respuesta literales registradas en la tarea); si no la hay, la tarea debe dejar o fijar draft: true y registrar que no hubo confirmación — nunca fijar draft: false por defecto."
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
@@ -131,7 +132,7 @@ rules:
 operations:
   apply:
     guidance:
-      - "Requisitos transversales de calidad a verificar por cambio de contenido/UI público: Q01 contenido esencial sin JS, Q02 uso adaptable (360/390/768/1440px sin scroll horizontal), Q03 accesibilidad WCAG 2.2 AA, Q04 prefers-reduced-motion respetado, Q05 rendimiento (Lighthouse móvil >=90, sin regresión >5 puntos), Q06 integridad de publicación (draft/review nunca en salida pública), Q07 integridad de navegación (enlaces/rutas válidos), Q08 seguridad de contenido (sin HTML/JS arbitrario desde datos no confiables, sin secretos ni PII en eventos)."
+      - "Requisitos transversales de calidad a verificar por cambio de contenido/UI público: Q01 contenido esencial sin JS, Q02 uso adaptable (360/390/768/1440px sin scroll horizontal), Q03 accesibilidad WCAG 2.2 AA, Q04 prefers-reduced-motion respetado, Q05 rendimiento (Lighthouse móvil >=90, sin regresión >5 puntos), Q06 integridad de publicación (draft/review nunca en salida pública), Q07 integridad de navegación (enlaces/rutas válidos), Q08 seguridad de contenido (sin HTML/JS arbitrario desde datos no confiables, sin secretos ni PII en eventos), Q09 confirmación de publicación (draft:false en un post solo tras confirmación explícita del owner registrada en la tarea correspondiente de tasks.md; sin confirmación, el post permanece en draft:true)."
       - Usar npm run build + inspección de dist/ como verificación real;
         preferir fixtures temporales no versionados sobre contenido de
         prueba permanente en el repositorio.
