@@ -6,6 +6,7 @@ import Footer from '../../components/Footer.astro';
 import BlogCard from '../../components/BlogCard.astro';
 import { sections } from '../../data/sections';
 import { readingTime } from '../../utils/readingTime';
+import { author } from '../../data/author';
 
 export async function getStaticPaths() {
   if (!sections.blog) return [];
@@ -33,34 +34,108 @@ const categoryColors: Record<string, string> = {
 };
 const categoryColor = categoryColors[post.data.category] ?? '#00BDD4';
 
-const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
+// Mismo formato de fecha que BlogCard, para que la cabecera del artículo y
+// las tarjetas (listado, portada, relacionados) muestren la fecha igual.
+const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   year: 'numeric',
-  month: 'long',
-  day: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
 });
+const formattedDate = dateFormatter.format(post.data.publishDate);
+const formattedUpdatedDate = post.data.updatedDate ? dateFormatter.format(post.data.updatedDate) : undefined;
+const readingTimeMinutes = readingTime(post.body);
+
+const breadcrumbItems = [
+  { label: 'Inicio', href: '/' },
+  { label: 'Blog', href: '/blog' },
+  { label: post.data.category, href: `/blog?category=${encodeURIComponent(post.data.category)}` },
+];
+
+const ctaText = post.data.ctaText ?? '¿Te resultó útil? Me interesa saber qué piensas.';
+const ctaLabel = post.data.ctaLabel ?? 'Hablemos';
+const ctaHref = post.data.ctaHref ?? '/contacto';
+
+const publishedTimeISO = post.data.publishDate.toISOString();
+const modifiedTimeISO = post.data.updatedDate?.toISOString();
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://pablomeleroalonso.me';
+const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const imageUrl = post.data.image ? new URL(post.data.image, siteUrl).toString() : undefined;
+
+const blogPostingJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.data.title,
+  description: post.data.description,
+  ...(imageUrl && { image: imageUrl }),
+  datePublished: publishedTimeISO,
+  ...(modifiedTimeISO && { dateModified: modifiedTimeISO }),
+  ...(author && { author: { '@type': 'Person', name: author.name } }),
+  mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+};
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: breadcrumbItems.map((item, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: item.label,
+    ...(item.href && { item: new URL(item.href, siteUrl).toString() }),
+  })),
+};
 ---
 
 <Layout
   title={`${post.data.title} · Blog`}
   description={post.data.description}
   image={post.data.image}
+  type="article"
+  publishedTime={publishedTimeISO}
+  modifiedTime={modifiedTimeISO}
 >
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(blogPostingJsonLd)} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(breadcrumbJsonLd)} />
+
   <Header />
   <main>
     <!-- Article Header -->
     <header class="article-header">
       <div class="container article-header-inner">
-        <div class="article-meta reveal">
+        <nav class="breadcrumb reveal" aria-label="Breadcrumb">
+          <ol>
+            {breadcrumbItems.map((item) => (
+              <li><a href={item.href}>{item.label}</a></li>
+            ))}
+          </ol>
+        </nav>
+
+        <div class="article-taxonomy reveal reveal-delay-1">
           <span class="article-category" style={`color: ${categoryColor}; border-color: ${categoryColor}33;`}>
             {post.data.category}
           </span>
-          <span class="article-date">{formattedDate}</span>
+          <div class="article-meta-group">
+            <time class="article-date" datetime={publishedTimeISO}>
+              <span aria-hidden="true">📅</span> {formattedDate}
+            </time>
+            {readingTimeMinutes !== undefined && (
+              <span class="article-reading-time">
+                <span aria-hidden="true">⏱️</span> {readingTimeMinutes} min
+              </span>
+            )}
+            {formattedUpdatedDate && (
+              <span class="article-updated">
+                Actualizado el <time datetime={modifiedTimeISO}>{formattedUpdatedDate}</time>
+              </span>
+            )}
+          </div>
         </div>
-        <h1 class="article-title reveal reveal-delay-1">{post.data.title}</h1>
-        <p class="article-description reveal reveal-delay-2">{post.data.description}</p>
+
+        <h1 class="article-title reveal reveal-delay-2">{post.data.title}</h1>
+        <p class="article-description reveal reveal-delay-3">{post.data.description}</p>
 
         {post.data.tags.length > 0 && (
-          <div class="article-tags reveal reveal-delay-3">
+          <div class="article-tags reveal reveal-delay-4">
             {post.data.tags.map((tag) => (
               <a class="article-tag" href={`/blog?tags=${encodeURIComponent(tag)}`}>#{tag}</a>
             ))}
@@ -68,6 +143,15 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
         )}
       </div>
     </header>
+
+    <!-- Featured image -->
+    {post.data.image && (
+      <div class="article-image-wrap">
+        <div class="container">
+          <img src={post.data.image} alt={post.data.title} class="article-image" loading="eager" />
+        </div>
+      </div>
+    )}
 
     <!-- Article Content -->
     <article class="article-body">
@@ -77,24 +161,24 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     </article>
 
     <!-- Author bio -->
-    <section class="author-section">
-      <div class="container">
-        <div class="author-card reveal">
-          <img src="/avatar.png" alt="Pablo Melero Alonso" class="author-avatar" onerror="this.style.display='none'" />
-          <div class="author-info">
-            <p class="author-name">Pablo Melero Alonso</p>
-            <p class="author-bio">
-              Arquitecto tecnológico especializado en plataformas de ingeniería, DevOps y arquitectura empresarial.
-              Exploro cómo la IA puede amplificar el trabajo de los equipos técnicos.
-            </p>
-            <div class="author-links">
-              <a href="https://www.linkedin.com/in/pmeleroalonso" target="_blank" rel="noopener" class="author-link">LinkedIn</a>
-              <a href="https://github.com/pmeleroa" target="_blank" rel="noopener" class="author-link">GitHub</a>
+    {author && (
+      <section class="author-section">
+        <div class="container">
+          <div class="author-card reveal">
+            <img src={author.avatar} alt={author.name} class="author-avatar" onerror="this.style.display='none'" />
+            <div class="author-info">
+              <p class="author-name">{author.name}</p>
+              <p class="author-bio">{author.bio}</p>
+              <div class="author-links">
+                {author.links.map((link) => (
+                  <a href={link.href} target="_blank" rel="noopener" class="author-link">{link.label}</a>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    )}
 
     <!-- Related posts -->
     {related.length > 0 && (
@@ -123,8 +207,8 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     <section class="article-cta">
       <div class="container">
         <div class="article-cta-inner reveal">
-          <p class="article-cta-text">¿Te resultó útil? Me interesa saber qué piensas.</p>
-          <a href="/contacto" class="btn-primary">Hablemos</a>
+          <p class="article-cta-text">{ctaText}</p>
+          <a href={ctaHref} class="btn-primary">{ctaLabel}</a>
         </div>
       </div>
     </section>
@@ -143,12 +227,58 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     margin: 0 auto;
   }
 
-  .article-meta {
+  /* ── Breadcrumb ── */
+  .breadcrumb {
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+  }
+
+  .breadcrumb li {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
+    gap: 0.4rem;
+  }
+
+  .breadcrumb li + li::before {
+    content: '/';
+    color: var(--color-text-subtle);
+  }
+
+  .breadcrumb a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border-radius: var(--r-sm);
+    transition: color var(--ease);
+  }
+
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+  }
+
+  .breadcrumb a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  /* ── Category + metadata (misma fila, alineadas a extremos opuestos, como BlogCard) ── */
+  .article-taxonomy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
   }
 
   .article-category {
@@ -161,9 +291,72 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     border-radius: var(--r-full);
   }
 
+  .article-meta-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
   .article-date {
-    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
     color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .article-reading-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-full);
+    padding: 0.2rem 0.6rem;
+    white-space: nowrap;
+  }
+
+  .article-updated {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  /* ── Tags (debajo de la bajada) ── */
+  .article-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .article-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-full);
+    padding: 0.3rem 0.75rem;
+    transition: color var(--ease), border-color var(--ease), background var(--ease);
+  }
+
+  .article-tag:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-accent-glow);
+  }
+
+  .article-tag:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
   }
 
   .article-title {
@@ -177,25 +370,23 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     font-size: 1.15rem;
     color: var(--color-text-muted);
     line-height: 1.7;
+    margin-bottom: 1.25rem;
   }
 
-  .article-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1.25rem;
+  /* ── Featured image ── */
+  .article-image-wrap {
+    padding: 3rem 0 0;
   }
 
-  .article-tag {
-    font-size: 0.78rem;
-    color: var(--color-text-muted);
-    font-family: var(--font-mono);
-    text-decoration: none;
-    transition: color var(--ease);
-  }
-
-  .article-tag:hover {
-    color: var(--color-accent);
+  .article-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--color-border);
+    display: block;
+    max-width: 900px;
+    margin: 0 auto;
   }
 
   /* ── Prose styles ── */
@@ -247,6 +438,12 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     color: var(--color-accent);
     text-decoration: underline;
     text-underline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+
+  .article-content :global(a:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
   }
 
   .article-content :global(blockquote) {
@@ -340,11 +537,17 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--color-accent);
+    border-radius: var(--r-sm);
     transition: opacity var(--ease);
   }
 
   .author-link:hover {
     opacity: 0.7;
+  }
+
+  .author-link:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
   }
 
   /* ── Related ── */
@@ -395,5 +598,10 @@ const formattedDate = post.data.publishDate.toLocaleDateString('es-ES', {
   .btn-primary:hover {
     opacity: 0.85;
     transform: translateY(-2px);
+  }
+
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
   }
 </style>

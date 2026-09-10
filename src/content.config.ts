@@ -11,6 +11,9 @@ const blogCollection = defineCollection({
     category: z.enum(['Arquitectura', 'DevOps', 'IA Generativa', 'Liderazgo', 'Opinión']),
     tags: z.array(z.string()).default([]),
     image: z.string().optional(),
+    ctaLabel: z.string().optional(),
+    ctaText: z.string().optional(),
+    ctaHref: z.string().optional(),
     draft: z.boolean().default(false),
     demo: z
       .object({

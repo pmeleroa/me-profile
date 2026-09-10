@@ -5,12 +5,18 @@ interface Props {
   title: string;
   description?: string;
   image?: string;
+  type?: 'website' | 'article';
+  publishedTime?: string;
+  modifiedTime?: string;
 }
 
 const {
   title,
   description = 'Pablo Melero Alonso — Enterprise Architect, Systems Thinker. Conectando organizaciones, tecnología, procesos y personas.',
   image = '/og-image.png',
+  type = 'website',
+  publishedTime,
+  modifiedTime,
 } = Astro.props;
 
 const gaId = import.meta.env.PUBLIC_GA_ID;
@@ -34,13 +40,20 @@ const ogImageUrl = new URL(image, siteUrl).toString();
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={type} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="es_ES" />
     <meta property="og:site_name" content="Pablo Melero Alonso" />
+
+    {type === 'article' && publishedTime && (
+      <meta property="article:published_time" content={publishedTime} />
+    )}
+    {type === 'article' && modifiedTime && (
+      <meta property="article:modified_time" content={modifiedTime} />
+    )}
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -73,6 +86,7 @@ const ogImageUrl = new URL(image, siteUrl).toString();
       rel="stylesheet"
     />
 
+    <slot name="head" />
   </head>
   <body>
     <slot />
