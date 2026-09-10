@@ -30,8 +30,8 @@ Coherente con el patrón ya existente del toggle de menú en `Header.astro`: si 
 **4. Feedback de "copiado" con texto, no con icono ni animación dependiente de movimiento.**
 El texto del botón cambia temporalmente (p. ej. "Copiado ✓") durante ~2 s y ese cambio se envuelve en una región `aria-live="polite"` para que se anuncie a lectores de pantalla. Sin transición/animación cuando `prefers-reduced-motion: reduce` está activo (Q04). Alternativa descartada: un *toast* flotante — más complejidad de posicionamiento/z-index para un beneficio marginal frente a cambiar el propio texto del botón.
 
-**5. Evento `gtag('event', 'share', { content_type: 'blog_post', item_id: post.id })` disparado tras completar el share o el copiado.**
-Usa el `item_id` (slug del post), no la URL completa ni el título, para evitar cualquier dato identificable más allá del propio contenido público (Q08). Se dispara solo cuando `gtag` existe en `window` (mismo guard implícito que ya aplica el resto del sitio al cargar GA solo en producción vía Partytown); en desarrollo o si Partytown no ha inicializado `gtag` todavía, la llamada se omite sin error.
+**5. Evento `dataLayer.push(['event', 'share', { content_type: 'blog_post', item_id: post.id }])` disparado tras completar el share o el copiado.**
+Usa el `item_id` (slug del post), no la URL completa ni el título, para evitar cualquier dato identificable más allá del propio contenido público (Q08). `astro.config.mjs` configura Partytown con `forward: ['dataLayer.push']` — no reenvía `gtag` en sí — así que `window.gtag` nunca existe en el hilo principal en este proyecto; se usa `dataLayer.push` directamente, que es exactamente lo que `gtag()` hace internamente (azúcar sintáctico sobre el mismo array) y es el canal que sí está reenviado. Se dispara solo cuando `window.dataLayer` es un array (mismo guard implícito que ya aplica el resto del sitio al cargar GA solo en producción vía Partytown); en desarrollo o si Partytown no ha inicializado el reenvío todavía, la llamada se omite sin error.
 
 ## Risks / Trade-offs
 
