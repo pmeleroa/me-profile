@@ -4,6 +4,7 @@ import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import BlogCard from '../../components/BlogCard.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { sections } from '../../data/sections';
 import { readingTime } from '../../utils/readingTime';
 import { author } from '../../data/author';
@@ -133,6 +134,7 @@ const breadcrumbJsonLd = {
                 Actualizado el <time datetime={modifiedTimeISO}>{formattedUpdatedDate}</time>
               </span>
             )}
+            <ShareButton url={pageUrl} title={post.data.title} text={post.data.description} postId={post.id} variant="meta" />
           </div>
         </div>
 
@@ -213,7 +215,10 @@ const breadcrumbJsonLd = {
       <div class="container">
         <div class="article-cta-inner reveal">
           <p class="article-cta-text">{ctaText}</p>
-          <a href={ctaHref} class="btn-primary">{ctaLabel}</a>
+          <div class="article-cta-actions">
+            <a href={ctaHref} class="btn-primary">{ctaLabel}</a>
+            <ShareButton url={pageUrl} title={post.data.title} text={post.data.description} postId={post.id} variant="cta" label="Compartir artículo" />
+          </div>
         </div>
       </div>
     </section>
@@ -587,6 +592,14 @@ const breadcrumbJsonLd = {
     font-size: 1.2rem;
     color: var(--color-text-muted);
     margin-bottom: 1.5rem;
+  }
+
+  .article-cta-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
   }
 
   .btn-primary {

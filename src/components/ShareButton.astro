@@ -1,0 +1,160 @@
+---
+interface Props {
+  url: string;
+  title: string;
+  text: string;
+  postId: string;
+  variant: 'meta' | 'cta';
+  label?: string;
+}
+
+const { url, title, text, postId, variant, label = 'Compartir' } = Astro.props;
+const doneLabel = 'Copiado ✓';
+const statusId = `share-status-${postId}-${variant}`;
+---
+
+<span class="share-wrap" data-share-wrap>
+  <button
+    type="button"
+    class={`share-button share-button-${variant}`}
+    data-share-button
+    data-share-url={url}
+    data-share-title={title}
+    data-share-text={text}
+    data-post-id={postId}
+    data-label-default={label}
+    data-label-done={doneLabel}
+  >
+    <span aria-hidden="true">🔗</span> <span data-share-label>{label}</span>
+  </button>
+  <span id={statusId} class="sr-only" role="status" aria-live="polite"></span>
+</span>
+
+<style>
+  .share-wrap {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .share-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+    transition: color var(--ease), border-color var(--ease), background var(--ease);
+  }
+
+  .share-button:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-accent-glow);
+  }
+
+  .share-button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  /* Variante "meta": pill en la fila de cabecera, mismo estilo que .article-reading-time */
+  .share-button-meta {
+    font-size: 0.76rem;
+    font-weight: 600;
+    border-radius: var(--r-full);
+    padding: 0.2rem 0.6rem;
+    white-space: nowrap;
+  }
+
+  /* Variante "cta": botón junto a la CTA final */
+  .share-button-cta {
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: var(--r-full);
+    padding: 0.75rem 1.5rem;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .share-button {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  type DataLayerWindow = Window & { dataLayer?: unknown[] };
+
+  function trackShare(postId: string) {
+    // Partytown solo reenvía `dataLayer.push` al worker de GA (ver astro.config.mjs),
+    // no `gtag` en sí, así que empujamos el evento directamente al array reenviado.
+    const dataLayer = (window as DataLayerWindow).dataLayer;
+    if (Array.isArray(dataLayer)) {
+      dataLayer.push(['event', 'share', { content_type: 'blog_post', item_id: postId }]);
+    }
+  }
+
+  async function copyToClipboard(button: HTMLButtonElement, wrap: Element): Promise<boolean> {
+    if (!navigator.clipboard) return false;
+
+    const url = button.dataset.shareUrl ?? '';
+    const labelEl = button.querySelector<HTMLElement>('[data-share-label]');
+    const liveRegion = wrap.querySelector<HTMLElement>('[role="status"]');
+    const defaultLabel = button.dataset.labelDefault ?? 'Compartir';
+    const doneLabel = button.dataset.labelDone ?? 'Copiado ✓';
+
+    try {
+      await navigator.clipboard.writeText(url);
+      if (labelEl) labelEl.textContent = doneLabel;
+      if (liveRegion) liveRegion.textContent = doneLabel;
+      window.setTimeout(() => {
+        if (labelEl) labelEl.textContent = defaultLabel;
+        if (liveRegion) liveRegion.textContent = '';
+      }, 2000);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-share-button]').forEach((button) => {
+    const wrap = button.closest('[data-share-wrap]');
+    if (!wrap) return;
+
+    button.addEventListener('click', async () => {
+      const url = button.dataset.shareUrl ?? '';
+      const title = button.dataset.shareTitle ?? '';
+      const text = button.dataset.shareText ?? '';
+      const postId = button.dataset.postId ?? '';
+
+      let completed = false;
+
+      if (typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title, text, url });
+          completed = true;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'AbortError') return;
+          completed = await copyToClipboard(button, wrap);
+        }
+      } else {
+        completed = await copyToClipboard(button, wrap);
+      }
+
+      if (completed) trackShare(postId);
+    });
+  });
+</script>
