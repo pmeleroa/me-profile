@@ -7,6 +7,7 @@ import BlogCard from '../../components/BlogCard.astro';
 import { sections } from '../../data/sections';
 import { readingTime } from '../../utils/readingTime';
 import { author } from '../../data/author';
+import { categoryColors } from '../../data/blogCategories';
 
 export async function getStaticPaths() {
   if (!sections.blog) return [];
@@ -21,18 +22,22 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 
 const allPosts = await getCollection('blog', ({ data }) => !data.draft);
+const postTagSet = new Set(post.data.tags);
 const related = allPosts
-  .filter((p) => p.id !== post.id && p.data.category === post.data.category)
-  .slice(0, 3);
+  .filter((p) => p.id !== post.id)
+  .map((p) => ({
+    post: p,
+    sharedTags: p.data.tags.filter((tag) => postTagSet.has(tag)).length,
+  }))
+  .filter(({ sharedTags }) => sharedTags > 0)
+  .sort((a, b) => {
+    if (b.sharedTags !== a.sharedTags) return b.sharedTags - a.sharedTags;
+    return b.post.data.publishDate.getTime() - a.post.data.publishDate.getTime();
+  })
+  .slice(0, 3)
+  .map(({ post: p }) => p);
 
-const categoryColors: Record<string, string> = {
-  'Arquitectura':   '#00BDD4',
-  'DevOps':         '#5CB845',
-  'IA Generativa':  '#A78BFA',
-  'Liderazgo':      '#F5C200',
-  'Opinión':        '#F6AD55',
-};
-const categoryColor = categoryColors[post.data.category] ?? '#00BDD4';
+const categoryColor = categoryColors[post.data.category];
 
 // Mismo formato de fecha que BlogCard, para que la cabecera del artículo y
 // las tarjetas (listado, portada, relacionados) muestren la fecha igual.
@@ -111,7 +116,7 @@ const breadcrumbJsonLd = {
         </nav>
 
         <div class="article-taxonomy reveal reveal-delay-1">
-          <span class="article-category" style={`color: ${categoryColor}; border-color: ${categoryColor}33;`}>
+          <span class="article-category" style={`color: ${categoryColor}; border-color: color-mix(in srgb, ${categoryColor} 20%, transparent);`}>
             {post.data.category}
           </span>
           <div class="article-meta-group">

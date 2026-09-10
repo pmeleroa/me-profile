@@ -1,9 +1,11 @@
 ---
+import { categoryColors, type BlogCategory } from '../data/blogCategories';
+
 interface Props {
   title: string;
   description: string;
   publishDate: Date;
-  category: string;
+  category: BlogCategory;
   tags: string[];
   slug: string;
   featured?: boolean;
@@ -22,15 +24,7 @@ const {
   readingTimeMinutes,
 } = Astro.props;
 
-const categoryColors: Record<string, string> = {
-  'Arquitectura':   '#00BDD4',
-  'DevOps':         '#5CB845',
-  'IA Generativa':  '#A78BFA',
-  'Liderazgo':      '#F5C200',
-  'Opinión':        '#F6AD55',
-};
-
-const color = categoryColors[category] ?? '#00BDD4';
+const color = categoryColors[category];
 
 const formattedDate = publishDate.toLocaleDateString('es-ES', {
   year: 'numeric',
@@ -59,7 +53,7 @@ const isoDate = publishDate.toISOString();
     </div>
     <div class="blog-card-inner">
       <div class="blog-card-header-row">
-        <span class="blog-card-category" style={`color: ${color}; border-color: ${color}33;`}>{category}</span>
+        <span class="blog-card-category" style={`color: ${color}; border-color: color-mix(in srgb, ${color} 20%, transparent);`}>{category}</span>
         <div class="blog-card-header-meta">
           <time class="blog-card-date" datetime={isoDate}>
             <span aria-hidden="true">📅</span> {formattedDate}

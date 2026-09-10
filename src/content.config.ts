@@ -8,7 +8,7 @@ const blogCollection = defineCollection({
     description: z.string(),
     publishDate: z.date(),
     updatedDate: z.date().optional(),
-    category: z.enum(['Arquitectura', 'DevOps', 'IA Generativa', 'Liderazgo', 'Opinión']),
+    category: z.enum(['Opinión', 'Análisis', 'Guía', 'Recursos']),
     tags: z.array(z.string()).default([]),
     image: z.string().optional(),
     ctaLabel: z.string().optional(),
@@ -27,3 +27,4 @@ const blogCollection = defineCollection({
 export const collections = {
   blog: blogCollection,
 };
+  
