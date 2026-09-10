@@ -6,6 +6,7 @@ import Footer from '../../components/Footer.astro';
 import BlogCard from '../../components/BlogCard.astro';
 import { sections } from '../../data/sections';
 import { readingTime } from '../../utils/readingTime';
+import { BLOG_CATEGORIES } from '../../data/blogCategories';
 
 if (!sections.blog) return Astro.redirect('/404');
 
@@ -14,7 +15,7 @@ const posts = allPosts.sort(
   (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
 );
 
-const categories = ['Arquitectura', 'DevOps', 'IA Generativa', 'Liderazgo', 'Opinión'] as const;
+const categories = BLOG_CATEGORIES;
 
 const tagCounts = new Map<string, number>();
 posts.forEach((post) => {
@@ -40,7 +41,7 @@ const [featured, ...rest] = posts;
           <span class="section-label">Blog</span>
           <h1 class="blog-title">Ideas en voz alta</h1>
           <p class="blog-subtitle">
-            Reflexiones sobre arquitectura, plataformas, DevOps e IA. Sin posts de relleno.
+            Opinión, análisis y guías sobre arquitectura, plataformas, DevOps e IA. Sin posts de relleno.
           </p>
         </div>
 
@@ -53,11 +54,11 @@ const [featured, ...rest] = posts;
                 </button>
                 {categories.map((cat) => {
                   const count = posts.filter((p) => p.data.category === cat).length;
-                  return count > 0 ? (
+                  return (
                     <button class="filter-chip" data-filter={cat} aria-pressed="false">
                       {cat} <span class="filter-count">{count}</span>
                     </button>
-                  ) : null;
+                  );
                 })}
               </div>
             )}
