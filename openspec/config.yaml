@@ -114,6 +114,15 @@ rules:
       cambia el contrato de publicación (status/approvedBy/approvedAt) y, si lo hace, por qué.
 
   design:
+    - Toda imagen nueva referenciada en contenido público (posts del blog,
+      og:image, o cualquier asset servido a los visitantes) debe entregarse
+      ya optimizada: formato comprimido moderno (WebP o AVIF, no PNG/JPEG
+      sin procesar) y dimensiones acordes al mayor contexto de uso real en
+      el sitio, no el tamaño original de la fuente. Si el asset se sirve
+      desde public/ sin pasar por la pipeline de imágenes de Astro
+      (astro:assets), design.md debe justificar esa elección o indicar la
+      conversión a realizar antes de commitear el archivo. Ligado a Q05
+      (rendimiento) de operations.apply.guidance.
     - Justificar cualquier dependencia nueva frente a usar el stack
       existente (Astro, colecciones de contenido, gtag vía Partytown); no
       añadir backend, CMS o tracker adicional por conveniencia.
