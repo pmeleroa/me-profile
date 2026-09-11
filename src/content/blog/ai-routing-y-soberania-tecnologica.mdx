@@ -1,0 +1,39 @@
+---
+title: "AI routing: quien elige el modelo, elige por ti"
+description: "Project HydraFusion promete resolver un problema real: qué modelo usar para cada tarea. Pero la simplicidad de dejar que el sistema decida tiene un coste que no aparece en ningún benchmark."
+publishDate: 2026-09-11
+category: "Opinión"
+tags: ["ia-generativa", "arquitectura", "gobernanza", "ai-routing"]
+image: "/images/blog/ai-routing-y-soberania-tecnologica.webp"
+draft: false
+---
+
+"Elígelo una vez. Deja que el sistema decida el resto." Es la promesa de GitHub con [Project HydraFusion](https://github.blog/ai-and-ml/github-copilot/project-hydrafusion-frontier-quality-via-multi-model-orchestration/), su capa experimental de orquestación multi-modelo para Copilot: en vez de que el desarrollador escoja manualmente qué modelo usar en cada tarea, es el propio Copilot quien decide en tiempo de ejecución entre varios proveedores. Suena a la solución correcta para un problema real. Y en parte lo es.
+
+## Qué resuelve HydraFusion
+
+HydraFusion trabaja con tres patrones: **single** (un modelo resuelve directamente), **cascade** (un modelo eficiente lo intenta primero y solo escala a uno más potente si no llega al nivel exigido) y **critique** (un modelo redacta, otro lo revisa sin poder tocar el repositorio, y el primero aplica la revisión final). Comparado con usar solo Claude Opus 5, GitHub reporta +4.9 puntos de calidad con un 67% menos de coste en TerminalBench 2.1, un 36% menos de coste (con 1.5 puntos menos de calidad) en DeepSWE, y un 65% de ahorro con apenas -0.1 puntos de diferencia de calidad en CheckpointBench.
+
+Para un equipo que hoy elige modelo "a ojo" —porque nadie tiene tiempo de comparar seis proveedores tarea a tarea, o porque ese criterio todavía no está consolidado en nadie del equipo— esto es una solución de calado, no un capricho. Resuelve el punto de dolor exacto de la adopción temprana: la decisión de qué modelo usar deja de depender del tiempo o el criterio de una persona.
+
+## La alerta
+
+Pero hay algo que ese ahorro no captura, y que un equipo con más recorrido en IA debería mirar antes de adoptarlo sin más: la política de qué proveedores entran en juego no la decide el equipo que usa HydraFusion. La decide GitHub. El propio artículo lo dice sin rodeos: *"When new models become available in GitHub Copilot, we can evaluate and incorporate them into its model pool"* — el sujeto de esa frase es GitHub, no quien lo usa. No hay, en el artículo, ninguna mención a poder excluir un proveedor, forzar un modelo local, o fijar una política de residencia del dato.
+
+Esto no es una crítica a HydraFusion en particular. Es una alerta sobre toda la categoría de AI routing, que todavía está resolviendo este problema. Cuantos más orquestadores de este tipo aparezcan —y van a aparecer, porque el problema que resuelven es real— más equipos se van a encontrar delegando no solo el uso de un modelo, sino el criterio de qué modelo usar en cada momento, sin necesariamente saber que lo están delegando.
+
+## El paralelismo
+
+Esto no es del todo hipotético. En junio de 2026, GitHub sustituyó la facturación plana de Copilot por "AI Credits": pago por token consumido, según las tarifas de API de cada modelo. El cambio provocó lo que la prensa especializada bautizó como el ["tokenpocalypse"](https://wwwhatsnew.com/2026/06/10/tokenpocalypse-github-copilot-tokens-precios-rentabilidad-ia-2026/) — usuarios con facturas multiplicadas hasta por 20 respecto a lo que pagaban antes.
+
+Nada de esto prueba que HydraFusion vaya a cambiar de precio o de política de modelos mañana. Pero sí es un precedente: el mismo actor que hoy gobierna qué modelos entran en el pool de HydraFusion ya ha demostrado, en el mismo producto, que puede cambiar unilateralmente las reglas de las que depende un equipo entero — sin que ese equipo tuviera margen de negociación cuando ocurrió.
+
+## Soberanía tecnológica organizacional
+
+Hay un término que ayuda a nombrar esto con precisión, y conviene acotarlo bien para no confundirlo: **soberanía tecnológica organizacional**. No hablo aquí de soberanía en el sentido geopolítico que se discute alrededor de la "sovereign AI" —naciones o bloques queriendo infraestructura de IA propia frente a la dependencia de proveedores extranjeros—. Hablo de algo más pequeño y más inmediato: si tu equipo o tu empresa mantiene el control real sobre las reglas de su propio stack de IA — qué proveedor procesa qué, bajo qué criterio, con qué margen para decir que no.
+
+Auditoría (¿quién puede reconstruir qué modelo tocó qué línea de código, y por qué?), autonomía (¿puede tu equipo excluir un proveedor por motivos propios —cumplimiento, coste, simple preferencia—?) y reproducibilidad (¿la misma tarea, resuelta dos veces, pasa por el mismo camino, o depende de una heurística interna que no controlas?) son las tres piezas concretas de esa soberanía. HydraFusion, tal como está descrito hoy, no las elimina del todo — pero tampoco las deja en manos de quien lo usa.
+
+## La pregunta que queda
+
+Nada de esto convierte a HydraFusion en una mala idea. Para un equipo que hoy no tiene ni el tiempo ni el conocimiento consolidado para decidir qué modelo usar en cada tarea, delegar esa decisión —con las salvaguardas que GitHub sí construye, como la contabilidad de costes o el enrutamiento validado— puede ser exactamente lo correcto. La pregunta no tiene una respuesta universal. Es una pregunta de madurez: cuánta soberanía tecnológica necesita realmente tu equipo hoy, y cuánta está dispuesto a ceder a cambio de dejar de decidir.
