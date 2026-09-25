@@ -204,6 +204,18 @@ rules:
       con ai-routing-y-soberania-tecnologica.mdx. No se hacen afirmaciones de
       rendimiento o calidad sin medición propia o una fuente citada. Distinto
       del post de elección de modelo, que da por hecho usar local."
+    - "Trabajo futuro pendiente (sitio): explicar cómo trabaja el autor
+      apoyándose en la IA dentro del flujo SDD con OpenSpec. Origen: la
+      opción C del change update-footer-ai-disclosure, que dejó en el
+      footer el texto 'Contenido creado con IA, revisado y validado por
+      mí' sin enlace. Sin decidir: (1) post del blog (Guía u Opinión)
+      frente a página propia (p. ej. /como-trabajo); (2) si el footer
+      enlaza a ese contenido cuando exista. Debe mostrar con ejemplos
+      reales del repositorio qué aporta la IA (borradores, artefactos,
+      código) y qué decide el autor (alcance, validación de fuentes,
+      consentimiento de publicación). No usar 'certificado' ni afirmar
+      garantías que el flujo no demuestra; no inventar métricas de
+      productividad."
 
   tasks:
     - Cada tarea de implementación de un requisito de contenido público debe
