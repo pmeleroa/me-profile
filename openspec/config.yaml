@@ -213,7 +213,14 @@ rules:
       que lo registraron como preexistente. Corregirlo en un change propio
       que ajuste el token a nivel de sitio, no por componente, y verifique
       el contraste de cada uso y que la jerarquía visual entre texto
-      principal y atenuado se mantiene."
+      principal y atenuado se mantiene. Incluir también los enlaces de
+      .footer-copy (nombre, Astro y /como-se-hace): se distinguen del texto
+      que los rodea solo por el color (--color-accent frente a
+      --color-text-muted, 2.23:1, por debajo del 3:1 de WCAG 1.4.1),
+      detectado en add-how-this-site-is-made-page. Aclarar el token reduce
+      aún más esa diferencia, así que el change debe añadir un indicador que
+      no dependa del color (p. ej. subrayado) y comprobarlo junto al nuevo
+      valor del token."
 
   tasks:
     - Cada tarea de implementación de un requisito de contenido público debe
