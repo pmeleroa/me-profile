@@ -52,7 +52,11 @@
 
 ## 6. Aprobación y cierre
 
-- [ ] 6.1 Pedir al owner la aprobación del texto final de `/como-se-hace` (D7) y registrar aquí la pregunta y la respuesta literales. Sin aprobación, el change no se archiva
+- [x] 6.1 Pedir al owner la aprobación del texto final de `/como-se-hace` (D7) y registrar aquí la pregunta y la respuesta literales. Sin aprobación, el change no se archiva
+  - Pregunta 1 (vía `AskUserQuestion`, sesión de apply, 2026-09-25): "¿Apruebas el texto final de la página /como-se-hace tal como está en src/pages/como-se-hace.astro (commit 3f0d590)?". Respuesta literal: "Pedir cambios". Después el owner pidió una versión más visual.
+  - Pregunta 2: "¿Apruebas la página /como-se-hace con el flujo en carriles IA / Yo (commit bae77ca; …) y el texto sin cambios respecto al borrador anterior?". Respuesta literal: "Pedir cambios". Después el owner aclaró: "cuando digo visual me refiero a un esquema de arquitectura / solución". Resultado: D10 y la tarea 2.3.
+  - Pregunta 3: "¿Apruebas /como-se-hace con el esquema de arquitectura arriba y los carriles IA / Yo debajo (commit 8113446; capturas arch-1440.png, arch-768.png y arch-360.png en el scratchpad)?". Respuesta literal del owner: "Aprobar".
+  - Estado final: texto y diseño aprobados en el commit `8113446`.
 - [x] 6.2 Eliminar de `openspec/config.yaml` (`rules.design`) la entrada de trabajo futuro "explicar cómo trabaja el autor apoyándose en la IA dentro del flujo SDD con OpenSpec" (D8). Verificar con `git diff openspec/config.yaml` que solo se elimina esa entrada
   **Verificación:** `git diff --stat openspec/config.yaml` → 1 archivo, 12 eliminaciones y 0 inserciones. Solo se elimina el bloque "Trabajo futuro pendiente (sitio): explicar cómo trabaja el autor apoyándose en la IA…" de `rules.design`. La entrada del contraste de `--color-text-muted` sigue intacta.
 - [x] 6.3 Ejecutar `openspec validate add-how-this-site-is-made-page --strict` y confirmar que el change es válido
