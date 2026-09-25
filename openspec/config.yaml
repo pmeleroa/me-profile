@@ -126,6 +126,15 @@ rules:
     - Justificar cualquier dependencia nueva frente a usar el stack
       existente (Astro, colecciones de contenido, gtag vía Partytown); no
       añadir backend, CMS o tracker adicional por conveniencia.
+    - "Todo contenido técnico publicado para el lector (comandos, pasos de
+      instalación, scripts y ejemplos de terminal en posts y guías) debe
+      diseñarse para una terminal Linux. macOS se considera cubierto cuando
+      el comando es idéntico; Windows se cubre solo con una referencia a
+      WSL2 (guía oficial de Microsoft), sin variantes de PowerShell ni pasos
+      de configuración de WSL2. design.md debe justificar cualquier excepción
+      (p. ej. un paso que difiere en macOS). La verificación puede hacerse en
+      la máquina del autor cuando el comando es idéntico en Linux y macOS; si
+      no lo es, design.md debe indicar cómo se verifica la variante Linux."
     - "Trabajo futuro pendiente (blog): hacer `image` obligatorio en el
       schema de la colección `blog` (src/content.config.ts), en vez de
       opcional con placeholder de marca en BlogCard (ver
@@ -142,6 +151,59 @@ rules:
       placeholder de marca, justificar frente a mantenerlo como fallback
       para fuentes de datos ajenas a la colección `blog` (p.ej. datos de
       ejemplo) que sigan sin imagen."
+    - "Trabajo futuro pendiente (blog): visualizar las series de posts en el
+      blog, en un change propio (`add-blog-series`), no dentro de un change de
+      contenido, porque toca el schema de src/content.config.ts,
+      src/pages/blog/[slug].astro y specs/blog/spec.md. Plantearlo cuando se
+      prepare la segunda parte de una serie, no antes. Punto de partida
+      debatido, sin decidir: (A1) etiqueta 'Serie: X · Parte N' en la cabecera
+      del artículo; (A2) bloque de navegación de la serie (índice de partes y
+      anterior/siguiente) antes de autor y relacionados, visible solo con 2 o
+      más partes publicadas, para no listar partes que aún no existen. Badge
+      en tarjetas, página /blog/series/<id> y filtro en el listado, para más
+      adelante. La propuesta debe decidir: (1) campo en el frontmatter frente a
+      colección de series; (2) cómo evitar que 'Artículos relacionados' (por
+      tags) duplique las partes que ya muestra A2."
+    - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
+      asistente de código local con Ollama, cuyo post 1 es
+      ollama-primeros-pasos-asistente-de-codigo-local.mdx. Su lista final 'Lo
+      que le falta a este harness' es la hoja de ruta pública de la serie.
+      Orden recomendado: ventana de contexto y hardware (por defecto 4k tokens
+      con menos de 24 GiB de VRAM; las herramientas de código necesitan al
+      menos 64k) -> historial y contexto propio -> salida estructurada y
+      herramientas (decidir pronto si se usa MCP, porque cambia la
+      arquitectura) -> bucle agéntico -> seguridad -> integración. Solo entran
+      temas relacionados con el harness local. 'Varios modelos', 'elección de
+      modelo' y 'cuándo local no basta' quedan fuera de la serie; los dos
+      últimos tienen su propia entrada de trabajo futuro. Cada post de la serie debe: no justificar por qué ejecutar en
+      local; no usar el ángulo corporativo ni de aprobación de la empresa; no
+      nombrar productos comerciales como referencia del asistente; escribir
+      el contenido técnico para una terminal Linux (ver la regla de Linux); y
+      usar listas de una línea por punto, sin sublistas."
+    - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
+      de guías sobre el asistente de código local, sobre cómo elegir un modelo
+      para un asistente de código local. Categoría propuesta: Análisis, porque
+      compara y mide. El autor lo considera un
+      tema que da para mucho debate. En la serie, qwen2.5-coder se usa solo
+      para arrancar, y el post 1
+      (ollama-primeros-pasos-asistente-de-codigo-local.mdx) dice que elegir
+      modelo 'da para mucho debate y queda fuera de esta guía'. Posibles ejes,
+      sin decidir: tamaño frente a RAM/VRAM, soporte de tools, ventana de
+      contexto y cómo medirlo con tareas propias (evaluación y tokens por
+      segundo). No se hacen afirmaciones de rendimiento sin medición propia o
+      una fuente citada. Cuando exista, valorar enlazarlo desde el post 1.
+      Distinto del post sobre cuándo local no basta, que da por hecho usar
+      local."
+    - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
+      de guías sobre el asistente de código local, sobre cuándo un modelo
+      local no basta y sí compensa la nube. Categoría propuesta: Opinión,
+      porque es una tesis que defender. Es la otra cara de la tesis del post 1
+      ('no todos los casos de uso de IA necesitan consumir un LLM en la
+      nube'). No va en la serie porque cuestiona si usar local, y la serie
+      tiene la regla de no justificar la ejecución en local. Enlace natural
+      con ai-routing-y-soberania-tecnologica.mdx. No se hacen afirmaciones de
+      rendimiento o calidad sin medición propia o una fuente citada. Distinto
+      del post de elección de modelo, que da por hecho usar local."
 
   tasks:
     - Cada tarea de implementación de un requisito de contenido público debe
