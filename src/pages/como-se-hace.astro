@@ -1,0 +1,267 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+// Commit fijo del repositorio público: los enlaces de evidencia no se rompen si el repo se reorganiza.
+const repoUrl = 'https://github.com/pmeleroa/me-profile';
+const evidenceSha = '8e3de004f9dd5d4441c7193ba82c0c360f050c3e';
+const blobUrl = (path: string) => `${repoUrl}/blob/${evidenceSha}/${path}`;
+
+const phases = [
+  {
+    title: 'Debate',
+    ai: 'Pregunta, revisa el repositorio y el contenido que ya existe, y propone opciones con una recomendación razonada.',
+    me: 'Elijo, corrijo o descarto. Decido qué entra y qué se queda fuera.',
+  },
+  {
+    title: 'Acuerdo',
+    ai: 'Redacta lo debatido: la propuesta, el diseño, las especificaciones que el resultado debe cumplir y las tareas con su forma de verificarlas.',
+    me: 'Reviso el alcance antes de que se construya nada.',
+  },
+  {
+    title: 'Construcción',
+    ai: 'Escribe el código o el texto y lo comprueba: build, validación de las especificaciones, accesibilidad, rendimiento y enlaces. Deja la evidencia anotada en cada tarea.',
+    me: 'Reviso el resultado. Las fuentes y las cifras las valido yo: si algo no está respaldado, no se publica.',
+  },
+  {
+    title: 'Publicación',
+    ai: 'Me pregunta si publico. La pregunta y mi respuesta literal quedan registradas en el repositorio.',
+    me: 'Doy o niego el consentimiento. La integración final en la rama principal la hago siempre yo.',
+  },
+];
+
+const evidence = [
+  {
+    title: 'La regla: nada se publica sin mi consentimiento',
+    description: 'El cambio que convirtió en obligatorio pedir y registrar mi consentimiento antes de publicar un post.',
+    href: blobUrl('openspec/changes/archive/2026-09-09-require-post-publish-confirmation/proposal.md'),
+  },
+  {
+    title: 'La regla aplicada: pregunta y respuesta literales',
+    description: 'El registro del consentimiento de publicación de un post real, con la pregunta de la IA y mi respuesta.',
+    href: blobUrl('openspec/changes/archive/2026-09-25-add-ollama-local-guide-post/tasks.md#L130'),
+  },
+  {
+    title: 'Lo que se aplaza también queda escrito',
+    description: 'Esta página nació como trabajo pendiente de un cambio anterior, que decidió no abordarla todavía y lo dejó anotado.',
+    href: blobUrl('openspec/changes/archive/2026-09-25-update-footer-ai-disclosure/proposal.md#L13'),
+  },
+];
+
+const tools = [
+  { name: 'Claude Code y Codex', role: 'Los asistentes de IA con los que debato, redacto y construyo.' },
+  { name: 'OpenSpec', role: 'El marco de desarrollo guiado por especificaciones que ordena el debate y deja el rastro de cada decisión.' },
+  { name: 'Astro', role: 'Genera el sitio como HTML estático.' },
+  { name: 'GitHub y GitHub Pages', role: 'Repositorio público, integración continua y publicación.' },
+];
+---
+
+<Layout
+  title="Cómo se hace este sitio · Pablo Melero Alonso"
+  description="Cómo se genera el contenido de este sitio: con IA, en un flujo de debate y acuerdo con el autor, y sin publicar nada sin su consentimiento."
+>
+  <Header />
+  <main class="how">
+    <section class="how-hero">
+      <div class="container how-narrow">
+        <span class="section-label">Transparencia</span>
+        <h1 class="how-title">Cómo se hace este sitio</h1>
+        <p class="how-lead">
+          Todo lo que ves aquí, los textos, el código y esta misma página, se crea con ayuda de IA.
+          Pero la IA no decide sola: cada cambio nace de un debate conmigo y nada se publica sin mi
+          consentimiento explícito.
+        </p>
+        <p class="how-text">
+          "Revisado y validado por mí" significa exactamente eso: lo reviso yo. No hay revisión de
+          terceros ni ningún sello externo, y puedo equivocarme.
+        </p>
+      </div>
+    </section>
+
+    <section class="how-section" aria-labelledby="how-flow">
+      <div class="container how-narrow">
+        <h2 id="how-flow" class="how-heading">El flujo, en cuatro fases</h2>
+        <ol class="how-phases">
+          {phases.map((phase, i) => (
+            <li class="how-phase">
+              <h3 class="how-phase-title">
+                <span class="how-phase-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                {phase.title}
+              </h3>
+              <dl class="how-roles">
+                <div class="how-role">
+                  <dt>La IA</dt>
+                  <dd>{phase.ai}</dd>
+                </div>
+                <div class="how-role">
+                  <dt>Yo</dt>
+                  <dd>{phase.me}</dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="how-section" aria-labelledby="how-evidence">
+      <div class="container how-narrow">
+        <h2 id="how-evidence" class="how-heading">Compruébalo en el repositorio</h2>
+        <p class="how-text">
+          El repositorio del sitio es público. Estos ejemplos apuntan a una versión fija, para que sigan
+          mostrando lo mismo aunque el repositorio cambie.
+        </p>
+        <ul class="how-evidence">
+          {evidence.map((item) => (
+            <li class="how-evidence-item">
+              <a href={item.href} target="_blank" rel="noopener" class="how-evidence-link">{item.title}</a>
+              <p class="how-text">{item.description}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="how-section" aria-labelledby="how-tools">
+      <div class="container how-narrow">
+        <h2 id="how-tools" class="how-heading">Herramientas</h2>
+        <dl class="how-tools">
+          {tools.map((tool) => (
+            <div class="how-tool">
+              <dt>{tool.name}</dt>
+              <dd>{tool.role}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <section class="how-section how-closing">
+      <div class="container how-narrow">
+        <p class="how-text">
+          ¿Has encontrado un error? <a href={`${import.meta.env.BASE_URL}contacto`}>Escríbeme</a> y lo corrijo.
+        </p>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .how-narrow {
+    max-width: 760px;
+  }
+
+  .how-hero {
+    padding: calc(var(--header-height) + 5rem) 0 2rem;
+  }
+
+  .how-title {
+    font-size: clamp(2.25rem, 6vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-top: 0.5rem;
+  }
+
+  .how-lead {
+    margin-top: 1.25rem;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--color-text);
+  }
+
+  .how-text {
+    margin-top: 0.75rem;
+    line-height: 1.75;
+    color: var(--color-text);
+  }
+
+  .how-text a,
+  .how-evidence-link {
+    color: var(--color-accent-light);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .how-section {
+    padding: 2.5rem 0;
+  }
+
+  .how-heading {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .how-phases,
+  .how-evidence {
+    list-style: none;
+    padding: 0;
+    margin-top: 1.5rem;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .how-phase,
+  .how-evidence-item {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    padding: 1.25rem 1.5rem;
+  }
+
+  .how-phase-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .how-phase-number {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--color-accent);
+  }
+
+  .how-roles {
+    margin-top: 1rem;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .how-roles dt,
+  .how-tools dt {
+    font-weight: 700;
+    color: var(--color-accent-light);
+  }
+
+  .how-roles dd,
+  .how-tools dd {
+    margin: 0.25rem 0 0;
+    line-height: 1.7;
+    color: var(--color-text);
+  }
+
+  .how-evidence-link {
+    font-weight: 700;
+  }
+
+  .how-tools {
+    margin-top: 1.5rem;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .how-closing {
+    padding-bottom: 5rem;
+  }
+
+  @media (min-width: 768px) {
+    .how-roles {
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+  }
+</style>
