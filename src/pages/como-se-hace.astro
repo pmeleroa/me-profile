@@ -80,25 +80,33 @@ const tools = [
     </section>
 
     <section class="how-section" aria-labelledby="how-flow">
-      <div class="container how-narrow">
-        <h2 id="how-flow" class="how-heading">El flujo, en cuatro fases</h2>
-        <ol class="how-phases">
+      <div class="container">
+        <div class="how-narrow">
+          <h2 id="how-flow" class="how-heading">El flujo, en cuatro fases</h2>
+          <p class="how-text">
+            En cada fase la IA propone y yo decido. Nada pasa a la siguiente sin mi visto bueno.
+          </p>
+          <p class="how-legend" aria-hidden="true">
+            <span class="how-legend-item how-legend-item--ai">La IA propone</span>
+            <span class="how-legend-item how-legend-item--me">Yo decido</span>
+          </p>
+        </div>
+        <ol class="how-flow">
           {phases.map((phase, i) => (
             <li class="how-phase">
               <h3 class="how-phase-title">
                 <span class="how-phase-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
                 {phase.title}
               </h3>
-              <dl class="how-roles">
-                <div class="how-role">
-                  <dt>La IA</dt>
-                  <dd>{phase.ai}</dd>
-                </div>
-                <div class="how-role">
-                  <dt>Yo</dt>
-                  <dd>{phase.me}</dd>
-                </div>
-              </dl>
+              <div class="how-lane how-lane--ai">
+                <p class="how-lane-who">La IA</p>
+                <p class="how-lane-text">{phase.ai}</p>
+              </div>
+              <span class="how-sync" aria-hidden="true">⇅</span>
+              <div class="how-lane how-lane--me">
+                <p class="how-lane-who">Yo</p>
+                <p class="how-lane-text">{phase.me}</p>
+              </div>
             </li>
           ))}
         </ol>
@@ -194,7 +202,6 @@ const tools = [
     letter-spacing: -0.02em;
   }
 
-  .how-phases,
   .how-evidence {
     list-style: none;
     padding: 0;
@@ -203,12 +210,64 @@ const tools = [
     gap: 1rem;
   }
 
-  .how-phase,
   .how-evidence-item {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--r-md);
     padding: 1.25rem 1.5rem;
+  }
+
+  /* ── Flujo en carriles: IA arriba, autor abajo ── */
+  .how-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  .how-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-text);
+  }
+
+  .how-legend-item::before {
+    content: '';
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: var(--r-sm);
+    border: 2px solid currentColor;
+  }
+
+  .how-legend-item--ai::before { color: var(--color-accent); }
+  .how-legend-item--me::before { color: var(--color-logo-yellow); }
+
+  .how-flow {
+    list-style: none;
+    padding: 0;
+    margin-top: 2rem;
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  .how-phase {
+    position: relative;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  /* Flecha hacia la fase siguiente (vertical en móvil) */
+  .how-phase:not(:last-child)::after {
+    content: '↓';
+    position: absolute;
+    left: 50%;
+    bottom: -2.1rem;
+    transform: translateX(-50%);
+    font-size: 1.25rem;
+    color: var(--color-accent);
   }
 
   .how-phase-title {
@@ -217,6 +276,7 @@ const tools = [
     gap: 0.75rem;
     font-size: 1.2rem;
     font-weight: 700;
+    margin-bottom: 0.25rem;
   }
 
   .how-phase-number {
@@ -225,19 +285,49 @@ const tools = [
     color: var(--color-accent);
   }
 
-  .how-roles {
-    margin-top: 1rem;
-    display: grid;
-    gap: 1rem;
+  .how-lane {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--r-md);
+    padding: 1rem 1.25rem;
   }
 
-  .how-roles dt,
+  .how-lane--me {
+    border-left-color: var(--color-logo-yellow);
+  }
+
+  .how-lane-who {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent-light);
+  }
+
+  .how-lane--me .how-lane-who {
+    color: var(--color-logo-yellow);
+  }
+
+  .how-lane-text {
+    margin-top: 0.4rem;
+    line-height: 1.65;
+    color: var(--color-text);
+  }
+
+  .how-sync {
+    justify-self: center;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--color-text);
+  }
+
   .how-tools dt {
     font-weight: 700;
     color: var(--color-accent-light);
   }
 
-  .how-roles dd,
   .how-tools dd {
     margin: 0.25rem 0 0;
     line-height: 1.7;
@@ -258,10 +348,29 @@ const tools = [
     padding-bottom: 5rem;
   }
 
-  @media (min-width: 768px) {
-    .how-roles {
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
+  /* Escritorio: cuatro columnas; subgrid alinea título, IA, sincronía y autor entre fases */
+  @media (min-width: 1024px) {
+    .how-flow {
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, auto);
+      column-gap: 2.25rem;
+      row-gap: 0.5rem;
+    }
+
+    .how-phase {
+      grid-row: span 4;
+      grid-template-rows: subgrid;
+      gap: 0;
+      row-gap: 0.5rem;
+    }
+
+    .how-phase:not(:last-child)::after {
+      content: '→';
+      left: auto;
+      right: -1.75rem;
+      bottom: auto;
+      top: 50%;
+      transform: translateY(-50%);
     }
   }
 </style>

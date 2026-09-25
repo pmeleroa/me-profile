@@ -81,6 +81,20 @@ La página es contenido público, pero no pertenece a la colección `blog`, así
 
 La entrada "explicar cómo trabaja el autor apoyándose en la IA…" de `openspec/config.yaml` (`rules.design`) se elimina en la misma rama, antes de archivar, porque este change la resuelve.
 
+### D9. Presentación visual del flujo en carriles
+
+Tras revisar el primer borrador, el autor pidió una versión más visual y eligió un diagrama en carriles frente a una línea de tiempo con iconos y un diagrama circular. Las fases se muestran como columnas conectadas por flechas, con el carril de la IA arriba (borde y etiqueta en `--color-accent`) y el del autor abajo (`--color-logo-yellow`). Entre ambos hay un `⇅` que representa el ida y vuelta del consenso, y una leyenda ("La IA propone" / "Yo decido") explica los colores.
+
+- **En escritorio** (1024px o más), una rejilla de 4 columnas con `grid-template-rows: subgrid` alinea el título, el carril de la IA, el `⇅` y el carril del autor entre fases.
+- **Por debajo de 1024px**, las fases se apilan en vertical y las flechas apuntan hacia abajo.
+- **El HTML sigue ordenado por fase** (título, IA, autor), así que la lectura lineal y los lectores de pantalla recorren las fases en el orden de la spec. Las flechas, el `⇅` y la leyenda son decorativos (`aria-hidden` o pseudo-elementos). Cada carril lleva su etiqueta en texto ("La IA", "Yo"), de modo que el color no es el único indicador.
+- **Sin animaciones ni JavaScript**, todo con HTML y CSS.
+
+**Alternativas descartadas:**
+
+- Una línea de tiempo con iconos es más narrativa, pero diluye el reparto entre IA y autor.
+- Un diagrama circular en SVG es muy distintivo, pero separa el detalle de quién hace qué del gráfico.
+
 ## Risks / Trade-offs
 
 - [La página se desactualiza si el flujo cambia, por ejemplo con nuevas fases o herramientas] → Describe las fases de forma genérica y nombra herramientas, no versiones. Los enlaces fijados siguen siendo válidos aunque ya no reflejen el estado actual.

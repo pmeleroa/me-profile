@@ -41,6 +41,9 @@
 - [x] 5.4 Verificar Q05: Lighthouse móvil de `/como-se-hace` con rendimiento de al menos 90
   **Verificación:** Lighthouse 12 móvil (emulación por defecto) contra `astro preview`. La primera pasada, en frío, dio 72 (LCP 7.8 s), y en esa misma sesión `/contacto` dio 75 y `/blog` 91, lo que apunta a ruido de la máquina. Tres pasadas seguidas de `/como-se-hace` → **100 / 100 / 100** (FCP 1.4 s, LCP 1.4 s, TBT 0 ms, CLS 0.015). Mediana 100 ≥ 90 ✓. Accesibilidad 92, con los fallos del footer descritos en 5.2.
 
+- [x] 5.5 Tras el cambio visual de D9 (carriles), repetir las verificaciones afectadas
+  **Verificación:** `npm run build` → `65 page(s) built`. El script de 4.2 a 4.6 sigue dando los mismos resultados: fases `01 Debate`, `02 Acuerdo`, `03 Construcción`, `04 Publicación` en orden, herramientas después del flujo, 0 `<script>` en `<main>`, sin términos prohibidos, 3 enlaces con SHA, 63/63 footers OK y 0 enlaces en la cabecera. Q02: sin scroll horizontal a 360/390/768/1440px. Capturas `flow-1440.png` (4 columnas con los carriles alineados) y `flow-768.png` y `flow-360.png` (vertical), en el scratchpad. Q03: encabezados `H1 H2 H3 H3 H3 H3 H2 H2`; textos de los carriles 16.40:1, etiqueta "La IA" 10.43:1 y "Yo" (`--color-logo-yellow`) 11.98:1, leyenda y `⇅` 16.40:1. Q04: sin animaciones ni transiciones en `<main>`. Q05: Lighthouse móvil 100/100/100 (LCP 1.4 s, CLS 0.015), accesibilidad 92, con los mismos fallos previos del footer que en 5.2.
+
 ## 6. Aprobación y cierre
 
 - [ ] 6.1 Pedir al owner la aprobación del texto final de `/como-se-hace` (D7) y registrar aquí la pregunta y la respuesta literales. Sin aprobación, el change no se archiva
