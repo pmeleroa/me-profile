@@ -1,0 +1,113 @@
+---
+title: "Ollama: primeros pasos hacia un asistente de código local"
+description: "Primera guía de una serie sobre entornos de IA locales: instalar Ollama desde una terminal Linux (también en macOS y en Windows con WSL2), arrancar un modelo de código y hablarle desde la terminal y desde su API local. El harness mínimo sobre el que construir un asistente de código a medida."
+publishDate: 2026-09-25
+category: "Guía"
+tags: ["ollama", "llm-local", "api", "herramientas-dev"]
+image: "/images/blog/ollama-primeros-pasos-asistente-de-codigo-local.webp"
+draft: false
+---
+
+No todos los casos de uso de IA necesitan consumir un LLM en la nube. [Ollama](https://ollama.com) permite explorar una alternativa: ejecutar modelos directamente en local.
+
+Esta guía es la primera de una serie sobre entornos de IA locales. El objetivo de la serie es construir, pieza a pieza, un asistente de código a medida que funcione en local. Aquí empezamos por la base: un **harness plano**. Es decir, un modelo ejecutándose en tu máquina y la forma más simple de hablarle, primero desde la terminal y después desde su API HTTP local. Sin historial, sin contexto propio, sin herramientas. Todo eso llegará en los siguientes posts.
+
+## Instalar Ollama
+
+Esta guía se sigue desde una terminal Linux. En Linux y macOS ya la tienes. En Windows, usa WSL2 ([guía de instalación de Microsoft](https://learn.microsoft.com/es-es/windows/wsl/install)) y sigue los pasos tal cual.
+
+El método oficial es el script de instalación, que sirve tanto para Linux (incluido WSL2) como para macOS:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+El script detecta tu sistema y tu arquitectura. En Linux es independiente de la distribución y, si tu sistema usa systemd, deja Ollama configurado como servicio y en marcha. En macOS instala la aplicación en `Applications`, añade el comando `ollama` a tu `PATH` y la arranca.
+
+Si prefieres no usar el script, en macOS puedes descargar la aplicación desde [ollama.com/download](https://ollama.com/download), y en Linux la documentación oficial ofrece una [instalación manual](https://docs.ollama.com/linux#manual-install).
+
+Verifica que ha quedado instalado:
+
+```bash
+ollama --version
+```
+
+Si el servicio no ha quedado en marcha, por ejemplo en un Linux o un WSL2 sin systemd, arráncalo tú:
+
+```bash
+ollama serve
+```
+
+## Un modelo de código para empezar
+
+Como el destino de la serie es un asistente de código, arrancamos con un modelo entrenado para código. `qwen2.5-coder` sirve para dar los primeros pasos: está disponible en varios tamaños en la librería oficial de Ollama y puede correr en un portátil de desarrollo normal, sin GPU dedicada. No es una recomendación definitiva: elegir modelo da para mucho debate y queda fuera de esta guía.
+
+Para un equipo con 16GB de RAM, el tamaño `7b` (~4.7GB en disco) es un buen punto de partida:
+
+```bash
+ollama pull qwen2.5-coder:7b
+```
+
+Si tu equipo tiene menos RAM disponible, baja al tamaño `3b`:
+
+```bash
+ollama pull qwen2.5-coder:3b
+```
+
+## Hablarle desde la terminal
+
+La forma más directa de probar el modelo es `ollama run`:
+
+```bash
+ollama run qwen2.5-coder:7b "Escribe una función en Python que compruebe si un número es primo"
+```
+
+Sin el prompt final, `ollama run` abre una sesión de chat interactiva en la terminal. Es útil para hacerse una idea de cómo responde el modelo, pero no es algo sobre lo que construir: para eso está la API.
+
+## Hablarle desde la API local
+
+Ollama expone una API HTTP en `localhost:11434`. El endpoint que nos interesa es `/api/chat`, porque recibe una lista de mensajes: es el mismo endpoint que, en los siguientes posts de la serie, acabará recibiendo el historial de la conversación y la definición de herramientas. Esta es la llamada mínima:
+
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "qwen2.5-coder:7b",
+  "messages": [
+    { "role": "user", "content": "Escribe una función en Python que compruebe si un número es primo" }
+  ],
+  "stream": false
+}'
+```
+
+Con `"stream": false`, la respuesta llega de una vez como un único JSON, más fácil de leer en terminal. Por defecto, la API la devuelve en fragmentos a medida que se genera. Recortada, la respuesta tiene esta forma:
+
+```json
+{
+  "model": "qwen2.5-coder:7b",
+  "message": {
+    "role": "assistant",
+    "content": "Claro, aquí tienes una función en Python que verifica si un número es primo: ..."
+  },
+  "done": true,
+  ...
+}
+```
+
+Lo importante está en `message`: el rol `assistant` y el texto generado en `content`. `done: true` indica que la respuesta está completa. El resto de campos son métricas de tiempo y de tokens. El formato completo está en la [documentación oficial de la API](https://docs.ollama.com/api/chat).
+
+Esto ya es un harness plano: un programa, en este caso `curl`, que manda mensajes a un modelo local y recibe su respuesta.
+
+## Lo que le falta a este harness
+
+Aquí te quedas con Ollama instalado, un modelo de código funcionando y la API local respondiendo. Es un punto de partida, pero todavía no es un asistente de código. Le faltan varias piezas:
+
+- **Ventana de contexto**: con menos de 24 GiB de VRAM, Ollama usa por defecto 4k tokens, y las herramientas de código necesitan al menos 64k ([documentación oficial](https://docs.ollama.com/context-length)).
+- **Historial**: cada llamada de `curl` empieza de cero; el modelo no recuerda lo anterior.
+- **Contexto propio**: el modelo no sabe nada de tu código ni de tu proyecto.
+- **Salida estructurada**: nada garantiza que responda en un formato que un programa pueda procesar.
+- **Herramientas**: no puede leer ficheros, editarlos ni ejecutar comandos.
+- **Herramientas estándar (MCP)**: cada herramienta tendría que programarse a mano.
+- **Bucle agéntico**: no puede decidir por sí mismo qué herramienta usar, ver el resultado y seguir.
+- **Seguridad**: no hay autenticación, permisos, confirmaciones ni registro de lo que hace, ni protección frente a prompt injection o fugas de secretos.
+- **Integración**: vive en una terminal, no en tu flujo de trabajo.
+
+Cada una de esas piezas es el tema de los siguientes posts de la serie, sobre este mismo harness local.
