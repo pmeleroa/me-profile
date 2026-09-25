@@ -10,6 +10,9 @@
 - [x] 2.2 Añadir, si hace falta, estilos para la página reutilizando los tokens de `src/styles/global.css`, sin colores nuevos. Verificar con `git diff` que no cambian tokens existentes
   **Verificación:** Estilos en un `<style>` con ámbito del propio componente, usando solo tokens existentes (`--color-text`, `--color-accent`, `--color-accent-light`, `--color-surface`, `--color-border`, `--r-md`, `--font-mono`, `--header-height`). `git diff --stat -- src/styles/` → sin cambios. El texto de la página usa `--color-text` y no `--color-text-muted`, para no heredar el contraste de 3.93:1.
 
+- [x] 2.3 Añadir el esquema de arquitectura de la solución (D10, requisito "Esquema de arquitectura de la solución") antes de la sección del flujo: SVG inline en dos variantes (horizontal a 1024px o más, vertical por debajo), con `role="img"`, `<title>` y `<desc>`, y alternativa en texto con un `<details>` nativo. Verificar con `git diff --stat` que solo cambia `src/pages/como-se-hace.astro`
+  **Verificación:** sección `#how-arch` ("La solución, de un vistazo") añadida antes de `#how-flow`. Cajas para autor, agentes de IA (Claude Code y Codex), repositorio GitHub (`openspec/` y `src/`), GitHub Actions, GitHub Pages y visitante, más la nota discontinua de OpenSpec. Flechas y marcadores en `--color-accent`, salvo la relación del autor con el repositorio, en `--color-logo-yellow` con marcador propio. `git diff --stat` → solo `src/pages/como-se-hace.astro`. Sin imágenes externas ni dependencias nuevas.
+
 ## 3. Enlace en el footer
 
 - [x] 3.1 En `src/components/Footer.astro`, envolver "revisado y validado por mí" en `<a href={`${import.meta.env.BASE_URL}como-se-hace`}>`, sin `target`, conservando el resto del texto y el resalte de "IA" (D5). Verificar con `git diff src/components/Footer.astro` que solo cambia `.footer-copy` y que el texto visible es idéntico. Rollback: `git checkout -- src/components/Footer.astro` antes del commit o `git revert <sha>` después
@@ -43,6 +46,9 @@
 
 - [x] 5.5 Tras el cambio visual de D9 (carriles), repetir las verificaciones afectadas
   **Verificación:** `npm run build` → `65 page(s) built`. El script de 4.2 a 4.6 sigue dando los mismos resultados: fases `01 Debate`, `02 Acuerdo`, `03 Construcción`, `04 Publicación` en orden, herramientas después del flujo, 0 `<script>` en `<main>`, sin términos prohibidos, 3 enlaces con SHA, 63/63 footers OK y 0 enlaces en la cabecera. Q02: sin scroll horizontal a 360/390/768/1440px. Capturas `flow-1440.png` (4 columnas con los carriles alineados) y `flow-768.png` y `flow-360.png` (vertical), en el scratchpad. Q03: encabezados `H1 H2 H3 H3 H3 H3 H2 H2`; textos de los carriles 16.40:1, etiqueta "La IA" 10.43:1 y "Yo" (`--color-logo-yellow`) 11.98:1, leyenda y `⇅` 16.40:1. Q04: sin animaciones ni transiciones en `<main>`. Q05: Lighthouse móvil 100/100/100 (LCP 1.4 s, CLS 0.015), accesibilidad 92, con los mismos fallos previos del footer que en 5.2.
+
+- [x] 5.6 Verificar el esquema de arquitectura: orden, accesibilidad, variantes por ancho y calidad
+  **Verificación:** `npm run build` → `65 page(s) built`. Script de 4.2 a 4.6 sin cambios en los resultados (63/63 footers OK, 0 términos prohibidos, 3 enlaces con SHA). `#how-arch` aparece antes que `#how-flow`. Los 2 SVG tienen `role="img"` y `aria-labelledby`, y los `id` no se repiten. El `<details>` contiene Autor, Claude Code, Codex, `openspec/`, `src/`, GitHub Actions, GitHub Pages, visitante, OpenSpec y `main`. Playwright muestra la variante vertical a 360 y 768 y la horizontal a 1024 y 1440, y el árbol de accesibilidad expone una sola `img` "Esquema de arquitectura de este sitio…" por ancho. Q02: sin scroll horizontal a 360/768/1440. Capturas `arch-1440.png`, `arch-768.png` y `arch-360.png` en el scratchpad. Lighthouse móvil 100/100/100 (LCP 1.4 s, CLS 0.015) y accesibilidad 93, con los fallos previos del footer (`color-contrast` y `link-in-text-block`, ver 5.2).
 
 ## 6. Aprobación y cierre
 

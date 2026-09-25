@@ -29,6 +29,28 @@ La página SHALL describir el flujo con el que se genera el contenido del sitio 
 - **WHEN** un visitante lee la fase de publicación
 - **THEN** la página indica que la IA pide al autor su consentimiento para publicar, que la respuesta queda registrada y que el autor hace la integración final
 
+### Requirement: Esquema de arquitectura de la solución
+La página SHALL incluir, antes de la descripción del flujo por fases, un esquema de arquitectura de la solución. El esquema MUST mostrar al autor, los agentes de IA (Claude Code y Codex), el repositorio público de GitHub con `openspec/` y `src/`, GitHub Actions, GitHub Pages y el visitante, y las relaciones entre ellos:
+- debate y decisiones entre el autor y los agentes;
+- los agentes generan artefactos, código y texto en el repositorio;
+- el autor revisa, aprueba e integra;
+- la integración en la rama principal lanza el build y el despliegue;
+- el visitante recibe el HTML estático.
+
+El esquema MUST tener una alternativa en texto presente en el HTML servido y MUST leerse a 360px de ancho sin scroll horizontal.
+
+#### Scenario: Componentes del esquema
+- **WHEN** un visitante carga `/como-se-hace`
+- **THEN** antes de la sección del flujo ve un esquema con el autor, Claude Code y Codex, el repositorio de GitHub (`openspec/` y `src/`), GitHub Actions, GitHub Pages y el visitante, unidos por flechas que indican sus relaciones
+
+#### Scenario: Alternativa en texto
+- **WHEN** se inspecciona el HTML generado de `/como-se-hace`
+- **THEN** el esquema tiene un nombre accesible y existe en el HTML una descripción en texto de sus componentes y relaciones, sin depender de JavaScript
+
+#### Scenario: Esquema en móvil
+- **WHEN** un visitante carga `/como-se-hace` con un ancho de 360px
+- **THEN** el esquema se muestra en una disposición vertical legible y la página no tiene scroll horizontal
+
 ### Requirement: Herramientas utilizadas
 La página SHALL incluir un bloque con las herramientas que se usan para producir el sitio: Astro, GitHub Pages, OpenSpec, Claude Code y Codex. Este bloque MUST ser secundario frente a la descripción del flujo. La página MUST nombrar herramientas y MUST NOT nombrar modelos de IA concretos ni sus versiones.
 

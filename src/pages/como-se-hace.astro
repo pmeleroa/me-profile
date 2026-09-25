@@ -79,6 +79,175 @@ const tools = [
       </div>
     </section>
 
+    <section class="how-section" aria-labelledby="how-arch">
+      <div class="container">
+        <div class="how-narrow">
+          <h2 id="how-arch" class="how-heading">La solución, de un vistazo</h2>
+          <p class="how-text">
+            Quién interviene y cómo llega el contenido desde el debate hasta tu navegador.
+          </p>
+        </div>
+
+        <figure class="arch">
+          <!-- Variante horizontal (>= 1024px) -->
+          <svg class="arch-svg arch-svg--wide" viewBox="0 0 990 540" role="img" aria-labelledby="arch-wide-title arch-wide-desc">
+            <title id="arch-wide-title">Esquema de arquitectura de este sitio</title>
+            <desc id="arch-wide-desc">El autor debate con los agentes de IA; los agentes generan artefactos, código y texto en el repositorio público; el autor revisa, aprueba e integra; la integración en main lanza el build en GitHub Actions, que despliega en GitHub Pages el HTML estático que recibe el visitante.</desc>
+            <defs>
+              <marker id="arch-wide-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" class="arch-head" />
+              </marker>
+              <marker id="arch-wide-arrow-me" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" class="arch-head arch-head--me" />
+              </marker>
+            </defs>
+
+            <!-- Autor y agentes -->
+            <rect x="30" y="30" width="220" height="100" rx="12" class="arch-box arch-box--me" />
+            <text x="140" y="72" class="arch-name arch-name--me" text-anchor="middle">AUTOR</text>
+            <text x="140" y="98" class="arch-note" text-anchor="middle">decide y valida</text>
+
+            <rect x="390" y="30" width="250" height="100" rx="12" class="arch-box arch-box--ai" />
+            <text x="515" y="72" class="arch-name arch-name--ai" text-anchor="middle">AGENTES DE IA</text>
+            <text x="515" y="98" class="arch-note" text-anchor="middle">Claude Code · Codex</text>
+
+            <line x1="254" y1="80" x2="386" y2="80" class="arch-line" marker-start="url(#arch-wide-arrow)" marker-end="url(#arch-wide-arrow)" />
+            <text x="320" y="68" class="arch-label" text-anchor="middle">debate</text>
+            <text x="320" y="102" class="arch-label" text-anchor="middle">decisiones</text>
+
+            <!-- Relaciones con el repositorio -->
+            <line x1="140" y1="130" x2="140" y2="206" class="arch-line arch-line--me" marker-end="url(#arch-wide-arrow-me)" />
+            <text x="152" y="165" class="arch-label">revisa, aprueba</text>
+            <text x="152" y="183" class="arch-label">y hace merge</text>
+
+            <line x1="515" y1="130" x2="515" y2="206" class="arch-line" marker-end="url(#arch-wide-arrow)" />
+            <text x="527" y="165" class="arch-label">genera artefactos,</text>
+            <text x="527" y="183" class="arch-label">código y texto</text>
+
+            <!-- Repositorio -->
+            <rect x="30" y="210" width="610" height="190" rx="12" class="arch-box" />
+            <text x="50" y="240" class="arch-name">REPOSITORIO GITHUB (PÚBLICO)</text>
+            <rect x="50" y="256" width="280" height="96" rx="8" class="arch-sub" />
+            <text x="66" y="284" class="arch-mono">openspec/</text>
+            <text x="66" y="308" class="arch-note">proposal · design · specs · tasks</text>
+            <text x="66" y="330" class="arch-note">evidencia y consentimientos</text>
+            <rect x="344" y="256" width="276" height="96" rx="8" class="arch-sub" />
+            <text x="360" y="284" class="arch-mono">src/</text>
+            <text x="360" y="308" class="arch-note">Astro + MDX</text>
+            <text x="360" y="330" class="arch-note">páginas y posts</text>
+            <text x="335" y="382" class="arch-label" text-anchor="middle">rama feat/*  →  pull request  →  main</text>
+
+            <!-- Entrega -->
+            <line x1="640" y1="250" x2="716" y2="250" class="arch-line" marker-end="url(#arch-wide-arrow)" />
+            <text x="678" y="238" class="arch-label" text-anchor="middle">push</text>
+            <text x="678" y="272" class="arch-label" text-anchor="middle">a main</text>
+
+            <rect x="720" y="210" width="240" height="80" rx="12" class="arch-box" />
+            <text x="840" y="244" class="arch-name" text-anchor="middle">GITHUB ACTIONS</text>
+            <text x="840" y="268" class="arch-note" text-anchor="middle">build de Astro</text>
+
+            <line x1="840" y1="290" x2="840" y2="326" class="arch-line" marker-end="url(#arch-wide-arrow)" />
+
+            <rect x="720" y="330" width="240" height="80" rx="12" class="arch-box" />
+            <text x="840" y="364" class="arch-name" text-anchor="middle">GITHUB PAGES</text>
+            <text x="840" y="388" class="arch-note" text-anchor="middle">HTML estático</text>
+
+            <line x1="840" y1="410" x2="840" y2="446" class="arch-line" marker-end="url(#arch-wide-arrow)" />
+
+            <rect x="720" y="450" width="240" height="70" rx="12" class="arch-box arch-box--visitor" />
+            <text x="840" y="480" class="arch-name" text-anchor="middle">VISITANTE</text>
+            <text x="840" y="503" class="arch-note" text-anchor="middle">pablomeleroalonso.me</text>
+
+            <!-- OpenSpec -->
+            <rect x="30" y="430" width="610" height="90" rx="12" class="arch-frame" />
+            <text x="50" y="462" class="arch-name arch-name--ai">OPENSPEC ordena el trabajo</text>
+            <text x="50" y="494" class="arch-note">01 debate  →  02 acuerdo  →  03 construcción  →  04 publicación</text>
+          </svg>
+
+          <!-- Variante vertical (< 1024px) -->
+          <svg class="arch-svg arch-svg--narrow" viewBox="0 0 360 880" role="img" aria-labelledby="arch-narrow-title arch-narrow-desc">
+            <title id="arch-narrow-title">Esquema de arquitectura de este sitio</title>
+            <desc id="arch-narrow-desc">El autor debate con los agentes de IA; los agentes generan artefactos, código y texto en el repositorio público; el autor revisa, aprueba e integra; la integración en main lanza el build en GitHub Actions, que despliega en GitHub Pages el HTML estático que recibe el visitante.</desc>
+            <defs>
+              <marker id="arch-narrow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" class="arch-head" />
+              </marker>
+              <marker id="arch-narrow-arrow-me" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" class="arch-head arch-head--me" />
+              </marker>
+            </defs>
+
+            <rect x="44" y="10" width="304" height="64" rx="12" class="arch-box arch-box--me" />
+            <text x="196" y="38" class="arch-name arch-name--me" text-anchor="middle">AUTOR</text>
+            <text x="196" y="60" class="arch-note" text-anchor="middle">decide y valida</text>
+
+            <line x1="196" y1="78" x2="196" y2="120" class="arch-line" marker-start="url(#arch-narrow-arrow)" marker-end="url(#arch-narrow-arrow)" />
+            <text x="208" y="104" class="arch-label">debate · decisiones</text>
+
+            <rect x="44" y="124" width="304" height="64" rx="12" class="arch-box arch-box--ai" />
+            <text x="196" y="152" class="arch-name arch-name--ai" text-anchor="middle">AGENTES DE IA</text>
+            <text x="196" y="174" class="arch-note" text-anchor="middle">Claude Code · Codex</text>
+
+            <line x1="196" y1="188" x2="196" y2="234" class="arch-line" marker-end="url(#arch-narrow-arrow)" />
+            <text x="208" y="208" class="arch-label">genera artefactos,</text>
+            <text x="208" y="226" class="arch-label">código y texto</text>
+
+            <!-- Autor -> repositorio, por el lateral -->
+            <polyline points="44,42 22,42 22,420 40,420" class="arch-line arch-line--me" marker-end="url(#arch-narrow-arrow-me)" />
+            <text x="14" y="300" class="arch-label" text-anchor="middle" transform="rotate(-90 14 300)">revisa, aprueba y hace merge</text>
+
+            <rect x="44" y="238" width="304" height="204" rx="12" class="arch-box" />
+            <text x="60" y="262" class="arch-name">REPOSITORIO GITHUB</text>
+            <rect x="60" y="274" width="272" height="66" rx="8" class="arch-sub" />
+            <text x="74" y="298" class="arch-mono">openspec/</text>
+            <text x="74" y="322" class="arch-note">proposal · design · specs · tasks</text>
+            <rect x="60" y="350" width="272" height="56" rx="8" class="arch-sub" />
+            <text x="74" y="374" class="arch-mono">src/</text>
+            <text x="74" y="396" class="arch-note">Astro + MDX</text>
+            <text x="196" y="428" class="arch-label" text-anchor="middle">feat/* → pull request → main</text>
+
+            <line x1="196" y1="442" x2="196" y2="490" class="arch-line" marker-end="url(#arch-narrow-arrow)" />
+            <text x="208" y="470" class="arch-label">push a main</text>
+
+            <rect x="44" y="494" width="304" height="60" rx="12" class="arch-box" />
+            <text x="196" y="520" class="arch-name" text-anchor="middle">GITHUB ACTIONS</text>
+            <text x="196" y="542" class="arch-note" text-anchor="middle">build de Astro</text>
+
+            <line x1="196" y1="554" x2="196" y2="590" class="arch-line" marker-end="url(#arch-narrow-arrow)" />
+
+            <rect x="44" y="594" width="304" height="60" rx="12" class="arch-box" />
+            <text x="196" y="620" class="arch-name" text-anchor="middle">GITHUB PAGES</text>
+            <text x="196" y="642" class="arch-note" text-anchor="middle">HTML estático</text>
+
+            <line x1="196" y1="654" x2="196" y2="690" class="arch-line" marker-end="url(#arch-narrow-arrow)" />
+
+            <rect x="44" y="694" width="304" height="60" rx="12" class="arch-box arch-box--visitor" />
+            <text x="196" y="720" class="arch-name" text-anchor="middle">VISITANTE</text>
+            <text x="196" y="742" class="arch-note" text-anchor="middle">pablomeleroalonso.me</text>
+
+            <rect x="44" y="776" width="304" height="94" rx="12" class="arch-frame" />
+            <text x="60" y="804" class="arch-name arch-name--ai">OPENSPEC ordena el trabajo</text>
+            <text x="60" y="830" class="arch-note">01 debate → 02 acuerdo</text>
+            <text x="60" y="852" class="arch-note">03 construcción → 04 publicación</text>
+          </svg>
+
+          <figcaption>
+            <details class="arch-text">
+              <summary>El esquema en texto</summary>
+              <ul>
+                <li><strong>Autor y agentes de IA</strong> (Claude Code y Codex) debaten; las decisiones las toma el autor.</li>
+                <li>Los agentes generan en el <strong>repositorio público de GitHub</strong> los artefactos de OpenSpec (<code>openspec/</code>: propuesta, diseño, especificaciones y tareas, con la evidencia y los consentimientos) y el código y los textos del sitio (<code>src/</code>: Astro y MDX).</li>
+                <li>El autor revisa, aprueba e integra: cada cambio va en una rama <code>feat/*</code>, pasa por una pull request y el autor hace el merge a <code>main</code>.</li>
+                <li>El push a <code>main</code> lanza el build en <strong>GitHub Actions</strong>, que despliega en <strong>GitHub Pages</strong> el HTML estático.</li>
+                <li>El <strong>visitante</strong> recibe ese HTML en pablomeleroalonso.me.</li>
+                <li><strong>OpenSpec</strong> ordena el trabajo en cuatro fases: debate, acuerdo, construcción y publicación.</li>
+              </ul>
+            </details>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
     <section class="how-section" aria-labelledby="how-flow">
       <div class="container">
         <div class="how-narrow">
@@ -215,6 +384,133 @@ const tools = [
     border: 1px solid var(--color-border);
     border-radius: var(--r-md);
     padding: 1.25rem 1.5rem;
+  }
+
+  /* ── Esquema de arquitectura (SVG inline) ── */
+  .arch {
+    margin: 2rem 0 0;
+  }
+
+  .arch-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .arch-svg--wide {
+    display: none;
+  }
+
+  .arch-svg--narrow {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .arch-box {
+    fill: var(--color-bg-2);
+    stroke: var(--color-border-2);
+    stroke-width: 1.5;
+  }
+
+  .arch-box--me {
+    stroke: var(--color-logo-yellow);
+    stroke-width: 2;
+  }
+
+  .arch-box--ai {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+
+  .arch-box--visitor {
+    stroke: var(--color-text);
+  }
+
+  .arch-sub {
+    fill: var(--color-surface-2);
+    stroke: var(--color-border);
+  }
+
+  .arch-frame {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 5;
+  }
+
+  .arch-line {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+
+  .arch-line--me {
+    stroke: var(--color-logo-yellow);
+  }
+
+  .arch-head {
+    fill: var(--color-accent);
+  }
+
+  .arch-head--me {
+    fill: var(--color-logo-yellow);
+  }
+
+  .arch-name {
+    fill: var(--color-text);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .arch-name--me { fill: var(--color-logo-yellow); }
+  .arch-name--ai { fill: var(--color-accent-light); }
+
+  .arch-mono {
+    fill: var(--color-accent-light);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .arch-note {
+    fill: var(--color-text);
+    font-size: 14px;
+  }
+
+  .arch-label {
+    fill: var(--color-text);
+    font-size: 13px;
+  }
+
+  .arch-text {
+    margin-top: 1.25rem;
+    color: var(--color-text);
+    line-height: 1.7;
+  }
+
+  .arch-text summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--color-accent-light);
+  }
+
+  .arch-text ul {
+    margin-top: 0.75rem;
+    padding-left: 1.25rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .arch-text code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  @media (min-width: 1024px) {
+    .arch-svg--wide { display: block; }
+    .arch-svg--narrow { display: none; }
   }
 
   /* ── Flujo en carriles: IA arriba, autor abajo ── */

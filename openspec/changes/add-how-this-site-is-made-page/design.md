@@ -95,6 +95,17 @@ Tras revisar el primer borrador, el autor pidió una versión más visual y elig
 - Una línea de tiempo con iconos es más narrativa, pero diluye el reparto entre IA y autor.
 - Un diagrama circular en SVG es muy distintivo, pero separa el detalle de quién hace qué del gráfico.
 
+### D10. Esquema de arquitectura de la solución
+
+El autor aclaró que "más visual" significaba sobre todo un esquema de arquitectura de la solución, y decidió colocarlo arriba como visión de conjunto, con los carriles de D9 debajo como detalle de cada fase.
+
+- **SVG inline** con clases propias coloreadas con los tokens del sitio: `--color-logo-yellow` para el autor, `--color-accent` para los agentes y las flechas, `--color-surface` y `--color-border` para las cajas. No es una imagen externa, así que no pasa por la pipeline de imágenes y no añade peticiones.
+- **Dos variantes del mismo esquema:** una horizontal para 1024px o más, igual que los carriles, y una vertical por debajo (a 768px la horizontal dejaría las etiquetas en unos 9-10px efectivos). Se alternan con `display: none` por media query, y la oculta tampoco llega al árbol de accesibilidad. Los `id` de los marcadores de flecha son distintos en cada variante.
+- **Accesibilidad:** cada SVG tiene `role="img"` con `<title>` y `<desc>`, y debajo va un `<details>` nativo ("El esquema en texto") con la lista de componentes y relaciones, que funciona sin JavaScript.
+- **OpenSpec** aparece como una nota discontinua con las cuatro fases numeradas, que enlaza visualmente con la sección del flujo.
+
+**Alternativa descartada:** cajas en HTML y CSS. Se adaptan mejor al ancho, pero las flechas entre componentes no contiguos (autor → repositorio, repositorio → Actions) exigen posicionamiento frágil.
+
 ## Risks / Trade-offs
 
 - [La página se desactualiza si el flujo cambia, por ejemplo con nuevas fases o herramientas] → Describe las fases de forma genérica y nombra herramientas, no versiones. Los enlaces fijados siguen siendo válidos aunque ya no reflejen el estado actual.
