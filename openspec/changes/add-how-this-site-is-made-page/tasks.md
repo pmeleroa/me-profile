@@ -71,6 +71,9 @@
 - [x] 5.11 Centrar la banda de reglas de la infografía, a petición del owner ("que queden las reglas centradas"): título centrado y cada regla con el icono encima del texto, centrada. Desde 768px, rejilla de 3 columnas para que ninguna regla quede sola
   **Verificación:** `npm run build` → `65 page(s) built`. Playwright mide el centro de la caja, el del título y el de cada regla. A 360px: caja 180, título 180 y las 3 reglas en 180, apiladas. A 768px: caja 384 y título 384, y las 3 reglas en una fila con centros en 155, 384 y 613. A 1440px: caja 720 y título 720, y las reglas en una fila con centros en 381, 720 y 1059. Sin scroll horizontal. Capturas `rules-1440.png` y `rules-360.png` en el scratchpad. En una primera edición la media query de 768px quedó vacía (reglas apiladas a 768px); se detectó con esta medición y se corrigió antes del commit.
 
+- [x] 5.12 Alinear a la izquierda el encabezado de la banda de reglas, a petición del owner ("el texto de la cabecera de las reglas alineado a la izquierda"). Las reglas siguen centradas
+  **Verificación:** `npm run build` → `65 page(s) built`. Playwright: el título empieza en el borde de contenido de la banda (360 → 48/49 px, 768 → 48/49 px, 1440 → 218/219 px), y las reglas siguen centradas (360 → 180, 180 y 180; 768 → 155, 384 y 613; 1440 → 381, 720 y 1059). Sin scroll horizontal. Captura `rules-left-1440.png` en el scratchpad.
+
 ## 6. Aprobación y cierre
 
 - [x] 6.1 Pedir al owner la aprobación del texto final de `/como-se-hace` (D7) y registrar aquí la pregunta y la respuesta literales. Sin aprobación, el change no se archiva
