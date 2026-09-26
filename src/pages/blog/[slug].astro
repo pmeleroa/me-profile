@@ -1,5 +1,5 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection, getEntry, render } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
@@ -9,10 +9,12 @@ import { sections } from '../../data/sections';
 import { readingTime } from '../../utils/readingTime';
 import { author } from '../../data/author';
 import { categoryColors } from '../../data/blogCategories';
+import { validateSeriesIntegrity } from '../../utils/series';
 
 export async function getStaticPaths() {
   if (!sections.blog) return [];
   const posts = await getCollection('blog', ({ data }) => !data.draft);
+  await validateSeriesIntegrity(posts);
   return posts.map((post) => ({
     params: { slug: post.id },
     props: { post },
@@ -48,7 +50,6 @@ const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   day: '2-digit',
 });
 const formattedDate = dateFormatter.format(post.data.publishDate);
-const formattedUpdatedDate = post.data.updatedDate ? dateFormatter.format(post.data.updatedDate) : undefined;
 const readingTimeMinutes = readingTime(post.body);
 
 const breadcrumbItems = [
@@ -64,6 +65,13 @@ const ctaHref = post.data.ctaHref ?? '/contacto';
 const publishedTimeISO = post.data.publishDate.toISOString();
 const modifiedTimeISO = post.data.updatedDate?.toISOString();
 
+// Fetch series data if post belongs to a series
+let seriesData = null;
+if (post.data.series) {
+  const seriesId = typeof post.data.series.id === 'string' ? post.data.series.id : post.data.series.id.id;
+  seriesData = await getEntry('series', seriesId);
+}
+
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://pablomeleroalonso.me';
 const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const imageUrl = post.data.image ? new URL(post.data.image, siteUrl).toString() : undefined;
@@ -78,6 +86,12 @@ const blogPostingJsonLd = {
   ...(modifiedTimeISO && { dateModified: modifiedTimeISO }),
   ...(author && { author: { '@type': 'Person', name: author.name } }),
   mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+  ...(seriesData && {
+    isPartOf: {
+      '@type': 'CreativeWorkSeries',
+      name: seriesData.data.title,
+    },
+  }),
 };
 
 const breadcrumbJsonLd = {
@@ -129,15 +143,20 @@ const breadcrumbJsonLd = {
                 <span aria-hidden="true">⏱️</span> {readingTimeMinutes} min
               </span>
             )}
-            {formattedUpdatedDate && (
-              <span class="article-updated">
-                Actualizado el <time datetime={modifiedTimeISO}>{formattedUpdatedDate}</time>
-              </span>
-            )}
             <ShareButton url={pageUrl} title={post.data.title} text={post.data.description} postId={post.id} variant="meta" />
           </div>
         </div>
 
+        {post.data.series && seriesData && (
+          <p class="article-series reveal reveal-delay-2">
+            <span class="article-series-badge">
+              <span aria-hidden="true">📚</span> Serie
+            </span>
+            <span class="article-series-name">{seriesData.data.title}</span>
+            <span aria-hidden="true">·</span>
+            <span class="article-series-part">Parte {post.data.series.part}</span>
+          </p>
+        )}
         <h1 class="article-title reveal reveal-delay-2">{post.data.title}</h1>
         <p class="article-description reveal reveal-delay-3">{post.data.description}</p>
 
@@ -203,6 +222,7 @@ const breadcrumbJsonLd = {
                 slug={p.id}
                 image={p.data.image}
                 readingTimeMinutes={readingTime(p.body)}
+                inSeries={!!p.data.series}
               />
             ))}
           </div>
@@ -331,10 +351,47 @@ const breadcrumbJsonLd = {
     white-space: nowrap;
   }
 
-  .article-updated {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
+  /* ── Series Label (antetítulo) ── */
+  .article-series {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 0.6rem;
+    line-height: 1.45;
+  }
+
+  .article-series-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    padding: 0.3rem 0.55rem;
+    color: var(--color-accent);
+    background: var(--color-accent-glow);
+    border-radius: var(--r-sm);
     white-space: nowrap;
+  }
+
+  .article-series-badge span[aria-hidden="true"] {
+    font-size: 0.85rem;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .article-series-name {
+    min-width: 0;
+  }
+
+  .article-series-part {
+    color: var(--color-accent);
   }
 
   /* ── Tags (debajo de la bajada) ── */
