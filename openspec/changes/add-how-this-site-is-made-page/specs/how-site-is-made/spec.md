@@ -1,6 +1,6 @@
 ## Purpose
 
-Define el contrato de la página `/como-se-hace`: explica al visitante cómo se genera el contenido de este sitio con IA, siempre consensuado con el autor, y respalda con ejemplos verificables la declaración del footer.
+Define el contrato de la página `/como-se-hace`: explica al visitante cómo se genera el contenido de este sitio con IA, siempre consensuado con el autor, y da contenido a la declaración del footer.
 
 ## ADDED Requirements
 
@@ -51,38 +51,20 @@ El esquema MUST tener una alternativa en texto presente en el HTML servido y MUS
 - **WHEN** un visitante carga `/como-se-hace` con un ancho de 360px
 - **THEN** el esquema se muestra en una disposición vertical legible y la página no tiene scroll horizontal
 
-### Requirement: Herramientas utilizadas
-La página SHALL incluir un bloque con las herramientas que se usan para producir el sitio: Astro, GitHub Pages, OpenSpec, Claude Code y Codex. Este bloque MUST ser secundario frente a la descripción del flujo. La página MUST nombrar herramientas y MUST NOT nombrar modelos de IA concretos ni sus versiones.
-
-#### Scenario: Bloque de herramientas
-- **WHEN** un visitante lee la página
-- **THEN** encuentra Astro, GitHub Pages, OpenSpec, Claude Code y Codex en un bloque que aparece después de la descripción del flujo
-
-#### Scenario: Sin nombres de modelos
-- **WHEN** se inspecciona el HTML generado de `/como-se-hace`
-- **THEN** no contiene nombres de modelos de IA concretos, como "Opus", "Sonnet", "Haiku" o "GPT-", ni números de versión de modelo
-
-### Requirement: Ejemplos verificables en el repositorio público
-La página SHALL enlazar al menos dos ejemplos reales del repositorio público `pmeleroa/me-profile`, e incluir entre ellos el registro literal de un consentimiento de publicación. Cada enlace a un archivo o carpeta del repositorio MUST apuntar a un commit concreto identificado por su SHA completo, no a una rama. Cada enlace MUST resolver a un contenido existente.
-
-#### Scenario: Enlaces fijados a un commit
-- **WHEN** se inspeccionan los enlaces de la página a `github.com/pmeleroa/me-profile`
-- **THEN** cada uno que apunta a un archivo o carpeta contiene `/blob/<sha>/` o `/tree/<sha>/`, con un SHA completo de 40 caracteres, y ninguno usa un nombre de rama como `main`
-
-#### Scenario: Enlaces válidos
-- **WHEN** se abre cada enlace de ejemplo de la página
-- **THEN** el recurso existe y muestra el contenido que la página describe
-
 ### Requirement: Afirmaciones verificables
-La página MUST NOT usar "certificado", "certificación" ni "garantizado", ni ninguna formulación que sugiera un proceso formal de certificación o la validación de un tercero. MUST NOT incluir métricas de productividad ni cifras que no estén respaldadas por el repositorio. MUST dejar claro que la revisión la hace el autor y no un tercero.
+La página MUST NOT usar "certificado", "certificación" ni "garantizado", ni ninguna formulación que sugiera un proceso formal de certificación o la validación de un tercero. MUST NOT incluir métricas de productividad ni cifras que no estén respaldadas por el repositorio. MUST dejar claro que la revisión la hace el autor y no un tercero. Cuando nombre herramientas de IA, MUST nombrar la herramienta (Claude Code, Codex) y MUST NOT nombrar modelos concretos ni sus versiones.
 
 #### Scenario: Ausencia de afirmaciones no demostrables
 - **WHEN** se inspecciona el HTML generado de `/como-se-hace`
 - **THEN** no contiene las palabras "certificado", "certificación" ni "garantizado"
+
+#### Scenario: Sin nombres de modelos
+- **WHEN** se inspecciona el HTML generado de `/como-se-hace`
+- **THEN** no contiene nombres de modelos de IA concretos, como "Opus", "Sonnet", "Haiku" o "GPT-", ni números de versión de modelo
 
 ### Requirement: Contenido esencial sin JavaScript
 El contenido completo de la página SHALL estar presente en el HTML servido, sin depender de JavaScript en el cliente.
 
 #### Scenario: Página con JavaScript desactivado
 - **WHEN** un visitante carga `/como-se-hace` con JavaScript desactivado
-- **THEN** ve las cuatro fases, el bloque de herramientas y los enlaces de ejemplo
+- **THEN** ve la introducción, el esquema de arquitectura con su alternativa en texto y las cuatro fases

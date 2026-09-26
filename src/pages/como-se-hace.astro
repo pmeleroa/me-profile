@@ -3,11 +3,6 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 
-// Commit fijo del repositorio público: los enlaces de evidencia no se rompen si el repo se reorganiza.
-const repoUrl = 'https://github.com/pmeleroa/me-profile';
-const evidenceSha = '8e3de004f9dd5d4441c7193ba82c0c360f050c3e';
-const blobUrl = (path: string) => `${repoUrl}/blob/${evidenceSha}/${path}`;
-
 const phases = [
   {
     title: 'Debate',
@@ -31,30 +26,6 @@ const phases = [
   },
 ];
 
-const evidence = [
-  {
-    title: 'La regla: nada se publica sin mi consentimiento',
-    description: 'El cambio que convirtió en obligatorio pedir y registrar mi consentimiento antes de publicar un post.',
-    href: blobUrl('openspec/changes/archive/2026-09-09-require-post-publish-confirmation/proposal.md'),
-  },
-  {
-    title: 'La regla aplicada: pregunta y respuesta literales',
-    description: 'El registro del consentimiento de publicación de un post real, con la pregunta de la IA y mi respuesta.',
-    href: blobUrl('openspec/changes/archive/2026-09-25-add-ollama-local-guide-post/tasks.md#L130'),
-  },
-  {
-    title: 'Lo que se aplaza también queda escrito',
-    description: 'Esta página nació como trabajo pendiente de un cambio anterior, que decidió no abordarla todavía y lo dejó anotado.',
-    href: blobUrl('openspec/changes/archive/2026-09-25-update-footer-ai-disclosure/proposal.md#L13'),
-  },
-];
-
-const tools = [
-  { name: 'Claude Code y Codex', role: 'Los asistentes de IA con los que debato, redacto y construyo.' },
-  { name: 'OpenSpec', role: 'El marco de desarrollo guiado por especificaciones que ordena el debate y deja el rastro de cada decisión.' },
-  { name: 'Astro', role: 'Genera el sitio como HTML estático.' },
-  { name: 'GitHub y GitHub Pages', role: 'Repositorio público, integración continua y publicación.' },
-];
 ---
 
 <Layout
@@ -282,38 +253,6 @@ const tools = [
       </div>
     </section>
 
-    <section class="how-section" aria-labelledby="how-evidence">
-      <div class="container">
-        <h2 id="how-evidence" class="how-heading">Compruébalo en el repositorio</h2>
-        <p class="how-text">
-          El repositorio del sitio es público. Estos ejemplos apuntan a una versión fija, para que sigan
-          mostrando lo mismo aunque el repositorio cambie.
-        </p>
-        <ul class="how-evidence">
-          {evidence.map((item) => (
-            <li class="how-evidence-item">
-              <a href={item.href} target="_blank" rel="noopener" class="how-evidence-link">{item.title}</a>
-              <p class="how-text">{item.description}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-
-    <section class="how-section" aria-labelledby="how-tools">
-      <div class="container">
-        <h2 id="how-tools" class="how-heading">Herramientas</h2>
-        <dl class="how-tools">
-          {tools.map((tool) => (
-            <div class="how-tool">
-              <dt>{tool.name}</dt>
-              <dd>{tool.role}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
-
     <section class="how-section how-closing">
       <div class="container">
         <p class="how-text">
@@ -357,8 +296,7 @@ const tools = [
     color: var(--color-text);
   }
 
-  .how-text a,
-  .how-evidence-link {
+  .how-text a {
     color: var(--color-accent-light);
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -372,21 +310,6 @@ const tools = [
     font-size: clamp(1.5rem, 3vw, 2rem);
     font-weight: 800;
     letter-spacing: -0.02em;
-  }
-
-  .how-evidence {
-    list-style: none;
-    padding: 0;
-    margin-top: 1.5rem;
-    display: grid;
-    gap: 1rem;
-  }
-
-  .how-evidence-item {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--r-md);
-    padding: 1.25rem 1.5rem;
   }
 
   /* ── Esquema de arquitectura (SVG inline) ── */
@@ -620,27 +543,6 @@ const tools = [
     font-size: 1.1rem;
     line-height: 1;
     color: var(--color-text);
-  }
-
-  .how-tools dt {
-    font-weight: 700;
-    color: var(--color-accent-light);
-  }
-
-  .how-tools dd {
-    margin: 0.25rem 0 0;
-    line-height: 1.7;
-    color: var(--color-text);
-  }
-
-  .how-evidence-link {
-    font-weight: 700;
-  }
-
-  .how-tools {
-    margin-top: 1.5rem;
-    display: grid;
-    gap: 1.25rem;
   }
 
   .how-closing {

@@ -33,45 +33,36 @@ Sigue el patrón de `contacto.astro`: `Layout` con `title` y `description` propi
 
 ### D2. Contenido definido en la propia página
 
-Las fases, las herramientas y los ejemplos se definen como arrays locales en el frontmatter de la página, igual que `topics` en `contacto.astro`, y se pintan con marcado semántico: una lista ordenada para las fases y enlaces normales para los ejemplos.
+Las fases se definen como un array local en el frontmatter de la página, igual que `topics` en `contacto.astro`, y se pintan como una lista ordenada.
 
 **Alternativa descartada:** un archivo en `src/data/`. Solo tendría un consumidor y no aporta nada frente al patrón ya usado en `/contacto`.
 
 ### D3. Estructura de la página
 
 1. **Introducción.** Qué significa "Contenido creado con IA, revisado y validado por mí" en este sitio y qué no significa: no hay revisión de terceros ni certificación.
-2. **El flujo, en cuatro fases**, y para cada una qué hace la IA y qué decide el autor:
+2. **Esquema de arquitectura** de la solución (D10), antes del flujo.
+3. **El flujo, en cuatro fases**, y para cada una qué hace la IA y qué decide el autor:
    - **Debate** (explore o blog-post): la IA pregunta, contrasta con el repositorio y propone opciones con una recomendación. El autor elige, corrige o descarta.
    - **Acuerdo** (propose): la IA redacta la propuesta, el diseño, las specs y las tareas a partir de lo debatido. El autor revisa el alcance antes de construir.
    - **Construcción** (apply): la IA escribe el código o el texto y lo verifica con build, validación y checks de calidad. El autor revisa el resultado.
    - **Publicación** (archive y PR): la IA pide el consentimiento para publicar y la respuesta literal queda registrada. El autor hace siempre el merge.
-3. **Ejemplos en el repositorio**, con enlaces fijados a un commit (D4).
-4. **Herramientas**, en un bloque breve: Astro, GitHub Pages, OpenSpec, Claude Code y Codex.
-5. **Cierre:** si alguien encuentra un error, puede avisar por `/contacto`.
+4. **Cierre:** si alguien encuentra un error, puede avisar por `/contacto`.
 
 El texto definitivo se redacta en `apply`, debatiéndolo con el autor como cualquier otro contenido público (ver D7).
 
-### D4. Enlaces de evidencia fijados a un SHA completo
+### D4. Sin enlaces de evidencia ni bloque de herramientas (retirados)
 
-Todos los enlaces usan `https://github.com/pmeleroa/me-profile/blob/<sha>/<ruta>` o `/tree/<sha>/<ruta>`, con el SHA completo de un commit de `main` en el que existan las rutas enlazadas. El SHA se define una sola vez como constante en la página. Los anclajes de línea, como `#L130`, son estables porque el contenido está fijado.
-
-Ejemplos previstos, sujetos a comprobarlos en `apply`:
-
-- `openspec/changes/archive/2026-09-09-require-post-publish-confirmation/proposal.md`: la regla de consentimiento de publicación y por qué se creó.
-- `openspec/changes/archive/2026-09-25-add-ollama-local-guide-post/tasks.md#L130`: la pregunta y la respuesta literales de un consentimiento real.
-- `openspec/changes/archive/2026-09-25-update-footer-ai-disclosure/`: un change que dejó por escrito una decisión aplazada, que es el origen de esta página.
-
-**Alternativa descartada:** enlazar a `main`. Es más sencillo, pero un archivado o una reorganización rompería los enlaces (Q07).
+El primer borrador incluía una sección "Compruébalo en el repositorio", con tres enlaces al repositorio público fijados al SHA `8e3de004f9dd5d4441c7193ba82c0c360f050c3e`, y un bloque "Herramientas". Tras aprobar la versión con el esquema de arquitectura, el autor pidió eliminar ambas secciones. La página queda centrada en el esquema y en el reparto por fases. Las herramientas siguen visibles dentro del esquema, y el repositorio público sigue existiendo aunque la página no enlace a él.
 
 ### D5. Enlace en el footer
 
 En `Footer.astro`, el fragmento "revisado y validado por mí" pasa a ser un `<a href={`${import.meta.env.BASE_URL}como-se-hace`}>`. El texto visible no cambia y "IA" sigue resaltada. El enlace hereda el estilo de los enlaces de `.footer-copy`, como los de "Pablo Melero Alonso" y "Astro", y se abre en la misma pestaña porque es una página interna.
 
-### D6. Herramientas sin modelos, y Codex según declara el autor
+### D6. Herramientas sin modelos en el esquema, y Codex según declara el autor
 
 La página nombra herramientas, no modelos. El historial de Git ya muestra varios modelos en pocas semanas (Sonnet 5, Opus 5 y Opus 5.5), así que nombrarlos haría que la página se quedara desactualizada muy rápido.
 
-Claude Code deja rastro verificable en el repositorio (`.claude/` y los trailers `Co-Authored-By`). Codex no deja rastro y figura porque el autor declara que lo usa. Por eso la página no ofrece evidencia de repositorio para las herramientas, solo para el flujo.
+Claude Code deja rastro verificable en el repositorio (`.claude/` y los trailers `Co-Authored-By`). Codex no deja rastro y figura porque el autor declara que lo usa. La página no presenta las herramientas del esquema como evidencia.
 
 ### D7. Aprobación del texto por el autor
 
@@ -108,10 +99,9 @@ El autor aclaró que "más visual" significaba sobre todo un esquema de arquitec
 
 ## Risks / Trade-offs
 
-- [La página se desactualiza si el flujo cambia, por ejemplo con nuevas fases o herramientas] → Describe las fases de forma genérica y nombra herramientas, no versiones. Los enlaces fijados siguen siendo válidos aunque ya no reflejen el estado actual.
-- [Codex no es verificable en el repositorio] → La página no presenta la lista de herramientas como evidencia (D6).
+- [La página se desactualiza si el flujo cambia, por ejemplo con nuevas fases o herramientas] → Describe las fases de forma genérica y nombra herramientas, no versiones.
+- [Codex no es verificable en el repositorio] → La página no presenta las herramientas del esquema como evidencia (D6).
 - [El enlace del footer se distingue del texto que lo rodea solo por el color] → Hereda `.footer-copy a` (`--color-accent`, 8.77:1 sobre el fondo, medido en `update-footer-ai-disclosure`), sin subrayado, igual que los enlaces actuales del footer. En `apply` se mide el contraste entre `--color-accent` y `--color-text-muted`. Si no llega a 3:1 (WCAG 1.4.1), se registra como patrón previo de los enlaces del footer, igual que el contraste de `--color-text-muted`, y no se corrige en este change.
-- [Los anclajes de línea apuntan a una línea equivocada] → Se abren y comprueban todos en `apply`, contra el SHA elegido.
 
 ## Migration Plan
 
