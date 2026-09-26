@@ -55,7 +55,6 @@ El esquema MUST tener un nombre accesible y una descripción en texto de sus com
 La página SHALL incluir, después de la descripción del flujo por fases, una infografía que muestre cómo se genera un artículo del blog con OpenSpec en cuatro etapas, en este orden: idea y debate (skill `blog-post`), propuesta (`/opsx:propose`), redacción y verificación (`/opsx:apply`) y publicación (`/opsx:archive`). Para cada etapa MUST indicar la herramienta o el comando, qué hace la IA, qué decide el autor y qué resultado produce. La infografía MUST incluir también las reglas que se aplican a todos los artículos:
 - ningún dato sin una fuente comprobable;
 - la tesis se reta antes de escribirse;
-- los comandos se escriben para una terminal Linux y se prueban;
 - sin consentimiento explícito del autor no se publica.
 
 Su texto MUST estar en el HTML servido y MUST NOT incluir cifras que no estén respaldadas por el repositorio.
@@ -66,7 +65,7 @@ Su texto MUST estar en el HTML servido y MUST NOT incluir cifras que no estén r
 
 #### Scenario: Reglas editoriales
 - **WHEN** un visitante lee la sección del caso de uso
-- **THEN** encuentra las cuatro reglas que se aplican a todos los artículos
+- **THEN** encuentra las tres reglas que se aplican a todos los artículos
 
 #### Scenario: Infografía en móvil
 - **WHEN** un visitante carga `/como-se-hace` con un ancho de 360px

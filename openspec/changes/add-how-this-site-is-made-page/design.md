@@ -106,7 +106,7 @@ El autor pidió una infografía de cómo se apoya en OpenSpec para generar los a
 - `/opsx:apply` (redacción del `.mdx`, contraste con fuentes, comandos probados, ajustes que pide el autor);
 - `/opsx:archive` (consentimiento literal registrado; sin él, `draft: true`).
 
-Las reglas editoriales resumen las de `openspec/config.yaml`: no inventar datos, terminal Linux y Q09.
+Las reglas editoriales resumen las de `openspec/config.yaml`: no inventar datos, tesis retada y Q09. La regla de la terminal Linux se retiró de la infografía a petición del autor.
 
 - **HTML y CSS con iconos SVG de trazo en línea** (`aria-hidden`), no un SVG único, para que el texto sea real y se adapte al ancho. En escritorio (1024px o más), cuatro estaciones en horizontal unidas por una línea con degradado del turquesa de la IA al amarillo del autor. Por debajo, una línea de tiempo vertical.
 - Cada estación repite el código de color de los carriles (La IA en turquesa, Yo en amarillo) y cierra con una pastilla "Sale" con el resultado.
