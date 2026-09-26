@@ -12,6 +12,7 @@ interface Post {
     category: string;
     tags: string[];
     image?: string;
+    series?: unknown;
   };
 }
 
@@ -50,6 +51,7 @@ const { posts } = Astro.props;
             slug={post.id}
             image={post.data.image}
             readingTimeMinutes={readingTime(post.body)}
+            inSeries={!!post.data.series}
           />
         </div>
       ))}

@@ -110,6 +110,7 @@ const [featured, ...rest] = posts;
                   featured={true}
                   image={featured.data.image}
                   readingTimeMinutes={readingTime(featured.body)}
+                  inSeries={!!featured.data.series}
                 />
               )}
               {rest.map((post) => (
@@ -122,6 +123,7 @@ const [featured, ...rest] = posts;
                   slug={post.id}
                   image={post.data.image}
                   readingTimeMinutes={readingTime(post.body)}
+                  inSeries={!!post.data.series}
                 />
               ))}
             </div>
