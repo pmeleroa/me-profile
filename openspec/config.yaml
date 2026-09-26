@@ -151,19 +151,15 @@ rules:
       placeholder de marca, justificar frente a mantenerlo como fallback
       para fuentes de datos ajenas a la colección `blog` (p.ej. datos de
       ejemplo) que sigan sin imagen."
-    - "Trabajo futuro pendiente (blog): visualizar las series de posts en el
-      blog, en un change propio (`add-blog-series`), no dentro de un change de
-      contenido, porque toca el schema de src/content.config.ts,
-      src/pages/blog/[slug].astro y specs/blog/spec.md. Plantearlo cuando se
-      prepare la segunda parte de una serie, no antes. Punto de partida
-      debatido, sin decidir: (A1) etiqueta 'Serie: X · Parte N' en la cabecera
-      del artículo; (A2) bloque de navegación de la serie (índice de partes y
-      anterior/siguiente) antes de autor y relacionados, visible solo con 2 o
-      más partes publicadas, para no listar partes que aún no existen. Badge
-      en tarjetas, página /blog/series/<id> y filtro en el listado, para más
-      adelante. La propuesta debe decidir: (1) campo en el frontmatter frente a
-      colección de series; (2) cómo evitar que 'Artículos relacionados' (por
-      tags) duplique las partes que ya muestra A2."
+    - "Trabajo futuro pendiente (blog): A1 (antetítulo «📚 SERIE · Nombre · Parte N»
+      en la cabecera del artículo) y el modelo de datos (colección `series`,
+      campo `series: {id, part}` en blog) ya están implementados en el change
+      `add-blog-series-label`. A2 (bloque de navegación de la serie: índice de
+      partes y anterior/siguiente, visible solo con 2 o más partes publicadas,
+      para no listar partes que aún no existen) pendiente en change propio
+      `add-blog-series-nav`, que también excluirá las partes de la serie de
+      «Artículos relacionados» (por tags). Badge en tarjetas, página
+      /blog/series/<id> y filtro en el listado, para más adelante."
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
       asistente de código local con Ollama, cuyo post 1 es
       ollama-primeros-pasos-asistente-de-codigo-local.mdx. Su lista final 'Lo
@@ -206,9 +202,12 @@ rules:
       del post de elección de modelo, que da por hecho usar local."
     - "Trabajo futuro pendiente (sitio): el token --color-text-muted
       (#6b6b90) sobre --color-bg (#08080f) da 3.93:1 de contraste, por
-      debajo del 4.5:1 de WCAG 2.2 AA (Q03) para texto normal. Se usa en 16
+      debajo del 4.5:1 de WCAG 2.2 AA (Q03) para texto normal. Se usa en 17
       reglas de src/styles/global.css (navegación, hero, descripciones,
-      contacto, footer, metadatos de artículo). Detectado en
+      contacto, footer, metadatos de artículo) y en otras 53 de 12
+      componentes y páginas, 70 en total (`grep -rn
+      "var(--color-text-muted)" src`, recuento de add-blog-series-label,
+      que retiró el uso de `.article-updated` en [slug].astro). Detectado en
       add-blog-social-share y confirmado en update-footer-ai-disclosure,
       que lo registraron como preexistente. Corregirlo en un change propio
       que ajuste el token a nivel de sitio, no por componente, y verifique
