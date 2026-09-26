@@ -46,7 +46,7 @@ Las fases se definen como un array local en el frontmatter de la página, igual 
    - **Acuerdo** (propose): la IA redacta la propuesta, el diseño, las specs y las tareas a partir de lo debatido. El autor revisa el alcance antes de construir.
    - **Construcción** (apply): la IA escribe el código o el texto y lo verifica con build, validación y checks de calidad. El autor revisa el resultado.
    - **Publicación** (archive y PR): la IA pide el consentimiento para publicar y la respuesta literal queda registrada. El autor hace siempre el merge.
-4. **Cierre:** si alguien encuentra un error, puede avisar por `/contacto`.
+4. **Cierre:** invitación a comentar o compartir otro punto de vista por `/contacto`. En línea con la introducción, el contenido se presenta como opiniones y comentarios personales, no como algo que se corrige a petición.
 
 El texto definitivo se redacta en `apply`, debatiéndolo con el autor como cualquier otro contenido público (ver D7).
 

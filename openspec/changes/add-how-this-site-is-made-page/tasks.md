@@ -77,6 +77,9 @@
 - [x] 5.13 Reescribir el segundo párrafo de la introducción, a petición del owner: quitar "y puedo equivocarme" y centrar el mensaje en que el contenido son opiniones y comentarios personales. Texto nuevo: "Revisado y validado por mí" significa exactamente eso: lo reviso yo, sin revisión de terceros ni ningún sello externo. Lo que publico aquí son opiniones y comentarios personales.
   **Verificación:** `npm run build` → `65 page(s) built`. El texto normalizado de `<main>` en `dist/como-se-hace/index.html` contiene exactamente el párrafo nuevo. `equivocar` no aparece. Sin términos prohibidos ni nombres de modelos. Se mantiene el requisito "Afirmaciones verificables": la revisión la hace el autor, no un tercero.
 
+- [x] 5.14 Reformular el cierre de la página, a petición del owner, en la línea de 5.13: de "¿Has encontrado un error? Escríbeme y lo corrijo." a "¿Quieres comentar algo o compartir otro punto de vista? Escríbeme.", con "Escríbeme" enlazado a `/contacto`. D3 se actualiza en consecuencia
+  **Verificación:** `npm run build` → `65 page(s) built`. La sección `.how-closing` de `dist/como-se-hace/index.html` contiene el texto nuevo con un único enlace `href="/contacto"`, y `dist/contacto/index.html` existe. `<main>` ya no contiene "error".
+
 ## 6. Aprobación y cierre
 
 - [x] 6.1 Pedir al owner la aprobación del texto final de `/como-se-hace` (D7) y registrar aquí la pregunta y la respuesta literales. Sin aprobación, el change no se archiva
