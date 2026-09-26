@@ -68,6 +68,9 @@
 - [x] 5.10 Retirar de la infografía la regla "Los comandos se escriben para una terminal Linux y se prueban.", a petición del owner, y actualizar la spec (tres reglas) y D11
   **Verificación:** se elimina la regla de `articleRules` y el icono `terminal`, que ya no se usa. La rejilla de reglas pasa de 4 a 3 columnas en escritorio. `npm run build` → `65 page(s) built`. En `dist/como-se-hace/index.html` la lista de reglas contiene exactamente "Ningún dato, cita ni cifra sin una fuente comprobable.", "La tesis se reta con su mejor contraargumento antes de escribirse." y "Sin mi consentimiento explícito, no se publica.", y `<main>` ya no contiene "terminal Linux". Sin scroll horizontal a 360/768/1440. La captura `info-1440.png` muestra las 3 reglas en 3 columnas.
 
+- [x] 5.11 Centrar la banda de reglas de la infografía, a petición del owner ("que queden las reglas centradas"): título centrado y cada regla con el icono encima del texto, centrada. Desde 768px, rejilla de 3 columnas para que ninguna regla quede sola
+  **Verificación:** `npm run build` → `65 page(s) built`. Playwright mide el centro de la caja, el del título y el de cada regla. A 360px: caja 180, título 180 y las 3 reglas en 180, apiladas. A 768px: caja 384 y título 384, y las 3 reglas en una fila con centros en 155, 384 y 613. A 1440px: caja 720 y título 720, y las reglas en una fila con centros en 381, 720 y 1059. Sin scroll horizontal. Capturas `rules-1440.png` y `rules-360.png` en el scratchpad. En una primera edición la media query de 768px quedó vacía (reglas apiladas a 768px); se detectó con esta medición y se corrigió antes del commit.
+
 ## 6. Aprobación y cierre
 
 - [x] 6.1 Pedir al owner la aprobación del texto final de `/como-se-hace` (D7) y registrar aquí la pregunta y la respuesta literales. Sin aprobación, el change no se archiva
