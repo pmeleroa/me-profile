@@ -64,7 +64,7 @@ const tools = [
   <Header />
   <main class="how">
     <section class="how-hero">
-      <div class="container how-narrow">
+      <div class="container">
         <span class="section-label">Transparencia</span>
         <h1 class="how-title">Cómo se hace este sitio</h1>
         <p class="how-lead">
@@ -90,7 +90,7 @@ const tools = [
 
         <figure class="arch">
           <!-- Variante horizontal (>= 1024px) -->
-          <svg class="arch-svg arch-svg--wide" viewBox="0 0 990 540" role="img" aria-labelledby="arch-wide-title arch-wide-desc">
+          <svg class="arch-svg arch-svg--wide" viewBox="29 0 933 530" role="img" aria-labelledby="arch-wide-title arch-wide-desc">
             <title id="arch-wide-title">Esquema de arquitectura de este sitio</title>
             <desc id="arch-wide-desc">El autor debate con los agentes de IA; los agentes generan artefactos, código y texto en el repositorio público; el autor revisa, aprueba e integra; la integración en main lanza el build en GitHub Actions, que despliega en GitHub Pages el HTML estático que recibe el visitante.</desc>
             <defs>
@@ -165,7 +165,7 @@ const tools = [
           </svg>
 
           <!-- Variante vertical (< 1024px) -->
-          <svg class="arch-svg arch-svg--narrow" viewBox="0 0 360 880" role="img" aria-labelledby="arch-narrow-title arch-narrow-desc">
+          <svg class="arch-svg arch-svg--narrow" viewBox="4 0 346 874" role="img" aria-labelledby="arch-narrow-title arch-narrow-desc">
             <title id="arch-narrow-title">Esquema de arquitectura de este sitio</title>
             <desc id="arch-narrow-desc">El autor debate con los agentes de IA; los agentes generan artefactos, código y texto en el repositorio público; el autor revisa, aprueba e integra; la integración en main lanza el build en GitHub Actions, que despliega en GitHub Pages el HTML estático que recibe el visitante.</desc>
             <defs>
@@ -283,7 +283,7 @@ const tools = [
     </section>
 
     <section class="how-section" aria-labelledby="how-evidence">
-      <div class="container how-narrow">
+      <div class="container">
         <h2 id="how-evidence" class="how-heading">Compruébalo en el repositorio</h2>
         <p class="how-text">
           El repositorio del sitio es público. Estos ejemplos apuntan a una versión fija, para que sigan
@@ -301,7 +301,7 @@ const tools = [
     </section>
 
     <section class="how-section" aria-labelledby="how-tools">
-      <div class="container how-narrow">
+      <div class="container">
         <h2 id="how-tools" class="how-heading">Herramientas</h2>
         <dl class="how-tools">
           {tools.map((tool) => (
@@ -315,7 +315,7 @@ const tools = [
     </section>
 
     <section class="how-section how-closing">
-      <div class="container how-narrow">
+      <div class="container">
         <p class="how-text">
           ¿Has encontrado un error? <a href={`${import.meta.env.BASE_URL}contacto`}>Escríbeme</a> y lo corrijo.
         </p>
@@ -326,7 +326,10 @@ const tools = [
 </Layout>
 
 <style>
-  .how-narrow {
+  /* Ancho de lectura para los párrafos; las secciones usan el ancho del .container como el resto del sitio */
+  .how-narrow,
+  .how-lead,
+  .how-text {
     max-width: 760px;
   }
 
