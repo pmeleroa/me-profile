@@ -92,10 +92,27 @@ El autor aclaró que "más visual" significaba sobre todo un esquema de arquitec
 
 - **SVG inline** con clases propias coloreadas con los tokens del sitio: `--color-logo-yellow` para el autor, `--color-accent` para los agentes y las flechas, `--color-surface` y `--color-border` para las cajas. No es una imagen externa, así que no pasa por la pipeline de imágenes y no añade peticiones.
 - **Dos variantes del mismo esquema:** una horizontal para 1024px o más, igual que los carriles, y una vertical por debajo (a 768px la horizontal dejaría las etiquetas en unos 9-10px efectivos). Se alternan con `display: none` por media query, y la oculta tampoco llega al árbol de accesibilidad. Los `id` de los marcadores de flecha son distintos en cada variante.
-- **Accesibilidad:** cada SVG tiene `role="img"` con `<title>` y `<desc>`, y debajo va un `<details>` nativo ("El esquema en texto") con la lista de componentes y relaciones, que funciona sin JavaScript.
+- **Accesibilidad:** cada SVG tiene `role="img"` con `<title>` y un `<desc>` completo con todos los componentes y relaciones. Hubo un `<details>` visible ("El esquema en texto") que se retiró a petición del autor; la descripción del SVG pasó a incluir todo su contenido.
 - **OpenSpec** aparece como una nota discontinua con las cuatro fases numeradas, que enlaza visualmente con la sección del flujo.
 
 **Alternativa descartada:** cajas en HTML y CSS. Se adaptan mejor al ancho, pero las flechas entre componentes no contiguos (autor → repositorio, repositorio → Actions) exigen posicionamiento frágil.
+
+### D11. Infografía del caso de uso: cómo nace un artículo
+
+El autor pidió una infografía de cómo se apoya en OpenSpec para generar los artículos, porque el resto de la página se centra en el desarrollo. El contenido sale del flujo real del repositorio:
+
+- la skill `.claude/skills/blog-post` (modo entrevistador: tipo de post, tesis retada con contraargumento, datos verificados, sin escribir ficheros);
+- `/opsx:propose` (change con la tesis y la estructura en el diseño);
+- `/opsx:apply` (redacción del `.mdx`, contraste con fuentes, comandos probados, ajustes que pide el autor);
+- `/opsx:archive` (consentimiento literal registrado; sin él, `draft: true`).
+
+Las reglas editoriales resumen las de `openspec/config.yaml`: no inventar datos, terminal Linux y Q09.
+
+- **HTML y CSS con iconos SVG de trazo en línea** (`aria-hidden`), no un SVG único, para que el texto sea real y se adapte al ancho. En escritorio (1024px o más), cuatro estaciones en horizontal unidas por una línea con degradado del turquesa de la IA al amarillo del autor. Por debajo, una línea de tiempo vertical.
+- Cada estación repite el código de color de los carriles (La IA en turquesa, Yo en amarillo) y cierra con una pastilla "Sale" con el resultado.
+- **Sin cifras.** El número de ajustes pedidos por el autor varía mucho entre changes (de 0 a 9 menciones "a petición del autor"), así que no se generaliza.
+
+**Alternativa descartada:** un SVG como el esquema de arquitectura. Obliga a mantener dos variantes y el texto no se adapta.
 
 ## Risks / Trade-offs
 

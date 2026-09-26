@@ -7,6 +7,7 @@ El footer afirma "Contenido creado con IA, revisado y validado por mí.", pero n
 - Nueva página estática en `/como-se-hace`, titulada "Cómo se hace este sitio". Explica cómo se genera el contenido de este sitio con IA y siempre consensuado con el autor.
 - El eje de la página es el flujo OpenSpec en cuatro fases (debate, acuerdo, construcción y publicación). Cada fase indica qué hace la IA y qué decide el autor.
 - Un esquema de arquitectura de la solución abre la página y muestra quién interviene (autor, agentes de IA, repositorio, CI y hosting) y cómo llega el contenido al visitante. Nombra herramientas, no modelos.
+- Una infografía de caso de uso muestra cómo nace un artículo del blog con OpenSpec: idea y debate, propuesta, redacción y verificación, y publicación, con las reglas editoriales que se aplican a todos los artículos. Complementa el resto de la página, que se centra en el desarrollo.
 - En el footer, la frase "revisado y validado por mí" pasa a enlazar a `/como-se-hace`. El resto del texto del footer no cambia.
 - La página no aparece en la navegación de la cabecera. Solo se llega a ella desde el footer.
 - Al archivar, se elimina de `openspec/config.yaml` (`rules.design`) la entrada de trabajo futuro que originó este change.
@@ -21,7 +22,7 @@ Fuera de alcance:
 ## Capabilities
 
 ### New Capabilities
-- `how-site-is-made`: la página `/como-se-hace`. Cubre su ruta, su contenido esencial (el esquema de arquitectura y las fases del flujo con el reparto entre IA y autor) y los límites de lo que puede afirmar.
+- `how-site-is-made`: la página `/como-se-hace`. Cubre su ruta, su contenido esencial (el esquema de arquitectura, las fases del flujo con el reparto entre IA y autor y el caso de uso de un artículo) y los límites de lo que puede afirmar.
 
 ### Modified Capabilities
 - `site-footer`: la frase "revisado y validado por mí" pasa a ser un enlace a `/como-se-hace`. El texto visible del footer no cambia.

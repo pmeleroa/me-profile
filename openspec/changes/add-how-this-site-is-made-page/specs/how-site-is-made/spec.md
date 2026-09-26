@@ -37,7 +37,7 @@ La página SHALL incluir, antes de la descripción del flujo por fases, un esque
 - la integración en la rama principal lanza el build y el despliegue;
 - el visitante recibe el HTML estático.
 
-El esquema MUST tener una alternativa en texto presente en el HTML servido y MUST leerse a 360px de ancho sin scroll horizontal.
+El esquema MUST tener un nombre accesible y una descripción en texto de sus componentes y relaciones (por ejemplo, `<title>` y `<desc>` del SVG) presentes en el HTML servido, y MUST leerse a 360px de ancho sin scroll horizontal.
 
 #### Scenario: Componentes del esquema
 - **WHEN** un visitante carga `/como-se-hace`
@@ -45,11 +45,32 @@ El esquema MUST tener una alternativa en texto presente en el HTML servido y MUS
 
 #### Scenario: Alternativa en texto
 - **WHEN** se inspecciona el HTML generado de `/como-se-hace`
-- **THEN** el esquema tiene un nombre accesible y existe en el HTML una descripción en texto de sus componentes y relaciones, sin depender de JavaScript
+- **THEN** el esquema expone un nombre accesible y una descripción que menciona al autor, Claude Code, Codex, `openspec/`, `src/`, GitHub Actions, GitHub Pages, el visitante y OpenSpec, sin depender de JavaScript
 
 #### Scenario: Esquema en móvil
 - **WHEN** un visitante carga `/como-se-hace` con un ancho de 360px
 - **THEN** el esquema se muestra en una disposición vertical legible y la página no tiene scroll horizontal
+
+### Requirement: Caso de uso: cómo nace un artículo del blog
+La página SHALL incluir, después de la descripción del flujo por fases, una infografía que muestre cómo se genera un artículo del blog con OpenSpec en cuatro etapas, en este orden: idea y debate (skill `blog-post`), propuesta (`/opsx:propose`), redacción y verificación (`/opsx:apply`) y publicación (`/opsx:archive`). Para cada etapa MUST indicar la herramienta o el comando, qué hace la IA, qué decide el autor y qué resultado produce. La infografía MUST incluir también las reglas que se aplican a todos los artículos:
+- ningún dato sin una fuente comprobable;
+- la tesis se reta antes de escribirse;
+- los comandos se escriben para una terminal Linux y se prueban;
+- sin consentimiento explícito del autor no se publica.
+
+Su texto MUST estar en el HTML servido y MUST NOT incluir cifras que no estén respaldadas por el repositorio.
+
+#### Scenario: Etapas del artículo
+- **WHEN** un visitante lee la sección del caso de uso
+- **THEN** encuentra las cuatro etapas en orden, cada una con su comando, lo que hace la IA, lo que decide el autor y lo que produce
+
+#### Scenario: Reglas editoriales
+- **WHEN** un visitante lee la sección del caso de uso
+- **THEN** encuentra las cuatro reglas que se aplican a todos los artículos
+
+#### Scenario: Infografía en móvil
+- **WHEN** un visitante carga `/como-se-hace` con un ancho de 360px
+- **THEN** las etapas se muestran en vertical, legibles, y la página no tiene scroll horizontal
 
 ### Requirement: Afirmaciones verificables
 La página MUST NOT usar "certificado", "certificación" ni "garantizado", ni ninguna formulación que sugiera un proceso formal de certificación o la validación de un tercero. MUST NOT incluir métricas de productividad ni cifras que no estén respaldadas por el repositorio. MUST dejar claro que la revisión la hace el autor y no un tercero. Cuando nombre herramientas de IA, MUST nombrar la herramienta (Claude Code, Codex) y MUST NOT nombrar modelos concretos ni sus versiones.
@@ -67,4 +88,4 @@ El contenido completo de la página SHALL estar presente en el HTML servido, sin
 
 #### Scenario: Página con JavaScript desactivado
 - **WHEN** un visitante carga `/como-se-hace` con JavaScript desactivado
-- **THEN** ve la introducción, el esquema de arquitectura con su alternativa en texto y las cuatro fases
+- **THEN** ve la introducción, el esquema de arquitectura, las cuatro fases y la infografía del caso de uso de un artículo
