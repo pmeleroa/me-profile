@@ -74,6 +74,9 @@
 - [x] 5.12 Alinear a la izquierda el encabezado de la banda de reglas, a petición del owner ("el texto de la cabecera de las reglas alineado a la izquierda"). Las reglas siguen centradas
   **Verificación:** `npm run build` → `65 page(s) built`. Playwright: el título empieza en el borde de contenido de la banda (360 → 48/49 px, 768 → 48/49 px, 1440 → 218/219 px), y las reglas siguen centradas (360 → 180, 180 y 180; 768 → 155, 384 y 613; 1440 → 381, 720 y 1059). Sin scroll horizontal. Captura `rules-left-1440.png` en el scratchpad.
 
+- [x] 5.13 Reescribir el segundo párrafo de la introducción, a petición del owner: quitar "y puedo equivocarme" y centrar el mensaje en que el contenido son opiniones y comentarios personales. Texto nuevo: "Revisado y validado por mí" significa exactamente eso: lo reviso yo, sin revisión de terceros ni ningún sello externo. Lo que publico aquí son opiniones y comentarios personales.
+  **Verificación:** `npm run build` → `65 page(s) built`. El texto normalizado de `<main>` en `dist/como-se-hace/index.html` contiene exactamente el párrafo nuevo. `equivocar` no aparece. Sin términos prohibidos ni nombres de modelos. Se mantiene el requisito "Afirmaciones verificables": la revisión la hace el autor, no un tercero.
+
 ## 6. Aprobación y cierre
 
 - [x] 6.1 Pedir al owner la aprobación del texto final de `/como-se-hace` (D7) y registrar aquí la pregunta y la respuesta literales. Sin aprobación, el change no se archiva
