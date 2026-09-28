@@ -1,16 +1,20 @@
 ---
 title: "Ollama: primeros pasos hacia un asistente de código local"
-description: "Primera guía de una serie sobre entornos de IA locales: instalar Ollama desde una terminal Linux (también en macOS y en Windows con WSL2), arrancar un modelo de código y hablarle desde la terminal y desde su API local. El harness mínimo sobre el que construir un asistente de código a medida."
+description: "Primera guía de la serie Asistente de código local: instalar Ollama desde una terminal Linux (también en macOS y en Windows con WSL2), arrancar un modelo de código y hablarle desde la terminal y desde su API local. El harness mínimo sobre el que construir un asistente de código a medida."
 publishDate: 2026-09-25
+updatedDate: 2026-09-26
 category: "Guía"
 tags: ["ollama", "llm-local", "api", "herramientas-dev"]
 image: "/images/blog/ollama-primeros-pasos-asistente-de-codigo-local.webp"
 draft: false
+series:
+  id: asistente-codigo-local
+  part: 1
 ---
 
 No todos los casos de uso de IA necesitan consumir un LLM en la nube. [Ollama](https://ollama.com) permite explorar una alternativa: ejecutar modelos directamente en local.
 
-Esta guía es la primera de una serie sobre entornos de IA locales. El objetivo de la serie es construir, pieza a pieza, un asistente de código a medida que funcione en local. Aquí empezamos por la base: un **harness plano**. Es decir, un modelo ejecutándose en tu máquina y la forma más simple de hablarle, primero desde la terminal y después desde su API HTTP local. Sin historial, sin contexto propio, sin herramientas. Todo eso llegará en los siguientes posts.
+Esta guía es la primera de la serie *Asistente de código local*, cuyo objetivo es construir, pieza a pieza, un asistente de código a medida que funcione en local. Aquí empezamos por la base: un **harness plano**. Es decir, un modelo ejecutándose en tu máquina y la forma más simple de hablarle, primero desde la terminal y después desde su API HTTP local. Sin historial, sin contexto propio, sin herramientas. Todo eso llegará en los siguientes posts.
 
 ## Instalar Ollama
 

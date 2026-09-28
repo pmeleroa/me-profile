@@ -11,6 +11,7 @@ interface Props {
   featured?: boolean;
   image?: string;
   readingTimeMinutes?: number;
+  inSeries?: boolean;
 }
 
 const {
@@ -22,6 +23,7 @@ const {
   featured = false,
   image,
   readingTimeMinutes,
+  inSeries = false,
 } = Astro.props;
 
 const color = categoryColors[category];
@@ -49,6 +51,11 @@ const isoDate = publishDate.toISOString();
           class="blog-card-media-logo"
           loading="lazy"
         />
+      )}
+      {inSeries && (
+        <span class="blog-card-series">
+          <span aria-hidden="true">📚</span> Serie
+        </span>
       )}
     </div>
     <div class="blog-card-inner">
@@ -165,6 +172,35 @@ const isoDate = publishDate.toISOString();
 
   .blog-card:hover .blog-card-image {
     transform: scale(1.04);
+  }
+
+  /* Badge de serie sobre la imagen: fondo opaco (mezcla de --color-bg con el
+     acento) para que el contraste no dependa de la imagen que hay debajo. */
+  .blog-card-series {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    padding: 0.3rem 0.55rem;
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-bg) 82%, var(--color-accent));
+    border: 1px solid var(--color-border-2);
+    border-radius: var(--r-sm);
+    white-space: nowrap;
+  }
+
+  .blog-card-series span[aria-hidden="true"] {
+    font-size: 0.8rem;
+    letter-spacing: 0;
+    line-height: 1;
   }
 
   .blog-card-media--placeholder {

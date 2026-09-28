@@ -1,5 +1,12 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection, z, reference } from 'astro:content';
 import { glob } from 'astro/loaders';
+
+const seriesCollection = defineCollection({
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/series' }),
+  schema: z.object({
+    title: z.string(),
+  }),
+});
 
 const blogCollection = defineCollection({
   loader: glob({ pattern: '**/*.mdx', base: './src/content/blog' }),
@@ -15,6 +22,12 @@ const blogCollection = defineCollection({
     ctaText: z.string().optional(),
     ctaHref: z.string().optional(),
     draft: z.boolean().default(false),
+    series: z
+      .object({
+        id: reference('series'),
+        part: z.number().int().positive(),
+      })
+      .optional(),
     demo: z
       .object({
         slug: z.string(),
@@ -25,6 +38,7 @@ const blogCollection = defineCollection({
 });
 
 export const collections = {
+  series: seriesCollection,
   blog: blogCollection,
 };
   
