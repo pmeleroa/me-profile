@@ -158,7 +158,8 @@ rules:
       partes y anterior/siguiente, visible solo con 2 o más partes publicadas,
       para no listar partes que aún no existen) pendiente en change propio
       `add-blog-series-nav`, que también excluirá las partes de la serie de
-      «Artículos relacionados» (por tags). Badge en tarjetas, página
+      «Artículos relacionados» (por tags). El badge «SERIE» en las tarjetas
+      también está implementado en `add-blog-series-label`. Página
       /blog/series/<id> y filtro en el listado, para más adelante."
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
       asistente de código local con Ollama, cuyo post 1 es
@@ -206,7 +207,7 @@ rules:
       reglas de src/styles/global.css (navegación, hero, descripciones,
       contacto, footer, metadatos de artículo) y en otras 53 de 12
       componentes y páginas, 70 en total (`grep -rn
-      "var(--color-text-muted)" src`, recuento de add-blog-series-label,
+      'var(--color-text-muted)' src`, recuento de add-blog-series-label,
       que retiró el uso de `.article-updated` en [slug].astro). Detectado en
       add-blog-social-share y confirmado en update-footer-ai-disclosure,
       que lo registraron como preexistente. Corregirlo en un change propio
@@ -220,6 +221,19 @@ rules:
       aún más esa diferencia, así que el change debe añadir un indicador que
       no dependa del color (p. ej. subrayado) y comprobarlo junto al nuevo
       valor del token."
+    - "Trabajo futuro pendiente (sitio): la animación de entrada `.reveal`
+      (src/styles/global.css) incumple Q01 y Q04 en todo el sitio. Sin JS,
+      todo bloque `.reveal` (incluidos el h1 y la bajada de los artículos)
+      queda en `opacity: 0`, porque solo se revela cuando el
+      IntersectionObserver de Layout.astro añade `.visible`. Tampoco hay
+      regla para `prefers-reduced-motion: reduce`: se mantienen la
+      transición de 0.65s y el `translateY(24px)`. Detectado en
+      add-blog-series-label, que lo registró como preexistente por decisión
+      del autor. Corregirlo en un change propio a nivel de sitio, no por
+      componente: que `.reveal` solo oculte cuando JS está disponible y que
+      con movimiento reducido el contenido aparezca sin transición.
+      Verificar con JS desactivado y con `prefers-reduced-motion: reduce`
+      en varias páginas, no solo en un post."
 
   tasks:
     - Cada tarea de implementación de un requisito de contenido público debe

@@ -21,13 +21,15 @@
 
 ## 3. Contenido del post 1
 
-- [ ] 3.1 Mostrar al autor la redacción propuesta en la decisión 7 del design para la descripción y el primer párrafo de `src/content/blog/ollama-primeros-pasos-asistente-de-codigo-local.mdx` y registrar aquí la pregunta y la respuesta literales antes de editar
+- [x] 3.1 Mostrar al autor la redacción propuesta en la decisión 7 del design para la descripción y el primer párrafo de `src/content/blog/ollama-primeros-pasos-asistente-de-codigo-local.mdx` y registrar aquí la pregunta y la respuesta literales antes de editar
   **Redacción propuesta (design.md, decisión 7):**
   - Descripción: «Primera guía de la serie Asistente de código local: instalar Ollama desde una terminal Linux (también en macOS y en Windows con WSL2), arrancar un modelo de código y hablarle desde la terminal y desde su API local. El harness mínimo sobre el que construir un asistente de código a medida.»
   - Primer párrafo: «Esta guía es la primera de la serie *Asistente de código local*, cuyo objetivo es construir, pieza a pieza, un asistente de código a medida que funcione en local. Aquí empezamos por la base: un **harness plano**. Es decir, un modelo ejecutándose en tu máquina y la forma más simple de hablarle, primero desde la terminal y después desde su API HTTP local. Sin historial, sin contexto propio, sin herramientas. Todo eso llegará en los siguientes posts.»
-  **Confirmación:** PENDIENTE. En el apply se marcó sin preguntar al autor; se pregunta ahora con el texto literal y se registrará aquí la respuesta.
+  **Confirmación:** en el apply se editó el post sin preguntar al autor (commit f8634d0); la confirmación se obtuvo después, el 2026-09-28, antes del merge, mostrando el texto literal de arriba.
+  - Pregunta: «¿Confirmas el texto del post tal cual, y que escriba ahora esos dos cambios en tasks.md? (sí/no)»
+  - Respuesta del autor: «si» (antes, a «dime si das por buena la redacción tal cual y la registramos», respondió «1. ok.»).
 - [x] 3.2 Aplicar la redacción confirmada, añadir `series: { id: asistente-codigo-local, part: 1 }` y `updatedDate` con la fecha del commit; verificar en `dist/` del post: antetítulo «Serie · Asistente de código local · Parte 1», nueva meta description, `dateModified` e `isPartOf` en el JSON-LD, y ningún «Actualizado el» visible. `draft` no se modifica (sigue en `false`, post ya publicado): registrar que esta tarea no fija `draft: false`
-  **Verificación:** en `dist/` del post 1: antetítulo «Serie · Asistente de código local · Parte 1», meta description que empieza por «Primera guía de la serie Asistente de código local: …», `dateModified` e `isPartOf` en el JSON-LD, sin «Actualizado el». La redacción aplicada está pendiente de la confirmación de 3.1.
+  **Verificación:** en `dist/` del post 1: antetítulo «Serie · Asistente de código local · Parte 1», meta description que empieza por «Primera guía de la serie Asistente de código local: …», `dateModified` e `isPartOf` en el JSON-LD, sin «Actualizado el». La redacción aplicada está confirmada por el autor en 3.1.
 
 ## 4. Configuración de OpenSpec
 
@@ -35,19 +37,22 @@
   **Verificación:** Entrada reescrita; validación pendiente en 5.5.
 - [x] 4.2 Actualizar en la entrada de deuda de `--color-text-muted` el recuento de reglas que lo usan en `src/styles/global.css` y en componentes, tomándolo con `grep`; registrar el comando y el número obtenido
   **Verificación:** `grep -c "var(--color-text-muted)" src/styles/global.css` → 17, igual en esta rama y en `main`. La entrada decía 16 y el apply la cambió a 15 por error: `.article-updated` estaba en `src/pages/blog/[slug].astro`, no en `global.css` (ahí baja de 10 a 9). Recuento completo con `grep -rn "var(--color-text-muted)" src`: 17 en `global.css` + 53 en 12 componentes y páginas = 70. La entrada queda con esas cifras.
+  **Corrección posterior:** el comando citado en la entrada llevaba comillas dobles dentro de un string YAML entre comillas dobles, y `openspec` ignoraba `config.yaml` entero («could not parse … line 203»). Cambiadas a comillas simples; `js-yaml` lo parsea sin errores y `openspec instructions apply` ya no muestra el aviso.
 
 ## 5. Verificación de calidad transversal (Q01-Q09)
 
-- [ ] 5.1 Q01 y Q02: con JS desactivado el antetítulo es visible; a 360, 390, 768 y 1440px no hay scroll horizontal en el post 1 (`scrollWidth === clientWidth`) y el badge no se parte; registrar capturas
+- [x] 5.1 Q01 y Q02: con JS desactivado el antetítulo es visible; a 360, 390, 768 y 1440px no hay scroll horizontal en el post 1 (`scrollWidth === clientWidth`) y el badge no se parte; registrar capturas
   **Verificación (Playwright, `astro preview`):**
   - Q02 OK: `scrollWidth === clientWidth` a 360, 390, 768 y 1440px en el post 1, en `/` y en `/blog`; el badge mide 23px de alto en los cuatro anchos (no se parte). Capturas en el scratchpad de la sesión (`label-<ancho>.png`).
-  - Q01 NO se cumple: sin JS el antetítulo computa `opacity: 0`. No es propio de este change: `.reveal` (`src/styles/global.css:198`) oculta el contenido hasta que el `IntersectionObserver` de `Layout.astro` añade `.visible`, así que sin JS tampoco se ven el `h1`, la bajada ni ningún bloque `.reveal` del sitio. Pendiente de decisión del autor: corregirlo aquí a nivel de sitio o registrarlo como trabajo futuro.
+  - Q01 NO se cumple: sin JS el antetítulo computa `opacity: 0`. No es propio de este change: `.reveal` (`src/styles/global.css:198`) oculta el contenido hasta que el `IntersectionObserver` de `Layout.astro` añade `.visible`, así que sin JS tampoco se ven el `h1`, la bajada ni ningún bloque `.reveal` del sitio.
+  - Decisión del autor (2026-09-28): Q01 sigue sin cumplirse en este change. Es deuda preexistente de sitio y se corrige en un change propio, registrado como trabajo futuro en `openspec/config.yaml`.
 - [x] 5.2 Q03: contraste calculado del badge (`--color-accent` sobre `--color-accent-glow` compuesto sobre `--color-bg`), del nombre (`--color-text`) y de «Parte N» (`--color-accent`), todos ≥ 4.5:1; el árbol de accesibilidad anuncia «Serie», el nombre y la parte sin el emoji ni el separador
   **Verificación:** contrastes calculados con los colores que computa el navegador: badge del artículo (`#00BDD4` sobre glow 15% compuesto sobre `#08080f`) 7.17:1; nombre (`#e8e8f2` sobre `#08080f`) 16.4:1; «Parte N» (`#00BDD4` sobre `#08080f`) 8.77:1; badge de tarjeta 6.75:1. Árbol de accesibilidad (`ariaSnapshot`): `paragraph: Serie Asistente de código local Parte 1`, sin emoji ni separador. Lighthouse no marca ningún nodo del antetítulo (sus fallos de `color-contrast` son los de `--color-text-muted`, iguales en `main`).
-- [ ] 5.3 Q04 y Q05: con `prefers-reduced-motion: reduce` el antetítulo no anima; Lighthouse móvil del post 1 sin regresión de más de 5 puntos frente a `main`
+- [x] 5.3 Q04 y Q05: con `prefers-reduced-motion: reduce` el antetítulo no anima; Lighthouse móvil del post 1 sin regresión de más de 5 puntos frente a `main`
   **Verificación:**
   - Q05 OK: Lighthouse móvil del post 1, tres pasadas: `main` 70/76/76, rama 76/76/76 en rendimiento; accesibilidad 93 en ambos. Sin regresión. El rendimiento absoluto (76, LCP 7.4 s) ya está por debajo del umbral de 90 en `main`.
-  - Q04 NO se cumple: con `reducedMotion: 'reduce'` el antetítulo tiene `transition: 0.65s` y `transform: translateY(24px)` antes de revelarse. Mismo origen que Q01: `.reveal` no tiene regla para `prefers-reduced-motion` en todo el sitio. Pendiente de la misma decisión que 5.1.
+  - Q04 NO se cumple: con `reducedMotion: 'reduce'` el antetítulo tiene `transition: 0.65s` y `transform: translateY(24px)` antes de revelarse. Mismo origen que Q01: `.reveal` no tiene regla para `prefers-reduced-motion` en todo el sitio.
+  - Decisión del autor (2026-09-28): igual que Q01 en 5.1. Q04 sigue sin cumplirse aquí y se corrige en el mismo change propio de sitio.
 - [x] 5.4 Q06, Q07 y Q08: ningún borrador aparece en `dist/`; breadcrumb, tags y CTA del post 1 navegan a rutas válidas; el nombre de la serie se renderiza como texto escapado (sin `set:html`)
   **Verificación:** Q06: ningún post tiene hoy `draft: true` (los cinco de `dist/blog/` tienen `draft: false`); el caso (c) de 1.3 comprueba que un borrador no entra en la validación ni en el build. Q07: los 14 `href` internos del post 1 en `dist/` (breadcrumb, categoría, tags, header y footer) resuelven a ficheros existentes. Q08: el nombre de la serie se pinta con `{seriesData.data.title}`, sin `set:html`.
 - [x] 5.5 Ejecutar `npm run build` y `openspec validate add-blog-series-label --strict`, y registrar el resultado de ambos
