@@ -190,7 +190,19 @@ rules:
       segundo). No se hacen afirmaciones de rendimiento sin medición propia o
       una fuente citada. Cuando exista, valorar enlazarlo desde el post 1.
       Distinto del post sobre cuándo local no basta, que da por hecho usar
-      local."
+      local. Para medir con tareas propias puede reutilizar el pipeline del
+      post golden-sets-y-pipelines-de-evaluacion.mdx (repositorio
+      pmeleroa/lab-golden-set-eval: eval.py acepta --modelo), con un golden
+      set propio de tareas de código."
+    - "Trabajo futuro pendiente (blog): segunda parte independiente de
+      golden-sets-y-pipelines-de-evaluacion.mdx, 'quién evalúa al
+      evaluador'. Categoría propuesta: Guía. Usaría una tarea con salida
+      libre (por ejemplo, el borrador de respuesta a un ticket), un juez LLM
+      y un golden set propio del juez para medir su acuerdo con etiquetas
+      humanas, como hace ReviewBench. El autor lo considera un patrón
+      distinto al del primer post, que deja el juez fuera de alcance. No se
+      hacen afirmaciones de rendimiento sin medición propia o una fuente
+      citada."
     - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
       de guías sobre el asistente de código local, sobre cuándo un modelo
       local no basta y sí compensa la nube. Categoría propuesta: Opinión,
