@@ -58,7 +58,7 @@ import {
                     <img class="skill-icon" src={getSkillImageSrc(skill, import.meta.env.BASE_URL)} alt={skill.name} width="32" height="32" />
                   )}
                 </div>
-                <span class="skill-level-label">{levelLabels[skill.level]}</span>
+                {skill.level && <span class="skill-level-label">{levelLabels[skill.level]}</span>}
               </div>
               <h3 class="skill-name">{skill.name}</h3>
               <p class="skill-tagline">{skill.tagline}</p>

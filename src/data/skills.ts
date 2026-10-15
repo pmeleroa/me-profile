@@ -8,7 +8,7 @@ export interface SkillCategory {
 export interface Skill {
   name: string;
   categoryId: string;
-  level: 1 | 2 | 3 | 4 | 5;
+  level?: 1 | 2 | 3 | 4 | 5;
   image: string;
   tagline: string;
   featured?: boolean;

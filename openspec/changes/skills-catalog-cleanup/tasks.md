@@ -4,10 +4,14 @@ Rollback de todo el change: `git revert <commit>` del commit de implementación 
 
 ## 1. Nivel opcional (D5)
 
-- [ ] 1.1 Cambiar el tipo `Skill` a `level?: 1 | 2 | 3 | 4 | 5` en `src/data/skills.ts`; verificar con `npx astro check` sin errores nuevos de tipo (registrar el comando y el resultado).
-- [ ] 1.2 Renderizar la etiqueta de nivel en `SkillsGrid.astro` solo si `skill.level` está definido; verificar en `dist/` (tras `npm run build`) que una tarjeta con nivel conserva su `skill-level-label` y que, con un skill temporal sin nivel, la tarjeta no contiene `skill-level-label` (registrar el `grep` y su salida).
-- [ ] 1.3 En `src/pages/skills/[slug].astro`, renderizar el nivel solo si está definido y omitir el contenedor `skill-hero-meta` cuando no haya ni nivel ni `featured`; verificar en `dist/skills/<slug>/index.html` de un skill sin nivel que no hay etiqueta de nivel ni `skill-hero-meta` vacío.
-- [ ] 1.4 Verificar Q02 con un skill sin nivel: el grid y la ficha a 360, 390, 768 y 1440 px no tienen scroll horizontal y la fila superior de la tarjeta mantiene la alineación con sus vecinas (registrar cómo se comprobó).
+- [x] 1.1 Cambiar el tipo `Skill` a `level?: 1 | 2 | 3 | 4 | 5` en `src/data/skills.ts`; verificar con `npx astro check` sin errores nuevos de tipo (registrar el comando y el resultado).
+  - Evidencia: `npx astro check` → 9 errors / 0 warnings / 23 hints, igual que la línea base previa al cambio (9 errores preexistentes en `[slug].astro`, `related` posiblemente `undefined` tras `filter(Boolean)`); sin errores nuevos.
+- [x] 1.2 Renderizar la etiqueta de nivel en `SkillsGrid.astro` solo si `skill.level` está definido; verificar en `dist/` (tras `npm run build`) que una tarjeta con nivel conserva su `skill-level-label` y que, con un skill temporal sin nivel, la tarjeta no contiene `skill-level-label` (registrar el `grep` y su salida).
+  - Evidencia: build con fixture temporal no versionado (skill "Temp Sin Nivel" sin `level` + `sections.skills = true`), `npm run build` exit 0; en `dist/skills/index.html` la tarjeta `temp-sin-nivel` no contiene `skill-level-label` (False) y la de `prometheus` sí (True). Fixture revertido.
+- [x] 1.3 En `src/pages/skills/[slug].astro`, renderizar el nivel solo si está definido y omitir el contenedor `skill-hero-meta` cuando no haya ni nivel ni `featured`; verificar en `dist/skills/<slug>/index.html` de un skill sin nivel que no hay etiqueta de nivel ni `skill-hero-meta` vacío.
+  - Evidencia: mismo build; `dist/skills/temp-sin-nivel/index.html` sin `skill-hero-meta`; `dist/skills/prometheus/index.html` con `skill-hero-meta` y "Experto".
+- [x] 1.4 Verificar Q02 con un skill sin nivel: el grid y la ficha a 360, 390, 768 y 1440 px no tienen scroll horizontal y la fila superior de la tarjeta mantiene la alineación con sus vecinas (registrar cómo se comprobó).
+  - Evidencia: `astro preview` + Chrome headless (`--dump-dom`) cargando `/skills/`, `/skills/temp-sin-nivel/` y `/skills/prometheus/` en iframes de 360/390/768/1440 px: `scrollWidth == clientWidth` en las 12 combinaciones (sin scroll horizontal); altura de `.skill-card-top` 36 px con y sin nivel en los 4 anchos.
 
 ## 2. Renombrados y retirada (D2, D3)
 
