@@ -31,13 +31,20 @@ Rollback de todo el change: `git revert <commit>` del commit de implementación 
 
 ## 4. Skills nuevos (D1)
 
-- [ ] 4.1 Añadir los 11 skills de D1 (nombre, categoría, icono, tagline; **sin `level`**) en las posiciones indicadas en D1, y las etiquetas de `explicitLabels` para los de icono genérico (`AZ`, `DSO`, `CX`, `RAG`, `OKF`, `APM`); verificar que existen `dist/skills/{opentelemetry,grafana-stack,argocd,azure,kafka-connect,devsecops,claude,codex,rag,okf,apm}/index.html`.
-- [ ] 4.2 Verificar que los iconos externos de los skills nuevos responden 200 (`curl -s -o /dev/null -w "%{http_code}"` sobre `opentelemetry`, `grafana`, `argo`, `claude`, `atlassian`, `apachekafka` en `cdn.simpleicons.org`) y que los de icono genérico muestran su etiqueta en la tarjeta.
-- [ ] 4.3 Verificar que ningún skill nuevo muestra etiqueta de nivel en tarjeta ni ficha (`grep` sobre las fichas generadas) y que todos los skills existentes la conservan.
+- [x] 4.1 Añadir los 11 skills de D1 (nombre, categoría, icono, tagline; **sin `level`**) en las posiciones indicadas en D1, y las etiquetas de `explicitLabels` para los de icono genérico (`AZ`, `DSO`, `CX`, `RAG`, `OKF`, `APM`); verificar que existen `dist/skills/{opentelemetry,grafana-stack,argocd,azure,kafka-connect,devsecops,claude,codex,rag,okf,apm}/index.html`.
+  - Evidencia: build exit 0; existen `dist/skills/{opentelemetry,grafana-stack,argocd,azure,kafka-connect,devsecops,claude,codex,rag,okf,apm}/index.html` (11/11). Etiquetas `AZ`, `DSO`, `CX`, `RAG`, `OKF`, `APM` añadidas a `explicitLabels`.
+- [x] 4.2 Verificar que los iconos externos de los skills nuevos responden 200 (`curl -s -o /dev/null -w "%{http_code}"` sobre `opentelemetry`, `grafana`, `argo`, `claude`, `atlassian`, `apachekafka` en `cdn.simpleicons.org`) y que los de icono genérico muestran su etiqueta en la tarjeta.
+  - Evidencia: `curl` a `cdn.simpleicons.org` → opentelemetry 200, grafana 200, argo 200, claude 200, atlassian 200, apachekafka 200. Con grid habilitado temporalmente (`sections.skills = true`, revertido), las tarjetas de azure/devsecops/codex/rag/okf/apm muestran su etiqueta (`>AZ<`, `>DSO<`, `>CX<`, `>RAG<`, `>OKF<`, `>APM<` → True).
+- [x] 4.3 Verificar que ningún skill nuevo muestra etiqueta de nivel en tarjeta ni ficha (`grep` sobre las fichas generadas) y que todos los skills existentes la conservan.
+  - Evidencia: las 11 fichas nuevas tienen 0 apariciones de Básico/Intermedio/Avanzado/Experto/Maestro; grid: 63 tarjetas, 52 con `skill-level-label` (= 63 − 11 nuevas); fichas: 52 con nivel en `skill-hero-meta`.
 
 ## 5. Integración
 
-- [ ] 5.1 Verificar integridad de enlaces entre fichas (Q07): extraer de `dist/skills/*/index.html` todos los `href` a `/skills/<slug>/` y comprobar que cada slug tiene su `dist/skills/<slug>/index.html` con ficha real (no redirección); registrar el script y su salida.
-- [ ] 5.2 Verificar que el número de fichas generadas es 63 (53 − 1 retirado + 11 nuevos) más las 3 páginas de redirección.
-- [ ] 5.3 Ejecutar `openspec validate skills-catalog-cleanup --strict` y registrar el resultado.
-- [ ] 5.4 Actualizar la checklist local `historia-profesional.md` (no versionado) marcando los puntos del catálogo cubiertos por este change.
+- [x] 5.1 Verificar integridad de enlaces entre fichas (Q07): extraer de `dist/skills/*/index.html` todos los `href` a `/skills/<slug>/` y comprobar que cada slug tiene su `dist/skills/<slug>/index.html` con ficha real (no redirección); registrar el script y su salida.
+  - Evidencia: script Python sobre `dist/skills/*/index.html` del build de producción: todos los `href="/skills/<slug>"` de las fichas reales apuntan a una ficha real → lista de enlaces rotos vacía. Hallazgo preexistente fuera de alcance: el enlace "← Skills" de las 63 fichas apunta a `/skills`, que no se genera con `sections.skills = false` (404 en producción).
+- [x] 5.2 Verificar que el número de fichas generadas es 63 (53 − 1 retirado + 11 nuevos) más las 3 páginas de redirección.
+  - Evidencia: build de producción → 66 directorios en `dist/skills/`: 63 fichas reales (contienen `skill-hero`) + 3 redirecciones (`http-equiv="refresh"`).
+- [x] 5.3 Ejecutar `openspec validate skills-catalog-cleanup --strict` y registrar el resultado.
+  - Evidencia: `openspec validate skills-catalog-cleanup --strict` → "Change 'skills-catalog-cleanup' is valid".
+- [x] 5.4 Actualizar la checklist local `historia-profesional.md` (no versionado) marcando los puntos del catálogo cubiertos por este change.
+  - Evidencia: `historia-profesional.md` (no versionado) con los 3 puntos del catálogo marcados como cubiertos por este change.
