@@ -7,6 +7,9 @@ export default defineConfig({
   compressHTML: true,
   redirects: {
     '/gamification/test-memoria.html': '/lab/test-memoria',
+    '/skills/jira-tooling': '/skills/atlassian-tooling',
+    '/skills/python-ml': '/skills/python',
+    '/skills/ml-e-ia-en-google-cloud': '/skills/google-cloud-platform',
   },
   integrations: [
     mdx(),

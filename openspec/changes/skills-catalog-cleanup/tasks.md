@@ -15,14 +15,19 @@ Rollback de todo el change: `git revert <commit>` del commit de implementación 
 
 ## 2. Renombrados y retirada (D2, D3)
 
-- [ ] 2.1 Renombrar "JIRA Tooling" → "Atlassian Tooling": icono `simpleIcon('atlassian')`, tagline de D2, clave en `explicitLabels` (`AT`) y `related` de `itsm-itil` a `atlassian-tooling`; verificar que existe `dist/skills/atlassian-tooling/index.html` y que la ficha de ITSM / ITIL enlaza a `/skills/atlassian-tooling/`.
-- [ ] 2.2 Renombrar "Python / ML" → "Python" con el tagline de D2 y su clave en `explicitLabels`; verificar que existe `dist/skills/python/index.html` y que no se genera una ficha propia en `dist/skills/python-ml/` (salvo la página de redirección de la sección 3).
-- [ ] 2.3 Retirar "ML e IA en Google Cloud" del array y de `explicitLabels`; verificar con `grep -rn "ML e IA en Google Cloud\|ml-e-ia-en-google-cloud" src` que solo queda (si acaso) la redirección en `astro.config.mjs`.
+- [x] 2.1 Renombrar "JIRA Tooling" → "Atlassian Tooling": icono `simpleIcon('atlassian')`, tagline de D2, clave en `explicitLabels` (`AT`) y `related` de `itsm-itil` a `atlassian-tooling`; verificar que existe `dist/skills/atlassian-tooling/index.html` y que la ficha de ITSM / ITIL enlaza a `/skills/atlassian-tooling/`.
+  - Evidencia: `npm run build` exit 0; existe `dist/skills/atlassian-tooling/index.html`; `grep -o 'href="/skills/[a-z-]*"' dist/skills/itsm-itil/index.html` → mejora-continua, atlassian-tooling, automatizacion-operativa.
+- [x] 2.2 Renombrar "Python / ML" → "Python" con el tagline de D2 y su clave en `explicitLabels`; verificar que existe `dist/skills/python/index.html` y que no se genera una ficha propia en `dist/skills/python-ml/` (salvo la página de redirección de la sección 3).
+  - Evidencia: existe `dist/skills/python/index.html` (1 `skill-hero`); `dist/skills/python-ml/index.html` es solo la redirección (0 `skill-hero`).
+- [x] 2.3 Retirar "ML e IA en Google Cloud" del array y de `explicitLabels`; verificar con `grep -rn "ML e IA en Google Cloud\|ml-e-ia-en-google-cloud" src` que solo queda (si acaso) la redirección en `astro.config.mjs`.
+  - Evidencia: `grep -rn "ML e IA en Google Cloud\|ml-e-ia-en-google-cloud" src astro.config.mjs` → solo `astro.config.mjs:12` (redirección). Nota: `public/skills/gcp.svg` queda sin referencias; no se borra en este change (fuera de alcance).
 
 ## 3. Redirecciones (D4)
 
-- [ ] 3.1 Añadir a `redirects` de `astro.config.mjs` las tres entradas de D4; verificar tras `npm run build` que `dist/skills/jira-tooling/index.html`, `dist/skills/python-ml/index.html` y `dist/skills/ml-e-ia-en-google-cloud/index.html` contienen meta-refresh, `noindex` y `rel="canonical"` hacia `/skills/atlassian-tooling`, `/skills/python` y `/skills/google-cloud-platform` respectivamente (registrar el `grep`).
-- [ ] 3.2 Verificar que cada destino de redirección existe como ficha: `ls dist/skills/atlassian-tooling dist/skills/python dist/skills/google-cloud-platform`.
+- [x] 3.1 Añadir a `redirects` de `astro.config.mjs` las tres entradas de D4; verificar tras `npm run build` que `dist/skills/jira-tooling/index.html`, `dist/skills/python-ml/index.html` y `dist/skills/ml-e-ia-en-google-cloud/index.html` contienen meta-refresh, `noindex` y `rel="canonical"` hacia `/skills/atlassian-tooling`, `/skills/python` y `/skills/google-cloud-platform` respectivamente (registrar el `grep`).
+  - Evidencia: en `dist/skills/{jira-tooling,python-ml,ml-e-ia-en-google-cloud}/index.html`: `http-equiv="refresh" content="0;url=/skills/<destino>"`, `name="robots" content="noindex"` y `rel="canonical" href="https://pablomeleroalonso.me/skills/<destino>"` con destinos atlassian-tooling, python y google-cloud-platform.
+- [x] 3.2 Verificar que cada destino de redirección existe como ficha: `ls dist/skills/atlassian-tooling dist/skills/python dist/skills/google-cloud-platform`.
+  - Evidencia: `ls -d dist/skills/atlassian-tooling dist/skills/python dist/skills/google-cloud-platform` → los tres existen.
 
 ## 4. Skills nuevos (D1)
 
