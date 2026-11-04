@@ -161,21 +161,45 @@ rules:
       `add-blog-series-nav`. Pendiente: página /blog/series/<id> y filtro en
       el listado, para más adelante."
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
-      asistente de código local con Ollama, cuyo post 1 es
-      ollama-primeros-pasos-asistente-de-codigo-local.mdx. Su lista final 'Lo
-      que le falta a este harness' es la hoja de ruta pública de la serie.
-      Orden recomendado: ventana de contexto y hardware (por defecto 4k tokens
-      con menos de 24 GiB de VRAM; las herramientas de código necesitan al
-      menos 64k) -> historial y contexto propio -> salida estructurada y
-      herramientas (decidir pronto si se usa MCP, porque cambia la
-      arquitectura) -> bucle agéntico -> seguridad -> integración. Solo entran
-      temas relacionados con el harness local. 'Varios modelos', 'elección de
-      modelo' y 'cuándo local no basta' quedan fuera de la serie; los dos
-      últimos tienen su propia entrada de trabajo futuro. Cada post de la serie debe: no justificar por qué ejecutar en
-      local; no usar el ángulo corporativo ni de aprobación de la empresa; no
-      nombrar productos comerciales como referencia del asistente; escribir
-      el contenido técnico para una terminal Linux (ver la regla de Linux); y
-      usar listas de una línea por punto, sin sublistas."
+      asistente de código local con Ollama. El post 1 es
+      ollama-primeros-pasos-asistente-de-codigo-local.mdx y el post 2 es
+      agente-de-codigo-desde-cero-el-bucle.mdx (change add-harness-loop-post).
+      Desde el post 2 la serie es la arquitectura de un agente de código,
+      construida sobre un repositorio público, pmeleroa/lab-harness-local, que
+      crece parte a parte con un tag por post (parte-2 para el post 2) y debe
+      converger con el proyecto harness del autor hasta ser el mismo
+      repositorio. Hoja de ruta, sin fechas ni índice cerrado: parte 2, bucle,
+      contrato de inferencia y herramientas de lectura (publicada con ese
+      change); parte 3, gestión del contexto y del historial, que arranca de
+      que la conversación llena la ventana y de que /v1/chat/completions no
+      permite fijar el contexto por petición según la documentación de Ollama;
+      parte 4, editar y ejecutar, con permisos y sandbox en Linux y macOS
+      (justificar ahí cualquier excepción a la regla de Linux); parte 5, MCP;
+      parte 6, integración y sesiones. La salida estructurada se trata dentro
+      del contrato de herramientas, no como parte propia. Piezas de harness sin
+      parte asignada: subagentes, skills, hooks, procesos en segundo plano,
+      Grep, replay, evals, TUI con Ink y proveedor de Anthropic; decidir antes
+      del último tag si reciben partes propias o entran en un tag sin post.
+      Antes de la parte 3, arreglar en harness la ventana por defecto de
+      128.000 tokens del adaptador OpenAI. Solo entran temas relacionados con
+      el harness local. 'Varios modelos', 'elección de modelo' y 'cuándo local
+      no basta' quedan fuera de la serie; los dos últimos tienen su propia
+      entrada de trabajo futuro, y el gateway LiteLLM la suya. Cada post de la
+      serie debe: no justificar por qué ejecutar en local; no usar el ángulo
+      corporativo ni de aprobación de la empresa; no nombrar productos
+      comerciales como referencia del asistente; escribir el contenido técnico
+      para una terminal Linux (ver la regla de Linux); y usar listas de una
+      línea por punto, sin sublistas."
+    - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
+      de guías sobre el asistente de código local, sobre LiteLLM como gateway
+      delante de un servidor de modelos local. En el post 2 aparece solo como
+      caja opcional del diagrama y en un párrafo, y ahí se dice que apuntar el
+      adaptador a un gateway debería bastar con cambiar la URL base pero que no
+      se ha probado. Categoría propuesta: Guía. Debe verificar con ejecución
+      propia cualquier afirmación de uso. No reabre 'varios modelos', que sigue
+      fuera de la serie. No se hacen afirmaciones de rendimiento sin medición
+      propia o una fuente citada. Cuando exista, enlazarlo desde el párrafo de
+      LiteLLM del post 2."
     - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
       de guías sobre el asistente de código local, sobre cómo elegir un modelo
       para un asistente de código local. Categoría propuesta: Análisis, porque
