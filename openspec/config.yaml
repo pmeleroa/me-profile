@@ -152,15 +152,14 @@ rules:
       para fuentes de datos ajenas a la colección `blog` (p.ej. datos de
       ejemplo) que sigan sin imagen."
     - "Trabajo futuro pendiente (blog): A1 (antetítulo «📚 SERIE · Nombre · Parte N»
-      en la cabecera del artículo) y el modelo de datos (colección `series`,
-      campo `series: {id, part}` en blog) ya están implementados en el change
-      `add-blog-series-label`. A2 (bloque de navegación de la serie: índice de
-      partes y anterior/siguiente, visible solo con 2 o más partes publicadas,
-      para no listar partes que aún no existen) pendiente en change propio
-      `add-blog-series-nav`, que también excluirá las partes de la serie de
-      «Artículos relacionados» (por tags). El badge «SERIE» en las tarjetas
-      también está implementado en `add-blog-series-label`. Página
-      /blog/series/<id> y filtro en el listado, para más adelante."
+      en la cabecera del artículo), el modelo de datos (colección `series`,
+      campo `series: {id, part}` en blog) y el badge «SERIE» en las tarjetas ya
+      están implementados en el change `add-blog-series-label`. A2 (bloque de
+      navegación de la serie: índice de partes y anterior/siguiente, visible
+      solo con 2 o más partes publicadas, con exclusión de las partes de la
+      serie en «Artículos relacionados») está implementado en el change
+      `add-blog-series-nav`. Pendiente: página /blog/series/<id> y filtro en
+      el listado, para más adelante."
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
       asistente de código local con Ollama, cuyo post 1 es
       ollama-primeros-pasos-asistente-de-codigo-local.mdx. Su lista final 'Lo
@@ -246,6 +245,15 @@ rules:
       con movimiento reducido el contenido aparezca sin transición.
       Verificar con JS desactivado y con `prefers-reduced-motion: reduce`
       en varias páginas, no solo en un post."
+    - "Trabajo futuro pendiente (sitio): Lighthouse móvil (Q05) da 75, por
+      debajo de 90, en el artículo `ollama-primeros-pasos-asistente-de-codigo-local`
+      y en `main` por igual (LCP de ~8 s, FCP 1.4 s, TBT 0 ms, medido en local
+      con `astro preview`). Detectado en add-blog-series-nav, que no añadió
+      regresión (75 en main y 75 con el bloque) y lo registró como
+      preexistente por decisión del autor. Corregirlo en un change propio:
+      medir también contra producción, revisar el elemento LCP (imagen
+      destacada con `loading=\"eager\"` y su tamaño) y repetir en varias
+      páginas, no solo en un post."
 
   tasks:
     - Cada tarea de implementación de un requisito de contenido público debe

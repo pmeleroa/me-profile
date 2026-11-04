@@ -1,5 +1,20 @@
 import { getEntry } from 'astro:content';
 
+// reference() returns an EntryReference with a .id property
+export function seriesIdOf(post: any): string | undefined {
+  const series = post.data.series;
+  if (!series) return undefined;
+  return typeof series.id === 'string' ? series.id : series.id.id;
+}
+
+// Published parts of a series in ascending part order. Callers must pass
+// posts already filtered by !data.draft (single publication decision point).
+export function getPublishedSeriesParts(publishedPosts: any[], seriesId: string) {
+  return publishedPosts
+    .filter((p) => seriesIdOf(p) === seriesId)
+    .sort((a, b) => a.data.series.part - b.data.series.part);
+}
+
 export async function validateSeriesIntegrity(publishedPosts: any[]) {
   const errors: string[] = [];
 
@@ -8,10 +23,7 @@ export async function validateSeriesIntegrity(publishedPosts: any[]) {
   for (const post of publishedPosts) {
     if (!post.data.series) continue;
 
-    // reference() returns an EntryReference with a .id property
-    const seriesId = typeof post.data.series.id === 'string'
-      ? post.data.series.id
-      : post.data.series.id.id;
+    const seriesId = seriesIdOf(post)!;
 
     if (!postsBySeries.has(seriesId)) {
       postsBySeries.set(seriesId, []);

@@ -1,0 +1,151 @@
+---
+interface Part {
+  id: string;
+  data: { title: string; series?: { part: number } };
+}
+
+interface Props {
+  seriesTitle: string;
+  parts: Part[]; // published parts, ascending by part number
+  currentId: string;
+}
+
+const { seriesTitle, parts, currentId } = Astro.props;
+const currentIndex = parts.findIndex((p) => p.id === currentId);
+const prev = currentIndex > 0 ? parts[currentIndex - 1] : undefined;
+const next = currentIndex >= 0 ? parts[currentIndex + 1] : undefined;
+---
+
+<section class="series-nav-section">
+  <div class="container">
+    <nav class="series-nav" aria-label={`Serie: ${seriesTitle}`}>
+      <p class="series-nav-title">
+        <span aria-hidden="true">📚</span> Serie: {seriesTitle}
+      </p>
+
+      <ol class="series-nav-list">
+        {parts.map((p) => (
+          <li class="series-nav-item">
+            <span class="series-nav-part">Parte {p.data.series?.part}</span>
+            {p.id === currentId ? (
+              <span class="series-nav-current" aria-current="page">
+                {p.data.title} <span class="series-nav-here">· Estás aquí</span>
+              </span>
+            ) : (
+              <a href={`/blog/${p.id}`}>{p.data.title}</a>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {(prev || next) && (
+        <div class="series-nav-steps">
+          {prev && (
+            <a class="series-nav-step series-nav-step-prev" href={`/blog/${prev.id}`}>
+              <span class="series-nav-step-dir"><span aria-hidden="true">←</span> Parte anterior</span>
+              <span class="series-nav-step-title">{prev.data.title}</span>
+            </a>
+          )}
+          {next && (
+            <a class="series-nav-step series-nav-step-next" href={`/blog/${next.id}`}>
+              <span class="series-nav-step-dir">Parte siguiente <span aria-hidden="true">→</span></span>
+              <span class="series-nav-step-title">{next.data.title}</span>
+            </a>
+          )}
+        </div>
+      )}
+    </nav>
+  </div>
+</section>
+
+<style>
+  .series-nav-section {
+    padding: 0 0 3rem;
+  }
+
+  .series-nav {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--r-md);
+    color: var(--color-text);
+  }
+
+  .series-nav-title {
+    font-weight: 700;
+    margin: 0 0 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .series-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .series-nav-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .series-nav-part {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .series-nav-current {
+    font-weight: 700;
+    min-width: 0;
+  }
+
+  .series-nav-here {
+    font-weight: 400;
+  }
+
+  .series-nav a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+
+  .series-nav a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  .series-nav-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .series-nav-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1 1 14rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .series-nav-step-next {
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  .series-nav-step-dir {
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+</style>
