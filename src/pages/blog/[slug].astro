@@ -4,12 +4,13 @@ import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import BlogCard from '../../components/BlogCard.astro';
+import SeriesNav from '../../components/SeriesNav.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import { sections } from '../../data/sections';
 import { readingTime } from '../../utils/readingTime';
 import { author } from '../../data/author';
 import { categoryColors } from '../../data/blogCategories';
-import { validateSeriesIntegrity } from '../../utils/series';
+import { validateSeriesIntegrity, seriesIdOf, getPublishedSeriesParts } from '../../utils/series';
 
 export async function getStaticPaths() {
   if (!sections.blog) return [];
@@ -26,8 +27,10 @@ const { Content } = await render(post);
 
 const allPosts = await getCollection('blog', ({ data }) => !data.draft);
 const postTagSet = new Set(post.data.tags);
+const currentSeriesId = seriesIdOf(post);
 const related = allPosts
   .filter((p) => p.id !== post.id)
+  .filter((p) => !currentSeriesId || seriesIdOf(p) !== currentSeriesId)
   .map((p) => ({
     post: p,
     sharedTags: p.data.tags.filter((tag) => postTagSet.has(tag)).length,
@@ -68,9 +71,11 @@ const modifiedTimeISO = post.data.updatedDate?.toISOString();
 // Fetch series data if post belongs to a series
 let seriesData = null;
 if (post.data.series) {
-  const seriesId = typeof post.data.series.id === 'string' ? post.data.series.id : post.data.series.id.id;
-  seriesData = await getEntry('series', seriesId);
+  seriesData = await getEntry('series', seriesIdOf(post)!);
 }
+
+const seriesParts = currentSeriesId ? getPublishedSeriesParts(allPosts, currentSeriesId) : [];
+const showSeriesNav = !!seriesData && seriesParts.length >= 2;
 
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://pablomeleroalonso.me';
 const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
@@ -185,6 +190,11 @@ const breadcrumbJsonLd = {
         <Content />
       </div>
     </article>
+
+    <!-- Series navigation -->
+    {showSeriesNav && (
+      <SeriesNav seriesTitle={seriesData.data.title} parts={seriesParts} currentId={post.id} />
+    )}
 
     <!-- Author bio -->
     {author && (
