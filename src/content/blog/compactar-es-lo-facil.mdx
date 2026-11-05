@@ -10,10 +10,11 @@ series:
   id: asistente-codigo-local
   part: 3
 ---
+Imagina que le pides a un asistente de código local que lea ocho ficheros de un repositorio y te diga cuál es el más largo. A mitad de trabajo, la conversación ya no cabe en la memoria del modelo. No hay un error ni un aviso: el asistente sigue, contesta con seguridad y no sabe qué le pediste, porque lo primero que el servidor tiró fue tu petición. Es un escenario, no una medición; más abajo hay una conversación fija que reproduce el mismo mecanismo.
 
-Cuando una conversación no cabe en la ventana de contexto, lo que esperas es un error. Lo que te puede llegar, según el servidor, es un **HTTP 200**, un final normal y una respuesta que no parte de tu tarea. Esta guía es la tercera de la serie *Asistente de código local*. En la [anterior](/blog/harness-propio-desde-cero-el-bucle) construimos el bucle de un harness de solo lectura y vimos que cada final tiene nombre. Aquí añadimos la gestión del contexto, y la tesis es esta: **compactar es la parte fácil; la difícil es saber que te quedaste sin sitio**.
+Esta guía es la tercera de la serie *Asistente de código local*. En la [anterior](/blog/harness-propio-desde-cero-el-bucle) construimos el bucle de un harness de solo lectura y vimos que cada final tiene nombre. Aquí añadimos la gestión del contexto, y la tesis es esta: **compactar es la parte fácil; la difícil es saber que te quedaste sin sitio**.
 
-Resumir una conversación, limpiar resultados viejos o recortar una salida enorme son operaciones que se escriben en una tarde. Pero todas se disparan cuando el harness cree que la ventana se llena, y ese «cree» depende de un número que el servidor no tiene por qué darte y de unos tokens que, si el servidor recorta en silencio, ya no son los que enviaste.
+Resumir una conversación, limpiar resultados viejos o recortar una salida enorme se escriben en una tarde. Pero todas se disparan cuando el harness cree que la ventana se llena, y ese «cree» depende de un número que el servidor no tiene por qué darte y de unos tokens que, si el servidor recorta en silencio, ya no son los que enviaste.
 
 ## Prerrequisitos y clonado
 
@@ -37,9 +38,160 @@ OLLAMA_CONTEXT_LENGTH=4096 ollama serve
 
 Si ya tienes Ollama en marcha como servicio, ciérralo antes o usa otro puerto y pásalo al harness con `--base-url`.
 
-## Una conversación que no cabe
+## La conversación que se reenvía entera
 
-Antes de tocar el bucle, veamos el fallo con una entrada que no depende del modelo. `examples/desbordar.ts` envía **siempre la misma conversación**, generada con una semilla fija: un primer mensaje con la clave de la tarea, doce notas de reuniones de texto corriente, y una pregunta final que pide dos claves. La del sistema va en el system prompt; la de la tarea, al principio de la conversación.
+Para entender el problema hace falta una idea, y es corta: **el modelo no recuerda nada entre peticiones**. Lo que parece memoria es que, en cada turno, el harness le reenvía toda la conversación: el system prompt (las instrucciones fijas), tu petición, cada respuesta del modelo y el resultado de cada herramienta, o sea, el contenido de cada fichero que leyó. Todo eso cuesta *tokens*, la unidad en la que el modelo cuenta el texto (el harness estima unos 4 caracteres por token, una aproximación). Y el servidor, en cada respuesta, informa de cuántos tokens dice haber leído: es el `prompt_tokens` que usaremos después.
+
+La conversación crece en cada turno, porque cada herramienta añade su resultado, y la **ventana de contexto** es el tope de tokens que el modelo admite en una petición. Una parte de ese tope hay que dejarla libre para que quepa la respuesta: en el harness es una **reserva** (la veremos más abajo). El resto es el espacio útil para la entrada:
+
+<figure style={{margin: "2rem 0"}}>
+  <div role="img" aria-label="Tres barras que representan la ventana de contexto en tres turnos. En el turno 1 la entrada ocupa poco: sistema, petición y un resultado, con mucho espacio libre y la reserva para la respuesta a la derecha. En el turno 4 los resultados de herramientas casi llenan el espacio libre. En el turno 6 la conversación invade la reserva, y el servidor descarta lo más antiguo después del system prompt: la petición y los primeros resultados." style={{display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "36rem", marginInline: "auto"}}>
+    <div style={{position: "relative", display: "flex", flexDirection: "column", gap: "1rem"}}>
+      <div aria-hidden="true" style={{textAlign: "right", paddingRight: "calc(25% + 0.5rem)", fontSize: "0.75rem", color: "var(--color-text)", marginBottom: "-0.5rem"}}>límite de la entrada</div>
+      <div>
+        <div style={{fontSize: "0.85rem", color: "var(--color-text)", marginBottom: "0.3rem"}}>Turno 1: sobra sitio</div>
+        <div style={{position: "relative", display: "flex", height: "2rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", overflow: "hidden"}}>
+          <div style={{width: "8%", background: "var(--color-accent-glow)", borderRight: "1px solid var(--color-accent)"}} />
+          <div style={{width: "4%", background: "var(--color-accent)"}} />
+          <div style={{width: "10%", background: "var(--color-border-2)"}} />
+          <div style={{width: "53%", background: "transparent"}} />
+          <div style={{width: "25%", background: "transparent", borderLeft: "2px dashed var(--color-border-2)"}} />
+        </div>
+      </div>
+      <div>
+        <div style={{fontSize: "0.85rem", color: "var(--color-text)", marginBottom: "0.3rem"}}>Turno 4: casi llena</div>
+        <div style={{position: "relative", display: "flex", height: "2rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", overflow: "hidden"}}>
+          <div style={{width: "8%", background: "var(--color-accent-glow)", borderRight: "1px solid var(--color-accent)"}} />
+          <div style={{width: "4%", background: "var(--color-accent)"}} />
+          <div style={{width: "58%", background: "var(--color-border-2)"}} />
+          <div style={{width: "5%", background: "transparent"}} />
+          <div style={{width: "25%", background: "transparent", borderLeft: "2px dashed var(--color-border-2)"}} />
+        </div>
+      </div>
+      <div>
+        <div style={{fontSize: "0.85rem", color: "var(--color-text)", marginBottom: "0.3rem"}}>Turno 6: ya no cabe</div>
+        <div style={{position: "relative", display: "flex", height: "2rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", overflow: "hidden"}}>
+          <div style={{width: "8%", background: "var(--color-accent-glow)", borderRight: "1px solid var(--color-accent)"}} />
+          <div style={{width: "4%", background: "repeating-linear-gradient(45deg, transparent, transparent 3px, var(--color-border-2) 3px, var(--color-border-2) 5px)", borderLeft: "1px dashed var(--color-accent)", borderRight: "1px dashed var(--color-accent)"}} />
+          <div style={{width: "21%", background: "repeating-linear-gradient(45deg, transparent, transparent 3px, var(--color-border-2) 3px, var(--color-border-2) 5px)", borderLeft: "1px dashed var(--color-accent)", borderRight: "1px dashed var(--color-accent)"}} />
+          <div style={{width: "67%", background: "var(--color-border-2)"}} />
+        </div>
+      </div>
+      <div aria-hidden="true" style={{position: "absolute", left: "75%", top: "1.1rem", bottom: 0, borderLeft: "2px solid var(--color-accent)", pointerEvents: "none"}} />
+    </div>
+    <div style={{display: "flex", flexWrap: "wrap", gap: "0.4rem 1rem", fontSize: "0.8rem", color: "var(--color-text)"}}>
+      <span style={{display: "inline-flex", alignItems: "center", gap: "0.35rem"}}><span aria-hidden="true" style={{display: "inline-block", width: "1.1rem", height: "0.8rem", border: "1px solid var(--color-border-2)", background: "var(--color-accent-glow)", borderRight: "1px solid var(--color-accent)"}} />System prompt</span>
+      <span style={{display: "inline-flex", alignItems: "center", gap: "0.35rem"}}><span aria-hidden="true" style={{display: "inline-block", width: "1.1rem", height: "0.8rem", border: "1px solid var(--color-border-2)", background: "var(--color-accent)"}} />Tu petición</span>
+      <span style={{display: "inline-flex", alignItems: "center", gap: "0.35rem"}}><span aria-hidden="true" style={{display: "inline-block", width: "1.1rem", height: "0.8rem", border: "1px solid var(--color-border-2)", background: "var(--color-border-2)"}} />Resultados de herramientas</span>
+      <span style={{display: "inline-flex", alignItems: "center", gap: "0.35rem"}}><span aria-hidden="true" style={{display: "inline-block", width: "1.1rem", height: "0.8rem", border: "1px solid var(--color-border-2)", background: "transparent"}} />Libre</span>
+      <span style={{display: "inline-flex", alignItems: "center", gap: "0.35rem"}}><span aria-hidden="true" style={{display: "inline-block", width: "1.1rem", height: "0.8rem", border: "1px solid var(--color-border-2)", background: "transparent", borderLeft: "2px dashed var(--color-border-2)"}} />Reserva para la respuesta</span>
+      <span style={{display: "inline-flex", alignItems: "center", gap: "0.35rem"}}><span aria-hidden="true" style={{display: "inline-block", width: "1.1rem", height: "0.8rem", border: "1px solid var(--color-border-2)", background: "repeating-linear-gradient(45deg, transparent, transparent 3px, var(--color-border-2) 3px, var(--color-border-2) 5px)", borderLeft: "1px dashed var(--color-accent)", borderRight: "1px dashed var(--color-accent)"}} />Descartado por el servidor</span>
+    </div>
+  </div>
+  <figcaption style={{marginTop: "1rem", fontSize: "0.85rem", color: "var(--color-text)"}}>La ventana se llena turno a turno. Las proporciones son una ilustración, no una medición. En el turno 6 el servidor tira lo más antiguo que viene después del system prompt, y ahí está tu petición.</figcaption>
+</figure>
+
+Qué hace un servidor cuando la conversación no cabe depende de él: puede devolver un error, o puede recortar. Lo que medí en Ollama es lo segundo, y por el principio: se descarta lo más antiguo, que es justo donde está tu petición. En mis mediciones, lo que sobrevivió fue el system prompt y lo más reciente.
+
+Por eso hay dos problemas distintos. El primero es **no llegar al límite**: reducir lo que se reenvía, con tres escalones. El segundo es **enterarte de que ya lo pasaste**, porque el servidor no te lo dice. El primero es lo fácil.
+
+## Los tres escalones
+
+Antes de que la conversación llene la ventana, el harness puede reducir lo que reenvía. Son tres escalones, de más barato a más caro. Valen mientras la ventana que el harness cree tener sea la real; de eso va la sección siguiente.
+
+**1. Recortar cada resultado de herramienta al producirlo.** Ningún resultado puede ocupar más del 20 % del espacio útil de la ventana, ni más del tope de la política (25.000 tokens por defecto). Se conserva la cabeza y la cola.
+
+**2. Limpiar los resultados antiguos.** Cuando el contexto pasa del 60 % del espacio útil, el contenido de los resultados de herramienta más antiguos se sustituye por una nota. La llamada se conserva; el contenido, no. Los 6 resultados más recientes nunca se limpian, y se limpian todos de una vez, no uno a uno, para romper la caché lo menos posible.
+
+```ts
+export const CLEARED_NOTE = "[Old tool result cleared to save context. Run the tool again if you need this output.]";
+```
+
+**3. Compactar.** Si tras limpiar el contexto sigue por encima del 85 %, el modelo resume la conversación y el resumen la sustituye entera. La política completa cabe en cuatro números:
+
+```ts
+export const defaultContextPolicy: ContextPolicy = {
+  maxToolResultTokens: 25_000,
+  clearAt: 0.6,
+  compactAt: 0.85,
+  keepToolResults: 6,
+};
+```
+
+Y la decisión de cuándo actuar, antes de cada llamada. Fíjate en que todo se mide contra `available`, el espacio útil que sale de la ventana que el harness cree tener:
+
+```ts
+  private async manageContext(signal: AbortSignal): Promise<Usage> {
+    const p = this.cfg.context;
+    let used = this.contextTokens();
+    if (used > p.clearAt * this.available) {
+      const { count } = this.clearing.clearOld(this.messages, p.keepToolResults);
+      if (count) {
+        const after = this.contextTokens();
+        this.emit({ t: "context", action: "cleared", count, before: used, after });
+        used = after;
+      }
+    }
+    if (used <= p.compactAt * this.available) return emptyUsage();
+    try {
+      return (await this.compact(signal)) ?? emptyUsage();
+    } catch (e) {
+      if (signal.aborted) throw e;
+      this.emit({ t: "warning", message: `Compaction failed: ${errorMessage(e)}` });
+      return emptyUsage();
+    }
+  }
+```
+
+### Verlo actuar
+
+Esto es lo que ocurre sobre el propio repositorio del lab, con `--context-window 4096` contra el servidor de 4.096 y un prompt que pide leer ocho ficheros enteros. Es una de las ejecuciones guardadas en [`examples/salidas/contexto-4096.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-3/examples/salidas/contexto-4096.txt):
+
+```txt
+workspace: <repo>
+modelo: qwen2.5:7b
+
+ctx 638/4,1k (16%)
+> Glob {"pattern":"src/{version,index,tools/types,tools/registry,tools/read,core/events,context/overflow,in…
+  ok (13 ms)
+ctx 882/4,1k (22%)
+> Read {"file_path":"src/index.ts"}
+> Read {"file_path":"src/core/events.ts"}
+> Read {"file_path":"src/context/overflow.ts"}
+> Read {"file_path":"src/tools/read.ts"}
+> Read {"file_path":"src/tools/registry.ts"}
+> Read {"file_path":"src/tools/types.ts"}
+> Read {"file_path":"src/version.ts"}
+  ok (1 ms, recortado al tope)
+  ok (1 ms)
+  ok (1 ms, recortado al tope)
+  ok (1 ms)
+  ok (1 ms, recortado al tope)
+  ok (1 ms, recortado al tope)
+  ok (2 ms)
+~ limpiados 1 resultados antiguos: 4,3k -> 3,7k tokens
+~ conversación compactada: 3,7k -> 849 tokens
+Ready to continue or answer any specific questions about the code. What would you like to know?
+ctx 850/4,1k (21%)
+
+[end_turn] 3 turnos, 8 llamadas, 3512 tokens de entrada, 529 de salida
+```
+
+Se ven los tres escalones. Varios resultados llevan la marca «recortado al tope»; después aparece `limpiados 1 resultados antiguos: 4,3k -> 3,7k tokens`, y a continuación `conversación compactada: 3,7k -> 849 tokens`. El contexto pasó de rozar la ventana a un 21 %.
+
+Hay que contar lo que no sale bien. Tras compactar, el modelo contestó «Ready to continue or answer any specific questions about the code» en vez de decir cuál de los ocho ficheros era el más largo, que era lo que quedaba pendiente. El resumen no bastó para que un modelo de 7B retomara la tarea.
+
+Y esta ejecución es una de muchas. Con ese prompt hice 14 ejecuciones: el tope se vio en 10, la limpieza en 3, la compactación en 5 y los tres escalones a la vez en 3; ninguna acabó en `context_overflow` y 3 no leyeron ningún fichero. En total fueron 28 ejecuciones con tres prompts, y con los otros dos no se llegó a activar nada o solo la compactación. Con una ventana real de 4.096, la compactación salta antes que la limpieza salvo que haya más de seis resultados que limpiar. Con otro modelo u otra ejecución, cambia. Son ejecuciones representativas, no garantías.
+
+Compactar tiene una trampa propia, y la veremos tras la detección: qué hacer si la petición de resumir también la recorta el servidor.
+
+## Pero todo esto asume que la ventana es real
+
+Los tres escalones se disparan cuando el contexto se acerca a la ventana. Si el harness cree que la ventana es de 128.000 tokens y el servidor tiene 4.096, no llegan a dispararse: el servidor recorta antes. Veamos el fallo con una entrada que no depende del modelo.
+
+### Una conversación que no cabe
+
+`examples/desbordar.ts` envía **siempre la misma conversación**, generada con una semilla fija: un primer mensaje con la clave de la tarea, doce notas de reuniones de texto corriente, y una pregunta final que pide dos claves. La del sistema va en el system prompt; la de la tarea, al principio de la conversación.
 
 ```ts
 const mensajes: Message[] = [{ role: "user", content: [{ type: "text", text: `Vamos a repasar unas notas de reuniones. Al final te pediré dos claves. La clave de la tarea es ${TASK_KEY}.` }] }];
@@ -74,11 +226,17 @@ clave del sistema (ALFA-3141): aparece
 clave de la tarea (BRAVO-2718): no aparece
 ```
 
+Cómo leer esa salida:
+
+- **`HTTP 200` y `end_turn`**: el servidor dice que todo ha ido bien.
+- **`prompt_tokens: 3725`**: lo que el servidor dice haber leído, de los unos 6.204 estimados que le enviamos.
+- **Clave del sistema presente, clave de la tarea ausente**: la respuesta se construyó sin la petición.
+
 Ni un error ni un aviso. El servidor aceptó la petición, descartó lo más antiguo, respondió y dijo que todo iba bien. La clave del system prompt sobrevivió; la de la tarea, no. En las 13 ejecuciones que hice contra este servidor (Ollama 0.40.14, `qwen2.5:7b`), todas dieron HTTP 200 y final `end_turn`, la clave del sistema aparecía en todas y la de la tarea no aparecía en ninguna. La respuesta cambia entre ejecuciones: a veces el modelo añade una clave inventada. El `prompt_tokens` fue 3.725 en las que informaron el total.
 
 Es una medición con un modelo y un servidor, no una ley. Pero el patrón se repite con distintos tamaños: en las pruebas previas, con una petición única de entre 3.975 y 17.701 tokens estimados, las 21 peticiones que desbordaron la ventana devolvieron `prompt_tokens` de 63, siempre con HTTP 200 y `finish_reason: stop`. El límite real quedó en torno a 4.070 tokens de prompt.
 
-## Por qué el harness no se entera
+### Por qué el harness no se entera
 
 El bucle de la parte 2 no habría visto nada raro. Tres cosas se juntan.
 
@@ -90,9 +248,9 @@ El bucle de la parte 2 no habría visto nada raro. Tres cosas se juntan.
 
 Esto no es una rareza de un servidor que se arregla con una opción. Configurar la ventana a mano es necesario, pero deja al harness sin señal si la cifra está mal, y un número mal puesto no avisa. Hace falta una forma de enterarse que no dependa de ningún servidor concreto.
 
-## Conocer la ventana
+### Conocer la ventana
 
-Primero, lo que se puede arreglar sin detectar nada. La ventana se resuelve en este orden: configuración, catálogo del servidor (`/v1/models`, donde informa, como LiteLLM) y valor por defecto. En la parte 2 el valor por defecto era de 128.000, que con un modelo pequeño equivale a desactivar los escalones. Ahora es **4.096** y el harness avisa al arrancar:
+Lo primero que se puede arreglar sin detectar nada es la ventana. La ventana se resuelve en este orden: configuración, catálogo del servidor (`/v1/models`, donde informa, como LiteLLM) y valor por defecto. En la parte 2 el valor por defecto era de 128.000, que con un modelo pequeño equivale a desactivar los escalones. Ahora es **4.096** y el harness avisa al arrancar:
 
 ```text
 ! La ventana de contexto no está fijada: se asumen 4096 tokens…
@@ -225,53 +383,7 @@ Y el test comprueba que el run acaba en `context_overflow`, con el cómo arregla
   });
 ```
 
-## Los tres escalones
-
-Con una ventana en la que confiar, los escalones van de más barato a más caro.
-
-**1. Recortar cada resultado de herramienta al producirlo.** Ningún resultado puede ocupar más del 20 % del espacio útil de la ventana, ni más del tope de la política (25.000 tokens por defecto). Se conserva la cabeza y la cola.
-
-**2. Limpiar los resultados antiguos.** Cuando el contexto pasa del 60 % del espacio útil, el contenido de los resultados de herramienta más antiguos se sustituye por una nota. La llamada se conserva; el contenido, no. Los 6 resultados más recientes nunca se limpian, y se limpian todos de una vez, no uno a uno, para romper la caché lo menos posible.
-
-```ts
-export const CLEARED_NOTE = "[Old tool result cleared to save context. Run the tool again if you need this output.]";
-```
-
-**3. Compactar.** Si tras limpiar el contexto sigue por encima del 85 %, el modelo resume la conversación y el resumen la sustituye entera. La política completa cabe en cuatro números:
-
-```ts
-export const defaultContextPolicy: ContextPolicy = {
-  maxToolResultTokens: 25_000,
-  clearAt: 0.6,
-  compactAt: 0.85,
-  keepToolResults: 6,
-};
-```
-
-Y la decisión de cuándo actuar, antes de cada llamada:
-
-```ts
-  private async manageContext(signal: AbortSignal): Promise<Usage> {
-    const p = this.cfg.context;
-    let used = this.contextTokens();
-    if (used > p.clearAt * this.available) {
-      const { count } = this.clearing.clearOld(this.messages, p.keepToolResults);
-      if (count) {
-        const after = this.contextTokens();
-        this.emit({ t: "context", action: "cleared", count, before: used, after });
-        used = after;
-      }
-    }
-    if (used <= p.compactAt * this.available) return emptyUsage();
-    try {
-      return (await this.compact(signal)) ?? emptyUsage();
-    } catch (e) {
-      if (signal.aborted) throw e;
-      this.emit({ t: "warning", message: `Compaction failed: ${errorMessage(e)}` });
-      return emptyUsage();
-    }
-  }
-```
+### Compactar sin fiarse de una entrada recortada
 
 Compactar tiene su propia trampa, y es la tesis en pequeño. La petición de compactar también viaja al servidor, y si el servidor la recorta, el resumen no parte de la conversación entera, quizá ni de la tarea, y **sustituir la historia por él la borraría**. Por eso `compact()` comprueba su propia petición con la misma señal (con un mínimo de crecimiento de 50 tokens, porque solo añade la orden de resumir) y falla antes de tocar nada. Tampoco acepta un resumen cortado por `max_tokens`:
 
@@ -296,46 +408,6 @@ Compactar tiene su propia trampa, y es la tesis en pequeño. La petición de com
 ```
 
 `manageContext` convierte ese error en un aviso y la conversación queda como estaba.
-
-### Verlo actuar
-
-Esto es lo que ocurre sobre el propio repositorio del lab, con `--context-window 4096` contra el servidor de 4.096 y un prompt que pide leer ocho ficheros enteros. Es una de las ejecuciones guardadas en [`examples/salidas/contexto-4096.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-3/examples/salidas/contexto-4096.txt):
-
-```txt
-workspace: <repo>
-modelo: qwen2.5:7b
-
-ctx 638/4,1k (16%)
-> Glob {"pattern":"src/{version,index,tools/types,tools/registry,tools/read,core/events,context/overflow,in…
-  ok (13 ms)
-ctx 882/4,1k (22%)
-> Read {"file_path":"src/index.ts"}
-> Read {"file_path":"src/core/events.ts"}
-> Read {"file_path":"src/context/overflow.ts"}
-> Read {"file_path":"src/tools/read.ts"}
-> Read {"file_path":"src/tools/registry.ts"}
-> Read {"file_path":"src/tools/types.ts"}
-> Read {"file_path":"src/version.ts"}
-  ok (1 ms, recortado al tope)
-  ok (1 ms)
-  ok (1 ms, recortado al tope)
-  ok (1 ms)
-  ok (1 ms, recortado al tope)
-  ok (1 ms, recortado al tope)
-  ok (2 ms)
-~ limpiados 1 resultados antiguos: 4,3k -> 3,7k tokens
-~ conversación compactada: 3,7k -> 849 tokens
-Ready to continue or answer any specific questions about the code. What would you like to know?
-ctx 850/4,1k (21%)
-
-[end_turn] 3 turnos, 8 llamadas, 3512 tokens de entrada, 529 de salida
-```
-
-Se ven los tres escalones. Varios resultados llevan la marca «recortado al tope»; después aparece `limpiados 1 resultados antiguos: 4,3k -> 3,7k tokens`, y a continuación `conversación compactada: 3,7k -> 849 tokens`. El contexto pasó de rozar la ventana a un 21 %.
-
-Hay que contar lo que no sale bien. Tras compactar, el modelo contestó «Ready to continue or answer any specific questions about the code» en vez de decir cuál de los ocho ficheros era el más largo, que era lo que quedaba pendiente. El resumen no bastó para que un modelo de 7B retomara la tarea.
-
-Y esta ejecución es una de muchas. Con ese prompt hice 14 ejecuciones: el tope se vio en 10, la limpieza en 3, la compactación en 5 y los tres escalones a la vez en 3; ninguna acabó en `context_overflow` y 3 no leyeron ningún fichero. En total fueron 28 ejecuciones con tres prompts, y con los otros dos no se llegó a activar nada o solo la compactación. Con una ventana real de 4.096, la compactación salta antes que la limpieza salvo que haya más de seis resultados que limpiar. Con otro modelo u otra ejecución, cambia. Son ejecuciones representativas, no garantías.
 
 ## Lo que sobrevive: AGENTS.md
 
