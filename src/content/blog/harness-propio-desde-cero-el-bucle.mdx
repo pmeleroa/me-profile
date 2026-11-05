@@ -1,0 +1,408 @@
+---
+title: "Un harness propio desde cero: el bucle y cómo falla"
+description: "Segunda guía de la serie Asistente de código local: construye un harness de solo lectura para entender qué ofrece a los agentes y a las skills que corren dentro, y cómo falla su bucle."
+publishDate: 2026-11-04
+category: "Guía"
+tags: ["harness", "agentes", "llm-local", "ollama", "herramientas-dev"]
+image: "/images/blog/harness-propio-desde-cero-el-bucle.webp"
+draft: false
+series:
+  id: asistente-codigo-local
+  part: 2
+---
+
+Un modelo solo genera texto. Todo lo demás lo hace el programa que lo rodea, el **harness**: decide qué herramientas existen, valida cada llamada, ejecuta lo que el modelo pide, le devuelve el resultado y decide cuándo parar. Esta guía es la segunda de la serie *Asistente de código local*. En la [primera](/blog/ollama-primeros-pasos-asistente-de-codigo-local) quedó un harness plano: un `curl` que manda un mensaje a un modelo y lee su respuesta.
+
+Aquí construimos la pieza central del harness: **el bucle**. El motivo de construir un harness no es tener uno propio que sustituya a otros, sino **entender cómo funcionan los harness y qué capacidades ofrecen** a lo que se ejecuta dentro de ellos: los agentes y las skills. Los agentes no viven solos: se ejecutan dentro de un harness, y es el harness el que les da las herramientas, valida lo que piden y decide cuándo paran. Visto desde fuera parece magia. Diseccionarlo y construirlo desde cero es la forma más directa de ver qué hace el modelo y qué hace el programa que lo rodea, y de comprobar con evidencia propia hasta dónde llega, en lugar de suponerlo.
+
+Y lo primero que se ve es que el bucle de un harness cabe en pocas líneas. Hay tutoriales de «tu agente en 50 líneas» de sobra. Lo que requiere diseño, y lo que más enseña sobre lo que ofrece un harness, es lo que esos tutoriales no cuentan: **cómo termina y cómo falla**.
+
+Una aclaración sobre el post anterior: el `curl` a `/api/chat` era una aproximación. El harness habla con `/v1/chat/completions`, el formato de chat completions que Ollama también expone y que entienden muchos otros servidores. El post 1 no cambia: aquel `curl` sigue sirviendo para probar el modelo.
+
+Para entenderlo construimos un harness de **solo lectura**: con él, el modelo responde preguntas sobre un repositorio pequeño, leyéndolo. Con streaming, un contrato de inferencia con un adaptador, dos herramientas (`Read` y `Glob`) y finales explícitos. Escribir ficheros, ejecutar comandos, permisos, gestión del contexto y MCP quedan para las siguientes partes.
+
+## Prerrequisitos y clonado
+
+Los comandos son para una terminal Linux, y son idénticos en macOS. En Windows, usa WSL2 ([guía de instalación de Microsoft](https://learn.microsoft.com/es-es/windows/wsl/install)). Necesitas:
+
+- Node.js 22 o superior y npm.
+- [ripgrep](https://github.com/BurntSushi/ripgrep#installation) (`rg`) en el `PATH`: lo usa `Glob`.
+- Ollama en marcha. Si no lo tienes, la [primera guía](/blog/ollama-primeros-pasos-asistente-de-codigo-local) explica cómo instalarlo.
+
+Los ejemplos usan `qwen2.5:7b`. No es una recomendación: es el modelo con el que he comprobado el harness, y es distinto de `qwen2.5-coder:7b` del post 1, que no he probado con herramientas. El modelo es un parámetro (`--model` o `HARNESS_MODEL`), así que puedes cambiarlo.
+
+```bash
+ollama pull qwen2.5:7b
+git clone --branch parte-2 https://github.com/pmeleroa/lab-harness-local.git
+cd lab-harness-local
+npm install
+npm test
+```
+
+El repositorio es [pmeleroa/lab-harness-local](https://github.com/pmeleroa/lab-harness-local/tree/parte-2) y todos los enlaces de esta guía apuntan al tag `parte-2`. Crecerá parte a parte, con un tag por post. `npm test` no necesita modelo: usa un proveedor simulado, y es la forma de provocar los fallos que veremos al final.
+
+## Arquitectura
+
+<figure style={{margin: "2rem 0"}}>
+  <div role="img" aria-label="Diagrama de capas, de arriba abajo: la CLI llama al bucle del harness; el bucle usa las herramientas Read y Glob y el contrato Provider; el contrato lo implementa el adaptador de chat completions, que habla con Ollama, opcionalmente a través de un gateway." style={{display: "flex", flexDirection: "column", alignItems: "stretch", gap: "0.4rem", maxWidth: "28rem", marginInline: "auto"}}>
+    <div style={{border: "1px solid var(--color-border-2)", borderRadius: "6px", padding: "0.6rem 0.9rem", background: "var(--color-surface)"}}>
+      <strong style={{color: "var(--color-text)"}}>CLI</strong>
+      <div style={{fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--color-text)"}}>src/cli.ts</div>
+    </div>
+    <div aria-hidden="true" style={{textAlign: "center", color: "var(--color-text)"}}>↓ eventos y resultado</div>
+    <div style={{border: "1px solid var(--color-accent)", borderRadius: "6px", padding: "0.6rem 0.9rem", background: "var(--color-accent-glow)"}}>
+      <strong style={{color: "var(--color-text)"}}>Bucle del harness</strong>
+      <div style={{fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--color-text)"}}>src/core/loop.ts</div>
+    </div>
+    <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem"}}>
+      <div style={{border: "1px solid var(--color-border-2)", borderRadius: "6px", padding: "0.5rem 0.7rem", background: "var(--color-surface)"}}>
+        <strong style={{color: "var(--color-text)"}}>Herramientas</strong>
+        <div style={{fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--color-text)"}}>Read · Glob</div>
+      </div>
+      <div style={{border: "1px solid var(--color-border-2)", borderRadius: "6px", padding: "0.5rem 0.7rem", background: "var(--color-surface)"}}>
+        <strong style={{color: "var(--color-text)"}}>Contrato</strong>
+        <div style={{fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--color-text)"}}>Provider</div>
+      </div>
+    </div>
+    <div aria-hidden="true" style={{textAlign: "center", color: "var(--color-text)"}}>↓ lo implementa</div>
+    <div style={{border: "1px solid var(--color-border-2)", borderRadius: "6px", padding: "0.6rem 0.9rem", background: "var(--color-surface)"}}>
+      <strong style={{color: "var(--color-text)"}}>Adaptador</strong>
+      <div style={{fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--color-text)"}}>/v1/chat/completions · SSE</div>
+    </div>
+    <div aria-hidden="true" style={{textAlign: "center", color: "var(--color-text)"}}>↓</div>
+    <div style={{border: "1px dashed var(--color-border-2)", borderRadius: "6px", padding: "0.6rem 0.9rem"}}>
+      <strong style={{color: "var(--color-text)"}}>Gateway (opcional)</strong>
+      <div style={{fontSize: "0.8rem", color: "var(--color-text)"}}>fuera del harness</div>
+    </div>
+    <div aria-hidden="true" style={{textAlign: "center", color: "var(--color-text)"}}>↓</div>
+    <div style={{border: "1px solid var(--color-border-2)", borderRadius: "6px", padding: "0.6rem 0.9rem", background: "var(--color-surface)"}}>
+      <strong style={{color: "var(--color-text)"}}>Ollama</strong>
+      <div style={{fontSize: "0.8rem", color: "var(--color-text)"}}>el modelo</div>
+    </div>
+  </div>
+  <figcaption style={{marginTop: "1rem", fontSize: "0.85rem", color: "var(--color-text)"}}>Las capas del harness. El bucle solo conoce el contrato <code>Provider</code>: no sabe si detrás hay Ollama, un gateway o un proveedor simulado.</figcaption>
+</figure>
+
+La regla de diseño es una sola: **el bucle depende del contrato, no del servidor**. Eso permite probar el bucle sin modelo y cambiar de servidor sin tocarlo.
+
+Entre el adaptador y Ollama puede haber un gateway como LiteLLM: un proxy que expone una API de chat completions delante de uno o varios servidores de modelos. Queda fuera del harness. Si lo tienes, en principio basta con apuntar `--base-url` a él, porque el adaptador solo necesita una URL; no lo he probado en esta guía y no hace falta para seguirla.
+
+## El contrato de inferencia y el adaptador
+
+Cada servidor de modelos habla a su manera. Para que el bucle no tenga que saberlo, el harness define un **contrato de inferencia**: una especie de enchufe estándar. El bucle solo pide «dame la respuesta a esta conversación», y le da igual qué haya detrás: Ollama, un gateway o un modelo de mentira para los tests.
+
+El contrato está en [`src/providers/canonical.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/src/providers/canonical.ts). Un proveedor recibe la petición y devuelve la respuesta poco a poco, como una lista de eventos: los trozos de texto a medida que se generan, el aviso de que el modelo quiere usar una herramienta y un evento final con el mensaje completo y el motivo de parada.
+
+```ts
+export type ProviderEvent =
+  | { t: "text_delta"; text: string }
+  | { t: "tool_use_start"; id: string; name: string }
+  | { t: "message_end"; message: Message; stopReason: StopReason; usage: Usage };
+
+export interface ProviderCapabilities {
+  cache: boolean;
+  parallelTools: boolean;
+  contextWindow: number;
+}
+
+export interface Provider {
+  readonly id: string;
+  readonly capabilities: ProviderCapabilities;
+  /** Debe terminar siempre con exactamente un `message_end` o lanzar. */
+  stream(req: CanonicalRequest, signal: AbortSignal): AsyncIterable<ProviderEvent>;
+}
+```
+
+Fíjate en el comentario de `stream`: la respuesta debe terminar siempre con **exactamente un** evento final (`message_end`) o fallar con un error. Es la señal con la que el bucle sabe que el turno ha acabado, así que el proveedor tiene que cumplirla siempre.
+
+### El adaptador
+
+Si el contrato es el enchufe, el adaptador es el **traductor**: convierte lo que pide el bucle al formato que entiende el servidor y devuelve la respuesta en el formato del contrato. Está en [`src/providers/openai.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/src/providers/openai.ts). Habla con `/v1/chat/completions`, pide la respuesta por trozos (`stream: true`) y no usa ninguna librería externa.
+
+Lo más delicado de traducir son las **llamadas a herramientas**: el momento en que el modelo no responde con texto, sino que dice «quiero leer este fichero». Cada servidor las envía a su manera. En mi comprobación con Ollama 0.40.14 y `qwen2.5:7b`, la llamada llega entera de una vez, con su identificador y su posición, y el servidor avisa al final de que lo que toca es ejecutar herramientas. Pero otros servidores pueden enviarla troceada en varios mensajes, o sin identificador, y no todos avisan igual del final. No los he comprobado. El adaptador está escrito para tolerar esas variantes, y [`test/openai.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/test/openai.test.ts) lo prueba con respuestas simuladas: llamada completa sin identificador ni posición, llamada troceada y final con `stop` aunque haya llamadas.
+
+De recomponer esas piezas se encarga `ChunkAccumulator`, en el mismo fichero. Va recogiendo los trozos que llegan y le entrega al bucle siempre lo mismo, venga del servidor que venga.
+
+```ts
+    for (const tc of d.tool_calls ?? []) {
+      let i = tc.index ?? this.calls.length;
+      // Un id nuevo en un índice ya ocupado es otra llamada (servidores que mandan todo con index 0).
+      if (tc.id && this.calls[i]?.id && this.calls[i]!.id !== tc.id) i = this.calls.length;
+      const call = (this.calls[i] ??= { id: "", name: "", args: "", started: false });
+      if (tc.id) call.id = tc.id;
+      if (tc.function?.name) call.name ||= tc.function.name;
+      if (tc.function?.arguments) call.args += tc.function.arguments;
+      if (!call.started && call.name) {
+        // Hay servidores que no mandan id: se inventa uno estable para emparejar el resultado.
+        call.id ||= `call_${i}_${Math.random().toString(36).slice(2, 10)}`;
+        call.started = true;
+        yield { t: "tool_use_start", id: call.id, name: call.name };
+      }
+    }
+```
+
+Lo que hace ese código, en cuatro ideas:
+
+- Si el servidor no dice la posición de la llamada, se usa el orden de llegada.
+- Si llega un identificador nuevo donde ya había otra llamada, se trata como una llamada distinta.
+- Si no hay identificador, se inventa uno, para poder unir después el resultado con su llamada.
+- La llamada se anuncia en cuanto se sabe qué herramienta es, sin esperar a que lleguen todos sus datos.
+
+Queda una limitación que retomaremos en la siguiente parte: por esta vía no se puede indicar, en cada petición, cuánto texto puede tener presente el modelo (su ventana de contexto). La [documentación de Ollama](https://docs.ollama.com/api/openai-compatibility) lo dice así: la API compatible no tiene forma de fijar el tamaño del contexto de un modelo.
+
+## El bucle
+
+El bucle es un método, `Agent.run`. La clase se llama `Agent`, pero el bucle es trabajo del harness: el modelo solo genera el texto de cada turno. Añade el prompt del usuario y repite cuatro pasos hasta que algo lo detiene:
+
+1. Llamar al modelo y emitir su texto en streaming.
+2. Si no pidió herramientas, terminar.
+3. Si las pidió, ejecutarlas y devolverle **todos** los resultados.
+4. Comprobar si el modelo está atascado.
+
+El código de los pasos 2 a 4 es este:
+
+```ts
+      // 2. ¿Terminó?
+      const calls = toolUses(assistant);
+      if (calls.length === 0) {
+        if (stopReason === "max_tokens") return end("max_tokens", turn);
+        if (stopReason === "refusal") return end("refusal", turn);
+        return end("end_turn", turn);
+      }
+
+      // 3. Herramientas. Todo tool_use recibe su tool_result, pase lo que pase.
+      toolCalls += calls.length;
+      this.setState("executing_tools");
+      const results = await this.executeCalls(calls, signal);
+      this.pushUser(results);
+
+      if (signal.aborted) return end("aborted", turn);
+      if (toolCalls >= this.cfg.maxToolCalls) return end("max_tool_calls", turn);
+
+      // 4. Circuit breaker
+      for (const [i, r] of results.entries()) {
+        const key = `${calls[i]!.name}:${stableStringify(calls[i]!.input)}`;
+        if (r.is_error) failures.set(key, (failures.get(key) ?? 0) + 1);
+        else failures.delete(key);
+        if ((failures.get(key) ?? 0) >= this.cfg.maxRepeatedFailures) {
+          this.emit({ t: "warning", message: `Stopping: ${calls[i]!.name} failed ${this.cfg.maxRepeatedFailures} times with the same input.` });
+          return end("repeated_failure", turn);
+        }
+      }
+    }
+    return end("max_turns", this.cfg.maxTurns);
+```
+
+Hay tres decisiones que no se ven en un tutorial de 50 líneas:
+
+- **Toda llamada recibe su resultado**, pase lo que pase: el modelo espera un `tool_result` por cada `tool_use`, y un hueco rompe la conversación.
+- **Los límites son parte del bucle**: `maxTurns` y `maxToolCalls` evitan un bucle infinito.
+- **Cada final tiene nombre**: `run` devuelve un `reason`, no un booleano. Lo vemos en «Cómo termina».
+
+### Ejecutarlo con un modelo
+
+Con Ollama en marcha, pregunta sobre el repositorio de demostración, `examples/demo`, un carrito de la compra de juguete con tres ficheros pequeños:
+
+```bash
+npm run dev -- --workspace examples/demo "¿A partir de qué importe se aplica descuento y en qué fichero está esa regla?"
+```
+
+El harness imprime cada llamada a herramienta por la salida de error, y la respuesta por la salida estándar. Esta es una ejecución real, guardada en el repositorio:
+
+```text
+workspace: <repo>/examples/demo
+modelo: qwen2.5:7b
+
+Vamos a buscar primero en qué fichero está la regla de descuentos utilizando un patrón amplio.
+
+> Glob {"pattern":"*.ts"}
+  ok (16 ms)
+Vamos a revisar los archivos `src/cart.ts`, `src/pricing.ts`, y `test/pricing.test.ts` para encontrar la regla de descuentos.
+
+Primero, veamos el archivo `src/pricing.ts`:
+
+> Read {"file_path":"src/pricing.ts"}
+  ok (2 ms)
+La regla de descuento se encuentra en el archivo `src/pricing.ts`. Se aplica un descuento del 10% para pedidos de 100 EUR o más (antes de impuestos).
+
+El descuento se aplica a partir de un importe de 100 EUR. La lógica para aplicar el descuento está en la función `applyDiscount`, que se define en líneas 4 a 9 del archivo.
+
+[end_turn] 3 turnos, 2 llamadas, 197 tokens de entrada, 215 de salida
+```
+
+Cuatro cosas que ver ahí: el modelo pide `Glob` y luego `Read`; cada llamada tiene su `ok`; la respuesta llega en streaming, y la línea final lleva el motivo, `end_turn`, los turnos y los tokens.
+
+Una advertencia sobre un modelo de 7B: **no responde igual en cada ejecución**. En mis pruebas, la primera versión del system prompt solo decía que `Glob` busca por nombre, y el modelo se rendía con frecuencia: buscaba `descuento` en los nombres de fichero, no encontraba nada y pedía más detalles. De 10 ejecuciones, 5 acertaron. Añadí una línea, «si un Glob no encuentra nada, amplía el patrón», y con ella acertaron 6 de 6 con la ventana por defecto y 5 de 6 con 4096. El fallo que queda es el mismo. Son pocas ejecuciones y un solo modelo: no es una medida de calidad, es una ilustración de que **el texto que lee el modelo es parte del diseño**. Es el tipo de cosa que solo se ve al construirlo: qué parte del comportamiento es del modelo y qué parte es del harness. Y de que `end_turn` no significa «correcto»: significa que el modelo dejó de pedir herramientas. Las salidas completas están en [examples/salidas](https://github.com/pmeleroa/lab-harness-local/tree/parte-2/examples/salidas).
+
+El repositorio de demostración está diseñado para caber en 4.096 tokens de contexto, y en mis pruebas respondió bien con esa ventana. Puedes comprobarlo arrancando un servidor aparte con ella y apuntando el harness a él:
+
+```bash
+OLLAMA_CONTEXT_LENGTH=4096 OLLAMA_HOST=127.0.0.1:11435 ollama serve
+```
+
+```bash
+npm run dev -- --workspace examples/demo --base-url http://127.0.0.1:11435/v1 "¿A partir de qué importe se aplica descuento y en qué fichero está esa regla?"
+```
+
+`OLLAMA_HOST=127.0.0.1:11435 ollama ps` muestra la ventana en uso. La [documentación de Ollama](https://docs.ollama.com/context-length) explica la variable `OLLAMA_CONTEXT_LENGTH` y la ventana por defecto.
+
+## Las herramientas
+
+Una herramienta es un nombre, una descripción que lee el modelo, un esquema de entrada y una función. Lo que importa de este contrato es qué pasa cuando algo sale mal. El modelo se equivoca con frecuencia: inventa herramientas, manda argumentos que no cumplen el esquema. Nada de eso debe tumbar el bucle, así que el registro valida y **devuelve el error al modelo** para que se corrija:
+
+```ts
+  /** Valida el input del modelo. El error vuelve al modelo como tool_result para que se corrija. */
+  parse(name: string, rawInput: unknown): ParsedCall {
+    const tool = this.tools.get(name);
+    if (!tool) return { ok: false, error: `Unknown tool: ${name}. Available tools: ${this.names().join(", ")}` };
+    const r = tool.schema.safeParse(rawInput);
+    if (!r.success) {
+      const issues = r.error.issues.map((i) => `- ${i.path.join(".") || "(root)"}: ${i.message}`).join("\n");
+      return { ok: false, error: `Invalid input for ${name}:\n${issues}` };
+    }
+    return { ok: true, tool, input: r.data };
+  }
+```
+
+Es lo que prueban `test/tools.test.ts` y el último grupo de `test/loop.test.ts`: un input inválido y una herramienta que no existe vuelven como `tool_result` con `is_error`, y el run continúa.
+
+### Un límite de workspace
+
+Un harness de solo lectura no es inofensivo. Sin más, `Read` podría leer `~/.ssh` por decisión del modelo, y el repositorio que le dejas leer puede contener instrucciones maliciosas escritas para él. Por eso `Read` y `Glob` rechazan cualquier ruta que salga del workspace, tras resolver los enlaces simbólicos con `realpath`:
+
+```ts
+  workspace: string,
+  p: string,
+): Promise<{ ok: true; path: string } | { ok: false; error: ToolOutput }> {
+  const abs = resolvePath(workspace, p);
+  const root = await realpath(workspace);
+  const real = await realpath(abs).catch(() => null);
+  const inside = real ? isInside(root, real) : isInside(root, abs) || isInside(workspace, abs);
+  if (!inside) return { ok: false, error: { content: `Path is outside the workspace: ${p}`, isError: true } };
+  return { ok: true, path: real ?? abs };
+}
+
+/** Recorta salidas largas conservando cabeza y cola, que es donde suele estar la señal. */
+export function truncateMiddle(s: string, maxChars: number): string {
+  if (s.length <= maxChars) return s;
+  const head = Math.floor(maxChars * 0.6);
+  const tail = maxChars - head;
+```
+
+El rechazo vuelve al modelo como un error normal. Los tests lo comprueban con `../`, una ruta absoluta externa, `~` y enlaces simbólicos a un fichero y a un directorio de fuera.
+
+Esto **no es el modelo de permisos** del harness. Es el mínimo para que una herramienta de solo lectura no salga del repositorio. Los permisos de verdad, con confirmaciones y reglas, llegan cuando el harness permita escribir y ejecutar.
+
+## Cómo termina
+
+Este es el contenido que más me interesa. Un run no «acaba»: **termina por un motivo**, y cada motivo significa algo distinto para quien lo llama. `RunResult.reason` puede ser:
+
+| Motivo | Significa |
+|---|---|
+| `end_turn` | El modelo respondió sin pedir más herramientas. |
+| `max_turns` | Se agotaron los turnos del run. |
+| `repeated_failure` | La misma llamada falló tres veces seguidas. |
+| `empty_response` | El modelo no devolvió ni texto ni llamada, tampoco tras avisarle. |
+
+El código tiene además `max_tokens` y `error`, que son los que evitan presentar como normal lo que no lo es: sin ellos, una respuesta truncada por el tope de tokens, o Ollama parado, se verían como un final cualquiera. Hay tres más, `aborted`, `max_tool_calls` y `refusal`, que cubren la cancelación, el tope de llamadas y el rechazo del proveedor.
+
+El problema para enseñarlos es que **un modelo real no los reproduce de forma fiable**. Por eso el repositorio tiene un proveedor simulado, `test/fake-provider.ts`, que cumple el mismo contrato y devuelve lo que diga un guion:
+
+```ts
+export class FakeProvider implements Provider {
+  readonly id = "fake";
+  readonly capabilities = { cache: false, parallelTools: true, contextWindow: 100_000 };
+  readonly requests: CanonicalRequest[] = [];
+  private turn = 0;
+
+  constructor(private script: Script) {}
+
+  async *stream(req: CanonicalRequest, _signal: AbortSignal): AsyncIterable<ProviderEvent> {
+    // Copia profunda: el loop muta `messages` después.
+    this.requests.push(structuredClone(req));
+    const { content, stopReason } = this.script(req, ++this.turn);
+    for (const b of content) if (b.type === "text") yield { t: "text_delta", text: b.text };
+    const message: Message = { role: "assistant", content };
+    const hasTools = content.some((b) => b.type === "tool_use");
+    yield {
+      t: "message_end",
+      message,
+      stopReason: stopReason ?? (hasTools ? "tool_use" : "end_turn"),
+      usage: { inputTokens: 10, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0 },
+    };
+  }
+}
+```
+
+Con él, cada fallo es determinista. Un modelo que nunca termina:
+
+```ts
+  it("corta un modelo que nunca termina", async () => {
+    // Cada turno pide un fichero distinto para no activar el circuit breaker.
+    const { agent } = setup((_req, turn) => ({ content: [use(`c${turn}`, "Glob", { pattern: `*${turn}.ts` })] }), { maxTurns: 3 });
+    const r = await agent.run("busca");
+    expect(r).toMatchObject({ reason: "max_turns", turns: 3, toolCalls: 3 });
+    expectEveryCallAnswered(agent.messages);
+  });
+});
+```
+
+Un modelo atascado, que repite la misma llamada que falla:
+
+```ts
+  it("para cuando la misma llamada falla tres veces seguidas", async () => {
+    const { agent, events } = setup((_req, turn) => ({ content: [use(`c${turn}`, "Read", { file_path: "no-existe.txt" })] }));
+    const r = await agent.run("lee");
+    expect(r).toMatchObject({ reason: "repeated_failure", turns: 3, toolCalls: 3 });
+    expect(events.some((e) => e.t === "warning")).toBe(true);
+    expectEveryCallAnswered(agent.messages);
+  });
+```
+
+Y un modelo que devuelve una respuesta vacía, que puede ser una llamada a una herramienta que el servidor no supo interpretar y descartó. El bucle no guarda ese mensaje, porque ninguna API acepta un mensaje de asistente sin contenido. Le explica una vez qué herramientas existen y lo reintenta; si vuelve a pasar, termina con `empty_response`:
+
+```ts
+  it("reintenta una vez con feedback y, si vuelve a pasar, termina", async () => {
+    const { agent, provider, events } = setup(() => ({ content: [] }));
+    const r = await agent.run("hola");
+    expect(r.reason).toBe("empty_response");
+    expect(r.turns).toBe(2);
+    expect(r.error).toContain("Empty response again");
+    expect(events.filter((e) => e.t === "warning")).toHaveLength(1);
+    // El feedback le dice qué herramientas existen.
+    expect(JSON.stringify(provider.requests[1]!.messages)).toContain("The only tools you can call are: Read, Glob");
+  });
+```
+
+Ejecuta los tests con `npm test`. Con el detalle de los finales:
+
+```bash
+npx vitest run test/loop.test.ts --reporter=verbose
+```
+
+Hay un test para cada final de la tabla, y otro que comprueba que toda llamada recibe su resultado. Fíjate en lo que demuestra el proveedor simulado además de los fallos: **el bucle no cambia al sustituir al modelo**. Es el contrato haciendo su trabajo.
+
+## Lo que falta
+
+En el [post 1](/blog/ollama-primeros-pasos-asistente-de-codigo-local) quedó una lista de carencias de un harness plano. Esta parte resuelve el **bucle agéntico**: el modelo ya decide qué herramienta usar, ve el resultado y sigue. Resuelve a medias las **herramientas**, porque solo leen. Y avanza en otras dos: el **contexto propio**, ya que el modelo puede leer tu repositorio, y la **salida estructurada**, porque el esquema de cada herramienta valida lo que el modelo manda y devuelve el error si no cumple. Lo demás sigue pendiente.
+
+El límite más cercano está en la propia conversación. Cada turno añade al historial el texto del modelo y los resultados de las herramientas, y todo eso se envía de nuevo en la siguiente petición. En un repositorio de juguete cabe en 4.096 tokens. En uno real, no: la conversación crece hasta llenar el contexto, y el bucle de esta guía no hace nada al respecto.
+
+Estas son las capacidades que quedan por construir, en el orden en que pienso abordarlas. Es una proyección orientativa: sin fechas, y el orden o el reparto en posts puede cambiar al construirlas.
+
+- **Contexto**: la ventana, el historial y qué hacer cuando la conversación la llena (recortar, limpiar resultados antiguos y resumir), más las instrucciones del proyecto que el modelo lee al empezar.
+- **Escritura y permisos**: herramientas para buscar y editar ficheros, y un sistema de permisos con reglas y confirmaciones.
+- **Ejecución y seguridad**: ejecutar comandos, también en segundo plano, y un sandbox que limite lo que pueden tocar, frente a la inyección de instrucciones y la fuga de secretos.
+- **Extensibilidad**: skills, hooks sobre cada herramienta y MCP, para incorporar herramientas estándar sin programarlas a mano, incluida la autenticación de servidores remotos.
+- **Delegación**: subagentes, otro bucle con otras herramientas del que al principal solo vuelve un informe.
+- **Sesiones y evaluación**: transcripciones que se retoman y se reproducen, el registro de lo que hizo el agente y evaluaciones contra modelos reales.
+- **Interfaz e integración**: una interfaz de terminal completa y un modo sin interfaz para scripts y CI, para que el harness viva en tu flujo de trabajo.
+
+Cómo decidir qué se guarda, qué se resume y qué se tira es el tema de la siguiente parte. Antes, repasa lo esencial de esta:
+
+- **Construirlo es entenderlo**: separa lo que hace el modelo, que genera texto, de lo que hace el harness, que lo ejecuta todo y decide cuándo parar.
+- **El bucle cabe en un método**: llamar al modelo, ejecutar herramientas, devolver todos los resultados.
+- **Lo que requiere diseño son los finales**: cada motivo de parada tiene nombre y se puede probar.
+- **El contrato aísla al bucle del servidor**: por eso se prueba con un proveedor simulado.
+- **Los errores de las herramientas vuelven al modelo**: no tumban el bucle.
+- **Un harness de solo lectura también necesita un límite**: el workspace.
