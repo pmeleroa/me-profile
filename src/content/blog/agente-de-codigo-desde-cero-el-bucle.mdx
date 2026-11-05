@@ -1,6 +1,6 @@
 ---
 title: "Un agente de código desde cero: el bucle y cómo falla"
-description: "Segunda guía de la serie Asistente de código local: construye un agente de solo lectura con streaming, un contrato de inferencia y dos herramientas, y provoca a voluntad cómo termina y cómo falla su bucle sin depender de que el modelo se equivoque."
+description: "Segunda guía de la serie Asistente de código local: construye un agente de solo lectura con streaming, un contrato de inferencia y dos herramientas para entender cómo funciona por dentro y hasta dónde llega, y provoca a voluntad cómo termina y cómo falla su bucle."
 publishDate: 2026-11-04
 category: "Guía"
 tags: ["agentes", "llm-local", "ollama", "herramientas-dev"]
@@ -12,11 +12,13 @@ series:
 
 Un modelo solo genera texto. Todo lo demás lo hace el programa que lo rodea, el **harness**: decide qué herramientas existen, valida cada llamada, ejecuta lo que el modelo pide, le devuelve el resultado y decide cuándo parar. Esta guía es la segunda de la serie *Asistente de código local*. En la [primera](/blog/ollama-primeros-pasos-asistente-de-codigo-local) quedó un harness plano: un `curl` que manda un mensaje a un modelo y lee su respuesta.
 
-Aquí construimos la pieza central: **el bucle**. Y la tesis es que el bucle de un agente cabe en pocas líneas. Hay tutoriales de «tu agente en 50 líneas» de sobra. Lo que requiere diseño es lo que esos tutoriales no cuentan: **cómo termina y cómo falla**.
+Aquí construimos la pieza central: **el bucle**. El motivo de implementarlo no es tener un agente propio que sustituya a otros, sino **entender cómo funcionan por dentro y cuáles son sus capacidades y sus límites**. Visto desde fuera, un agente de código parece magia. Construirlo es la forma más directa de ver qué hace el modelo y qué hace el programa que lo rodea, y de comprobar con evidencia propia hasta dónde llega, en lugar de suponerlo.
+
+Y lo primero que se ve es que el bucle de un agente cabe en pocas líneas. Hay tutoriales de «tu agente en 50 líneas» de sobra. Lo que requiere diseño, y lo que más enseña sobre sus capacidades, es lo que esos tutoriales no cuentan: **cómo termina y cómo falla**.
 
 Una aclaración sobre el post anterior: el `curl` a `/api/chat` era una aproximación. El harness habla con `/v1/chat/completions`, el formato de chat completions que Ollama también expone y que entienden muchos otros servidores. El post 1 no cambia: aquel `curl` sigue sirviendo para probar el modelo.
 
-Construimos un agente de **solo lectura**: responde preguntas sobre un repositorio pequeño, leyéndolo. Con streaming, un contrato de inferencia con un adaptador, dos herramientas (`Read` y `Glob`) y finales explícitos. Escribir ficheros, ejecutar comandos, permisos, gestión del contexto y MCP quedan para las siguientes partes.
+Para entenderlo construimos un agente de **solo lectura**: responde preguntas sobre un repositorio pequeño, leyéndolo. Con streaming, un contrato de inferencia con un adaptador, dos herramientas (`Read` y `Glob`) y finales explícitos. Escribir ficheros, ejecutar comandos, permisos, gestión del contexto y MCP quedan para las siguientes partes.
 
 ## Prerrequisitos y clonado
 
@@ -218,7 +220,7 @@ El descuento se aplica a partir de un importe de 100 EUR. La lógica para aplica
 
 Cuatro cosas que ver ahí: el modelo pide `Glob` y luego `Read`; cada llamada tiene su `ok`; la respuesta llega en streaming, y la línea final lleva el motivo, `end_turn`, los turnos y los tokens.
 
-Una advertencia sobre un modelo de 7B: **no responde igual en cada ejecución**. En mis pruebas, la primera versión del system prompt solo decía que `Glob` busca por nombre, y el modelo se rendía con frecuencia: buscaba `descuento` en los nombres de fichero, no encontraba nada y pedía más detalles. De 10 ejecuciones, 5 acertaron. Añadí una línea, «si un Glob no encuentra nada, amplía el patrón», y con ella acertaron 6 de 6 con la ventana por defecto y 5 de 6 con 4096. El fallo que queda es el mismo. Son pocas ejecuciones y un solo modelo: no es una medida de calidad, es una ilustración de que **el texto que lee el modelo es parte del diseño**. Y de que `end_turn` no significa «correcto»: significa que el modelo dejó de pedir herramientas. Las salidas completas están en [examples/salidas](https://github.com/pmeleroa/lab-harness-local/tree/parte-2/examples/salidas).
+Una advertencia sobre un modelo de 7B: **no responde igual en cada ejecución**. En mis pruebas, la primera versión del system prompt solo decía que `Glob` busca por nombre, y el modelo se rendía con frecuencia: buscaba `descuento` en los nombres de fichero, no encontraba nada y pedía más detalles. De 10 ejecuciones, 5 acertaron. Añadí una línea, «si un Glob no encuentra nada, amplía el patrón», y con ella acertaron 6 de 6 con la ventana por defecto y 5 de 6 con 4096. El fallo que queda es el mismo. Son pocas ejecuciones y un solo modelo: no es una medida de calidad, es una ilustración de que **el texto que lee el modelo es parte del diseño**. Es el tipo de cosa que solo se ve al construirlo: qué parte del comportamiento es del modelo y qué parte es del harness. Y de que `end_turn` no significa «correcto»: significa que el modelo dejó de pedir herramientas. Las salidas completas están en [examples/salidas](https://github.com/pmeleroa/lab-harness-local/tree/parte-2/examples/salidas).
 
 El repositorio de demostración está diseñado para caber en 4.096 tokens de contexto, y en mis pruebas respondió bien con esa ventana. Puedes comprobarlo arrancando un servidor aparte con ella y apuntando el agente a él:
 
@@ -374,6 +376,7 @@ Este agente ya hace algo útil, y su límite está en la propia conversación. C
 
 Cómo decidir qué se guarda, qué se resume y qué se tira es el tema de la siguiente parte de la serie. Antes, repasa lo esencial de esta:
 
+- **Construirlo es entenderlo**: separa lo que hace el modelo, que genera texto, de lo que hace el harness, que lo ejecuta todo y decide cuándo parar.
 - **El bucle cabe en un método**: llamar al modelo, ejecutar herramientas, devolver todos los resultados.
 - **Lo que requiere diseño son los finales**: cada motivo de parada tiene nombre y se puede probar.
 - **El contrato aísla al bucle del servidor**: por eso se prueba con un proveedor simulado.
