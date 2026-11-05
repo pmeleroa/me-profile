@@ -57,7 +57,8 @@
 
 ## 4. Post
 
-- [ ] 4.1 Cerrar con el autor título y slug, y preguntar por la imagen destacada; registrar respuestas. Si aporta imagen, convertirla con `sharp` a WebP de 1600×900 en `public/images/blog/<slug>.webp` y verificar formato, dimensiones y peso. Si no, verificar que se muestra el placeholder de marca
+- [x] 4.1 Cerrar con el autor título y slug, y preguntar por la imagen destacada; registrar respuestas. Si aporta imagen, convertirla con `sharp` a WebP de 1600×900 en `public/images/blog/<slug>.webp` y verificar formato, dimensiones y peso. Si no, verificar que se muestra el placeholder de marca
+  - Registro (2026-11-05): propuse dos opciones. Opción elegida: título «Compactar es lo fácil: lo difícil es saber que te quedaste sin sitio», slug `compactar-es-lo-facil` (respuesta literal del autor: «me gusta la alternativa. la imagen la dejamos para más adelante.»). Imagen destacada: aplazada; el post usa el placeholder de marca (sin `public/images/blog/compactar-es-lo-facil.webp`) hasta que el autor aporte una.
 - [ ] 4.2 Crear `src/content/blog/<slug>.mdx` con `category: "Guía"`, `series: { id: asistente-codigo-local, part: 3 }` y la estructura de `design.md`, con `draft: false` para QA real; verificar con `npm run build` sin errores y registrar el número de páginas. Rollback: `git checkout`/`git clean` del fichero
 - [ ] 4.3 Verificar las reglas de la serie sobre el MDX: `grep -n -i -E 'claude code|codex|cursor|copilot|privacidad|tu empresa|corporativ'` sin resultados, listas de una línea sin sublistas, comandos de Linux y referencia a WSL2; registrar la salida
 - [ ] 4.4 Comprobar que cada extracto de código existe literalmente en el tag `parte-3` y que cada enlace al repositorio apunta a ese tag; ejecutar los comandos del post en orden desde un clon limpio y registrar la salida. Cifras: solo de ejecuciones registradas aquí o de fuentes citadas, declarando cuántas ejecuciones son
