@@ -93,7 +93,7 @@ La página de serie SHALL mostrar una única lista ordenada por número de parte
 - **THEN** la página no muestra la nota de hoja de ruta orientativa
 
 ### Requirement: Metadatos, imagen y datos estructurados de la página de serie
-La página de serie SHALL incluir un breadcrumb visible `Inicio > Blog > <nombre de la serie>` (donde «Inicio» enlaza a `/`, «Blog» enlaza a `/blog` y el nombre de la serie es el elemento actual, sin enlace) y datos estructurados `BreadcrumbList` alineados con él, y datos estructurados `CollectionPage` cuyo contenido principal sea un `CreativeWorkSeries` con el nombre y la descripción de la serie. Las meta `description` y `og:description` SHALL usar la descripción de la serie. Cuando la serie define imagen, la cabecera de la página SHALL mostrarla y la meta `og:image` SHALL apuntar a ella; cuando no la define, la cabecera SHALL mostrar el marcador de posición de marca que usa la tarjeta de post sin imagen, y `og:image` SHALL usar la imagen por defecto del sitio. La imagen de la serie SHALL entregarse en un formato comprimido moderno (WebP o AVIF) y con dimensiones acordes a su mayor contexto de uso, que es `og:image` (1200x630).
+La página de serie SHALL incluir un breadcrumb visible `Inicio > Blog > Series > <nombre de la serie>` (donde «Inicio» enlaza a `/`, «Blog» enlaza a `/blog`, «Series» es texto sin enlace y el nombre de la serie es el elemento actual, sin enlace) y datos estructurados `BreadcrumbList` alineados con él, y datos estructurados `CollectionPage` cuyo contenido principal sea un `CreativeWorkSeries` con el nombre y la descripción de la serie. Las meta `description` y `og:description` SHALL usar la descripción de la serie. Cuando la serie define imagen, la cabecera de la página SHALL mostrarla y la meta `og:image` SHALL apuntar a ella; cuando no la define, la cabecera SHALL mostrar el marcador de posición de marca que usa la tarjeta de post sin imagen, y `og:image` SHALL usar la imagen por defecto del sitio. La imagen de la serie SHALL entregarse en un formato comprimido moderno (WebP o AVIF) y con proporción 2:1 (1774x887), mostrada completa a ancho completo en la cabecera.
 
 #### Scenario: Serie con imagen
 - **WHEN** se renderiza la página de una serie que define imagen
@@ -105,7 +105,7 @@ La página de serie SHALL incluir un breadcrumb visible `Inicio > Blog > <nombre
 
 #### Scenario: Datos estructurados de la serie
 - **WHEN** se solicita la página de la serie «Asistente de código local»
-- **THEN** los datos estructurados incluyen una `CollectionPage` cuyo contenido principal es un `CreativeWorkSeries` con ese nombre y su descripción, y un `BreadcrumbList` con Inicio, Blog y el nombre de la serie
+- **THEN** los datos estructurados incluyen una `CollectionPage` cuyo contenido principal es un `CreativeWorkSeries` con ese nombre y su descripción, y un `BreadcrumbList` con Inicio, Blog, Series y el nombre de la serie
 
 ### Requirement: Accesibilidad y adaptación de la página de serie
 La página de serie SHALL usar una jerarquía de encabezados coherente con un único `h1`, y la lista del contenido SHALL ser una lista ordenada. Sus enlaces SHALL tener foco visible y distinguirse del texto que los rodea sin depender solo del color. Su texto SHALL tener un contraste mínimo de 4.5:1 (WCAG 2.2 AA). SHALL funcionar sin scroll horizontal en anchos de 360px en adelante, incluso con títulos largos. Si la imagen de la serie acompaña al nombre de la serie, que ya es texto visible, SHALL tratarse como decorativa para tecnología de asistencia.
@@ -161,3 +161,27 @@ Cuando un post publicado pertenece a una serie, la página de artículo (`/blog/
 #### Scenario: Antetítulo ausente en las tarjetas
 - **WHEN** se renderiza la tarjeta de un post de serie en el listado de `/blog`, en la portada o en los artículos relacionados
 - **THEN** la tarjeta no muestra el nombre de la serie ni «Parte N», solo el badge de serie sobre la imagen
+
+### Requirement: Badge de serie en la tarjeta de post
+Toda tarjeta de post (listado de `/blog`, portada y artículos relacionados en `/blog/[slug]`) de un post que pertenece a una serie SHALL mostrar un badge con el texto «Serie» (en mayúsculas) superpuesto a la esquina superior izquierda de la imagen destacada, o del marcador de posición cuando el post no tiene imagen. El badge SHALL ser del mismo lenguaje visual que el del antetítulo del artículo (texto en color de acento, esquinas pequeñas, emoji decorativo oculto a tecnología de asistencia) y SHALL tener un fondo opaco, de modo que su texto mantenga un contraste mínimo de 4.5:1 (WCAG 2.2 AA) sea cual sea la imagen que tiene debajo. El badge SHALL ser un enlace a la página de la serie (`/blog/series/<id>`), distinto del enlace de la tarjeta al artículo y sin anidarse en él, con foco visible y sin subrayado; se distingue del resto de la tarjeta por su forma de badge (borde y fondo propios), sin depender solo del color. El badge no SHALL mostrar el nombre de la serie ni el número de parte. Las tarjetas de posts que no pertenecen a ninguna serie no SHALL mostrar el badge. El badge no SHALL alterar las dimensiones de la tarjeta.
+
+#### Scenario: Tarjeta de un post de serie
+- **WHEN** se renderiza en el listado de `/blog` o en la sección «Últimas ideas» de la portada la tarjeta de un post que declara una serie
+- **THEN** la tarjeta muestra sobre la esquina superior izquierda de la imagen el badge «Serie», con la misma altura de tarjeta que tendría sin él
+
+#### Scenario: Tarjeta de un post sin serie
+- **WHEN** se renderiza la tarjeta de un post que no declara serie
+- **THEN** la tarjeta no muestra el badge de serie
+
+#### Scenario: Badge sobre una imagen clara o recargada
+- **WHEN** la imagen destacada de un post de serie tiene zonas claras o con mucho detalle bajo la esquina del badge
+- **THEN** el texto del badge conserva un contraste de al menos 4.5:1, porque su fondo es opaco y no depende de la imagen
+
+#### Scenario: Acceso a la serie desde la tarjeta
+- **WHEN** un visitante activa el badge «Serie» de la tarjeta de un post de la serie «Asistente de código local»
+- **THEN** navega a `/blog/series/asistente-codigo-local` y no al artículo
+
+#### Scenario: Navegación con teclado en la tarjeta
+- **WHEN** un visitante recorre con Tab una tarjeta de un post de serie
+- **THEN** el enlace de la tarjeta y el badge reciben foco por separado, y el badge muestra un indicador de foco visible
+

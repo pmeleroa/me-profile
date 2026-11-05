@@ -1,5 +1,6 @@
 ---
 import BlogCard from './BlogCard.astro';
+import { seriesIdOf } from '../utils/series';
 import { readingTime } from '../utils/readingTime';
 
 interface Post {
@@ -51,7 +52,7 @@ const { posts } = Astro.props;
             slug={post.id}
             image={post.data.image}
             readingTimeMinutes={readingTime(post.body)}
-            inSeries={!!post.data.series}
+            seriesId={seriesIdOf(post)}
           />
         </div>
       ))}

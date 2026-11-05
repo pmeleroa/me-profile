@@ -15,6 +15,34 @@ export function getPublishedSeriesParts(publishedPosts: any[], seriesId: string)
     .sort((a, b) => a.data.series.part - b.data.series.part);
 }
 
+export interface SeriesOutlineItem {
+  part: number;
+  status: 'published' | 'planned';
+  title: string;
+  description: string;
+  href?: string;
+}
+
+// One item per position in the series' `parts` list (position = part number).
+// A published post wins over the registry data; drafts must already be
+// filtered out by the caller, so they are treated as if they did not exist.
+export function buildSeriesOutline(entry: any, publishedPosts: any[]): SeriesOutlineItem[] {
+  const seriesParts = getPublishedSeriesParts(publishedPosts, entry.id);
+  return entry.data.parts.map((def: { title: string; summary: string }, index: number) => {
+    const part = index + 1;
+    const post = seriesParts.find((p) => p.data.series.part === part);
+    return post
+      ? {
+          part,
+          status: 'published',
+          title: post.data.title,
+          description: post.data.description,
+          href: `/blog/${post.id}`,
+        }
+      : { part, status: 'planned', title: def.title, description: def.summary };
+  });
+}
+
 export async function validateSeriesIntegrity(publishedPosts: any[]) {
   const errors: string[] = [];
 
@@ -42,6 +70,16 @@ export async function validateSeriesIntegrity(publishedPosts: any[]) {
       const postIds = parts.map((p) => p.id).join(', ');
       errors.push(`Series "${seriesId}" referenced by posts [${postIds}] does not exist`);
       continue;
+    }
+
+    // Check published parts fall inside the series' parts list
+    const total = entry.data.parts.length;
+    for (const p of parts) {
+      if (p.part > total) {
+        errors.push(
+          `Series "${seriesId}" has ${total} parts, but post "${p.id}" declares part ${p.part}`
+        );
+      }
     }
 
     // Check for duplicate parts

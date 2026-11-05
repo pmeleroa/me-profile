@@ -17,7 +17,7 @@ Ver `proposal.md` - Why. Estado actual relevante:
 
 **Non-Goals:**
 - Filtro por serie o banda de series en `/blog` (se retoma con más de una serie).
-- Una página índice `/blog/series`. No se genera; el breadcrumb no la enlaza.
+- Una página índice `/blog/series`. No se genera; el tramo «Series» del breadcrumb es solo texto.
 - Cambiar tarjetas, `BlogPreview` o «Artículos relacionados».
 - Reescribir la hoja de ruta que publica el post 2 («Lo que falta»): solo gana un enlace a la página de la serie (decisión 9).
 - Editar `config.yaml` durante la implementación: su hoja de ruta se recorta al archivar (decisión 9).
@@ -48,17 +48,18 @@ Un helper nuevo en `utils/series.ts` (p. ej. `buildSeriesOutline(entry, publishe
 `getStaticPaths` devuelve `[]` si `sections.blog` está desactivado, igual que `/blog/[slug]`. Si no, calcula los ids de serie a partir de los posts publicados (`!draft`) y genera una página por cada uno; una serie sin partes publicadas no genera ruta y da 404.
 
 - **Alternativa:** generar una página por cada entrada del registro. Descartada: una serie solo con borradores publicaría una página vacía y expondría su existencia.
-- **Breadcrumb:** `Inicio > Blog > <nombre de la serie>`, empezando por «Inicio» como el breadcrumb del artículo. No se incluye «Series» porque no existe `/blog/series`, y un tramo sin destino sería un enlace muerto o un elemento incompleto en `BreadcrumbList`.
+- **Breadcrumb:** `Inicio > Blog > Series > <nombre de la serie>`, empezando por «Inicio» como el breadcrumb del artículo. «Series» es texto sin enlace, porque no existe `/blog/series`; en `BreadcrumbList` es un `ListItem` con `name` y sin `item`, igual que el elemento actual.
 
 ### 5. Enlaces desde el post
 - **Antetítulo** (`[slug].astro`): solo el nombre de la serie es un enlace a `/blog/series/<id>`; el badge «Serie» y «Parte N» siguen siendo texto. Se mantienen los estilos de foco visible y subrayado ya usados en `SeriesNav` para cumplir «distinguirse sin depender solo del color».
+- **Badge «Serie» de las tarjetas** (`BlogCard`): enlaza a `/blog/series/<id>`. Como la tarjeta entera es un `<a>`, el badge se renderiza como enlace hermano posicionado sobre la imagen (no puede anidarse) sin subrayado (se distingue por su borde y fondo de badge) y acompaña la elevación de la tarjeta al pasar el ratón. `BlogCard` recibe `seriesId` en lugar del booleano `inSeries`.
 - **`SeriesNav`**: nuevo enlace «Ver la serie completa» dentro del bloque existente, que recibe el `id` de la serie como prop nueva. No cambia la regla de visibilidad (2 o más partes publicadas).
 
 ### 6. Imagen de la serie y respaldos
 `image` es opcional en el schema. Se sirve como ruta raíz-relativa desde `public/images/series/<id>.webp`, igual que las imágenes de los posts, sin pasar por `astro:assets`.
 
 - **Justificación de servir desde `public/`:** la URL debe ser estable y absoluta para `og:image`, y el patrón ya es el del blog; no hay transformaciones por contexto que justifiquen la pipeline de imágenes.
-- **Formato (regla del proyecto):** WebP, 1200x630 (su mayor contexto de uso es `og:image`; en cabecera se muestra a un tamaño menor), con un peso en el orden de las imágenes actuales del blog (50-250 KB). Si se aporta un archivo en otro formato, se convierte antes de commitearlo.
+- **Formato (regla del proyecto):** WebP, 2:1 (1774x887), mostrada completa como banner en la cabecera (la escena de la serie es horizontal y pide ancho); `og:image` (1.91:1) apenas recorta los laterales. Peso en el orden de las imágenes actuales del blog (50-250 KB). Si se aporta un archivo en otro formato (p. ej. PNG), se convierte a WebP antes de commitearlo.
 - **Respaldos:** cabecera con el placeholder de marca (`logo.png`) como el de `BlogCard`; `og:image` con `/og-image.png`, el valor por defecto de `Layout`. Así la serie actual es válida aunque la imagen se aporte después.
 - **Alt:** la imagen acompaña al nombre de la serie, que es texto visible, por lo que se renderiza con `alt=""`.
 

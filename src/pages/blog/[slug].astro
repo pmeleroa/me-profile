@@ -157,7 +157,9 @@ const breadcrumbJsonLd = {
             <span class="article-series-badge">
               <span aria-hidden="true">📚</span> Serie
             </span>
-            <span class="article-series-name">{seriesData.data.title}</span>
+            <span class="article-series-name">
+              <a href={`/blog/series/${currentSeriesId}`}>{seriesData.data.title}</a>
+            </span>
             <span aria-hidden="true">·</span>
             <span class="article-series-part">Parte {post.data.series.part}</span>
           </p>
@@ -193,7 +195,7 @@ const breadcrumbJsonLd = {
 
     <!-- Series navigation -->
     {showSeriesNav && (
-      <SeriesNav seriesTitle={seriesData.data.title} parts={seriesParts} currentId={post.id} />
+      <SeriesNav seriesId={currentSeriesId!} seriesTitle={seriesData.data.title} parts={seriesParts} currentId={post.id} />
     )}
 
     <!-- Author bio -->
@@ -232,7 +234,7 @@ const breadcrumbJsonLd = {
                 slug={p.id}
                 image={p.data.image}
                 readingTimeMinutes={readingTime(p.body)}
-                inSeries={!!p.data.series}
+                seriesId={seriesIdOf(p)}
               />
             ))}
           </div>
@@ -398,6 +400,18 @@ const breadcrumbJsonLd = {
 
   .article-series-name {
     min-width: 0;
+  }
+
+  .article-series-name a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+
+  .article-series-name a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
   }
 
   .article-series-part {

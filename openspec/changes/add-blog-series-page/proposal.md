@@ -11,7 +11,7 @@ Las series del blog ya tienen antetítulo en el artículo, badge en las tarjetas
 - La generación del sitio falla cuando un post publicado declara una parte mayor que la longitud de `parts` de su serie.
 - El antetítulo de serie del artículo **deja de ser un texto sin enlace** y pasa a enlazar a la página de la serie. Esto modifica un requisito vigente.
 - El bloque de navegación de la serie añade un enlace «Ver la serie completa» a la página de la serie.
-- Datos estructurados (`CollectionPage` con la serie como `CreativeWorkSeries`) y breadcrumb `Inicio > Blog > <nombre de la serie>`; `og:image` con la imagen de la serie o el respaldo de marca.
+- Datos estructurados (`CollectionPage` con la serie como `CreativeWorkSeries`) y breadcrumb `Inicio > Blog > Series > <nombre de la serie>` (con «Series» como texto sin enlace); `og:image` con la imagen de la serie o el respaldo de marca.
 - Se rellena el yaml de la serie existente `asistente-codigo-local` con su descripción y sus nueve partes (las dos publicadas y siete previstas, derivadas de la hoja de ruta ya validada en `openspec/config.yaml`).
 - La sección «Lo que falta» del post 2 añade un enlace a la página de la serie. Su texto no se reescribe y su estado de publicación no cambia.
 - Al archivar, se recorta la hoja de ruta de `openspec/config.yaml` para dejar solo lo que no es público (reglas de la serie, deuda y lo que no se promete), con confirmación previa.

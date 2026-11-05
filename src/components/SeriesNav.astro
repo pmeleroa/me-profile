@@ -5,12 +5,13 @@ interface Part {
 }
 
 interface Props {
+  seriesId: string;
   seriesTitle: string;
   parts: Part[]; // published parts, ascending by part number
   currentId: string;
 }
 
-const { seriesTitle, parts, currentId } = Astro.props;
+const { seriesId, seriesTitle, parts, currentId } = Astro.props;
 const currentIndex = parts.findIndex((p) => p.id === currentId);
 const prev = currentIndex > 0 ? parts[currentIndex - 1] : undefined;
 const next = currentIndex >= 0 ? parts[currentIndex + 1] : undefined;
@@ -37,6 +38,10 @@ const next = currentIndex >= 0 ? parts[currentIndex + 1] : undefined;
           </li>
         ))}
       </ol>
+
+      <p class="series-nav-all">
+        <a href={`/blog/series/${seriesId}`}>Ver la serie completa</a>
+      </p>
 
       {(prev || next) && (
         <div class="series-nav-steps">
@@ -119,6 +124,11 @@ const next = currentIndex >= 0 ? parts[currentIndex + 1] : undefined;
   .series-nav a:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 3px;
+  }
+
+  .series-nav-all {
+    margin: 1rem 0 0;
+    font-weight: 700;
   }
 
   .series-nav-steps {

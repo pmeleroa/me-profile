@@ -5,6 +5,11 @@ const seriesCollection = defineCollection({
   loader: glob({ pattern: '**/*.yaml', base: './src/content/series' }),
   schema: z.object({
     title: z.string(),
+    description: z.string().min(1),
+    image: z.string().startsWith('/').optional(),
+    parts: z
+      .array(z.object({ title: z.string().min(1), summary: z.string().min(1) }))
+      .min(1),
   }),
 });
 

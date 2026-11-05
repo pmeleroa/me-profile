@@ -11,7 +11,7 @@ interface Props {
   featured?: boolean;
   image?: string;
   readingTimeMinutes?: number;
-  inSeries?: boolean;
+  seriesId?: string;
 }
 
 const {
@@ -23,7 +23,7 @@ const {
   featured = false,
   image,
   readingTimeMinutes,
-  inSeries = false,
+  seriesId,
 } = Astro.props;
 
 const color = categoryColors[category];
@@ -52,11 +52,6 @@ const isoDate = publishDate.toISOString();
           loading="lazy"
         />
       )}
-      {inSeries && (
-        <span class="blog-card-series">
-          <span aria-hidden="true">📚</span> Serie
-        </span>
-      )}
     </div>
     <div class="blog-card-inner">
       <div class="blog-card-header-row">
@@ -84,6 +79,11 @@ const isoDate = publishDate.toISOString();
     </div>
     <div class="blog-card-accent" style={`background: ${color};`}></div>
   </a>
+  {seriesId && (
+    <a class="blog-card-series" href={`/blog/series/${seriesId}`} aria-label="Ver la serie completa">
+      <span aria-hidden="true">📚</span> Serie
+    </a>
+  )}
 </article>
 
 <style>
@@ -180,7 +180,7 @@ const isoDate = publishDate.toISOString();
     position: absolute;
     top: 0.75rem;
     left: 0.75rem;
-    z-index: 1;
+    z-index: 2;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -195,6 +195,19 @@ const isoDate = publishDate.toISOString();
     border: 1px solid var(--color-border-2);
     border-radius: var(--r-sm);
     white-space: nowrap;
+    text-decoration: none;
+    transition: transform var(--ease);
+  }
+
+  /* El badge es hermano del enlace de la tarjeta (no puede anidarse), así que
+     acompaña su elevación al pasar el ratón. */
+  .blog-card-item:has(.blog-card:hover) .blog-card-series {
+    transform: translateY(-3px);
+  }
+
+  .blog-card-series:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
   }
 
   .blog-card-series span[aria-hidden="true"] {
