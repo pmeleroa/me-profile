@@ -1,0 +1,605 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import { sections } from '../../../data/sections';
+import { validateSeriesIntegrity, seriesIdOf, buildSeriesOutline } from '../../../utils/series';
+
+export async function getStaticPaths() {
+  if (!sections.blog) return [];
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  await validateSeriesIntegrity(posts);
+  const ids = [...new Set(posts.map((p) => seriesIdOf(p)).filter((id): id is string => !!id))];
+  return ids.map((id) => ({ params: { id } }));
+}
+
+const { id } = Astro.params;
+const entry = (await getEntry('series', id!))!;
+const publishedPosts = await getCollection('blog', ({ data }) => !data.draft);
+const outline = buildSeriesOutline(entry, publishedPosts);
+const hasPlanned = outline.some((item) => item.status === 'planned');
+const publishedCount = outline.filter((item) => item.status === 'published').length;
+const lastPublishedPart = Math.max(0, ...outline.filter((i) => i.status === 'published').map((i) => i.part));
+
+const { title, description, image } = entry.data;
+
+const breadcrumbItems = [
+  { label: 'Inicio', href: '/' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Series' },
+  { label: title },
+];
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://pablomeleroalonso.me';
+const pageUrl = new URL(Astro.url.pathname, siteUrl).toString();
+
+const collectionJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: title,
+  description,
+  url: pageUrl,
+  mainEntity: {
+    '@type': 'CreativeWorkSeries',
+    name: title,
+    description,
+  },
+};
+
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: breadcrumbItems.map((item, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: item.label,
+    ...(item.href && { item: new URL(item.href, siteUrl).toString() }),
+  })),
+};
+---
+
+<Layout title={`${title} · Serie · Blog`} description={description} image={image}>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(collectionJsonLd)} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(breadcrumbJsonLd)} />
+
+  <Header />
+  <main>
+    <header class="series-header">
+      <div class="container series-header-inner">
+        <nav class="series-breadcrumb" aria-label="Breadcrumb">
+          <ol>
+            {breadcrumbItems.map((item, index) => (
+              <li>
+                {item.href ? (
+                  <a href={item.href}>{item.label}</a>
+                ) : (
+                  <span aria-current={index === breadcrumbItems.length - 1 ? 'page' : undefined}>
+                    {item.label}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        <div class="series-hero">
+          <div class="series-hero-text">
+            <span class="series-label">// serie</span>
+            <h1 class="series-title">{title}</h1>
+            <p class="series-description">{description}</p>
+
+            <div class="series-progress">
+              <p class="series-progress-label">
+                {String(publishedCount).padStart(2, '0')}/{String(outline.length).padStart(2, '0')} partes publicadas
+              </p>
+              <div class="series-progress-bar" aria-hidden="true">
+                {outline.map((item) => (
+                  <span class={item.status === 'published' ? 'is-done' : ''}></span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div class={`series-media ${image ? '' : 'series-media--placeholder'}`}>
+            {image ? (
+              <img src={image} alt="" width="1774" height="887" loading="eager" class="series-media-img" />
+            ) : (
+              <img
+                src={`${import.meta.env.BASE_URL}logo.png`}
+                alt=""
+                loading="eager"
+                class="series-media-logo"
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="series-content">
+      <div class="container series-content-inner">
+        <h2 class="series-content-title">Contenido de la serie</h2>
+
+        <ol class="series-list">
+          {outline.map((item) => (
+            <li class={`series-item series-item--${item.status} ${item.part === lastPublishedPart ? 'series-item--current' : ''}`}>
+              <span class="series-item-num" aria-hidden="true">{String(item.part).padStart(2, '0')}</span>
+              <span class="series-item-rail" aria-hidden="true"><span class="series-item-dot"></span></span>
+              <div class="series-item-body">
+                <p class="series-item-meta">
+                  <span class="series-item-part">Parte {item.part}</span>
+                  <span class={`series-item-status series-item-status--${item.status}`}>
+                    {item.status === 'published' ? 'Publicada' : 'Prevista'}
+                  </span>
+                </p>
+                <h3 class="series-item-title">
+                  {item.href ? <a href={item.href}>{item.title}</a> : item.title}
+                </h3>
+                <p class="series-item-description">{item.description}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        {hasPlanned && (
+          <p class="series-note">
+            La hoja de ruta es orientativa: el orden y el reparto de las partes previstas pueden
+            cambiar, y no hay fechas comprometidas.
+          </p>
+        )}
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  /* Texto secundario con contraste >= 4.5:1 sobre el fondo del sitio (el
+     token de texto apagado global da 3.93:1). Sin animación de entrada por
+     JavaScript: la página es visible sin él. */
+  .series-header,
+  .series-content {
+    --series-text-secondary: #a8a8c8;
+  }
+
+  /* ── Cabecera ── */
+  .series-header {
+    padding: calc(var(--header-height) + 3rem) 0 3.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .series-header-inner,
+  .series-content-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .series-breadcrumb {
+    margin-bottom: 2.5rem;
+  }
+
+  .series-breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--series-text-secondary);
+  }
+
+  .series-breadcrumb li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .series-breadcrumb li + li::before {
+    content: '/';
+    color: var(--series-text-secondary);
+  }
+
+  .series-breadcrumb a {
+    color: var(--series-text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+
+  .series-breadcrumb a:hover {
+    color: var(--color-accent);
+  }
+
+  .series-breadcrumb a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  .series-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .series-label {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+  }
+
+  .series-title {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    margin: 0 0 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .series-description {
+    font-size: 1rem;
+    color: var(--series-text-secondary);
+    line-height: 1.7;
+    margin: 0 0 1.75rem;
+  }
+
+  /* ── Progreso: un segmento por parte, sin fechas ── */
+  .series-progress {
+    max-width: 320px;
+  }
+
+  .series-progress-label {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--series-text-secondary);
+  }
+
+  .series-progress-bar {
+    display: flex;
+    gap: 3px;
+  }
+
+  .series-progress-bar span {
+    flex: 1;
+    height: 3px;
+    background: var(--color-border-2);
+    opacity: 0.45;
+  }
+
+  .series-progress-bar span.is-done {
+    background: var(--color-accent);
+    opacity: 1;
+  }
+
+  /* ── Imagen / marcador de marca ── */
+  .series-media {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    border: 1px solid var(--color-border-2);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .series-media-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .series-media--placeholder {
+    background-color: var(--color-bg-2);
+    background-image:
+      linear-gradient(rgba(0, 189, 212, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 189, 212, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .series-media-logo {
+    height: 40px;
+    width: auto;
+    opacity: 0.7;
+  }
+
+  /* ── Lista ── */
+  .series-content {
+    padding: 3.5rem 0 6rem;
+  }
+
+  .series-content-title {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--series-text-secondary);
+    margin: 0 0 1rem;
+  }
+
+  .series-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .series-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.75rem 1.5rem minmax(0, 1fr);
+    gap: 0 0.75rem;
+    padding: 1.5rem 0.5rem;
+    border-radius: var(--r-md);
+    transition: background var(--ease);
+  }
+
+  .series-item--published:hover,
+  .series-item--published:focus-within {
+    background: var(--color-surface);
+  }
+
+  /* ── Raíl de la línea de tiempo ── */
+  .series-item-rail {
+    position: relative;
+    margin: -1.5rem 0;
+  }
+
+  /* Tramo de línea desde este nodo hasta el siguiente */
+  .series-item-rail::before {
+    content: '';
+    position: absolute;
+    left: calc(50% - 1px);
+    top: 1.95rem;
+    bottom: -1.95rem;
+    width: 2px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--color-border-2) 0 5px,
+      transparent 5px 10px
+    );
+  }
+
+  /* Sólido solo entre dos partes publicadas consecutivas */
+  .series-item--published:has(+ .series-item--published) .series-item-rail::before {
+    background: var(--color-accent);
+    box-shadow: 0 0 8px rgba(0, 189, 212, 0.45);
+  }
+
+  .series-item:last-child .series-item-rail::before {
+    display: none;
+  }
+
+  .series-item-dot {
+    position: absolute;
+    left: calc(50% - 6px);
+    top: 1.95rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-bg);
+    border: 2px solid var(--color-border-2);
+    z-index: 1;
+    transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+  }
+
+  .series-item--published .series-item-dot {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 10px rgba(0, 189, 212, 0.6);
+  }
+
+  .series-item:hover .series-item-dot {
+    transform: scale(1.25);
+  }
+
+  .series-item--planned:hover .series-item-dot {
+    border-color: var(--series-text-secondary);
+  }
+
+  .series-item-num {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    transition: color var(--ease);
+    color: var(--series-text-secondary);
+  }
+
+  .series-item--published .series-item-num {
+    color: var(--color-accent);
+  }
+
+  .series-item-body {
+    min-width: 0;
+  }
+
+  .series-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    margin: 0 0 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--series-text-secondary);
+  }
+
+  .series-item-status::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+    vertical-align: 0.05em;
+    border: 1px solid currentColor;
+  }
+
+  .series-item-status--published {
+    color: var(--color-accent);
+  }
+
+  .series-item-status--published::before {
+    background: currentColor;
+  }
+
+  .series-item-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0 0 0.4rem;
+    overflow-wrap: anywhere;
+  }
+
+  .series-item--planned .series-item-title {
+    color: var(--series-text-secondary);
+  }
+
+  .series-item-title a {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 4px;
+    border-radius: var(--r-sm);
+  }
+
+  .series-item-title a:hover {
+    color: var(--color-accent-light);
+  }
+
+  /* Toda la fila publicada es clicable a través del enlace del título */
+  .series-item-title a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .series-item-title a:focus-visible {
+    outline: none;
+  }
+
+  .series-item:has(.series-item-title a:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .series-item-description {
+    margin: 0;
+    max-width: 75ch;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--series-text-secondary);
+    overflow-wrap: anywhere;
+  }
+
+  .series-note {
+    margin: 1.5rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--series-text-secondary);
+  }
+
+  .series-note::before {
+    content: '// ';
+    color: var(--color-accent);
+  }
+
+  /* ── Efectos dinámicos (solo CSS; el contenido es visible sin ellos) ── */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Pulso en la última parte publicada */
+    .series-item--current .series-item-dot::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      border: 1px solid var(--color-accent);
+      animation: series-pulse 2.4s ease-out infinite;
+    }
+
+    /* Segmentos del contador: aparecen en cascada */
+    .series-progress-bar span {
+      animation: series-seg 0.5s ease-out backwards;
+    }
+    .series-progress-bar span:nth-child(2) { animation-delay: 0.06s; }
+    .series-progress-bar span:nth-child(3) { animation-delay: 0.12s; }
+    .series-progress-bar span:nth-child(4) { animation-delay: 0.18s; }
+    .series-progress-bar span:nth-child(5) { animation-delay: 0.24s; }
+    .series-progress-bar span:nth-child(6) { animation-delay: 0.3s; }
+    .series-progress-bar span:nth-child(7) { animation-delay: 0.36s; }
+    .series-progress-bar span:nth-child(8) { animation-delay: 0.42s; }
+    .series-progress-bar span:nth-child(9) { animation-delay: 0.48s; }
+
+    /* Entrada ligada al scroll: solo si el navegador lo soporta */
+    @supports (animation-timeline: view()) {
+      .series-item-body,
+      .series-item-num {
+        animation: series-in linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 70%;
+      }
+
+      .series-item-dot {
+        animation: series-dot linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 70%;
+      }
+    }
+  }
+
+  @keyframes series-pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    80%, 100% { transform: scale(2.6); opacity: 0; }
+  }
+
+  @keyframes series-seg {
+    from { opacity: 0; transform: scaleY(0); }
+  }
+
+  @keyframes series-in {
+    from { opacity: 0.2; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes series-dot {
+    from { transform: scale(0.4); }
+    to { transform: scale(1); }
+  }
+
+  @media (max-width: 860px) {
+    .series-hero {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .series-item {
+      grid-template-columns: 1.75rem 1rem minmax(0, 1fr);
+      gap: 0 0.5rem;
+      padding: 1.25rem 0;
+    }
+
+    .series-item-rail {
+      margin: -1.25rem 0;
+    }
+
+
+    .series-item-num {
+      font-size: 0.95rem;
+    }
+  }
+</style>

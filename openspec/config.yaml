@@ -158,8 +158,12 @@ rules:
       navegación de la serie: índice de partes y anterior/siguiente, visible
       solo con 2 o más partes publicadas, con exclusión de las partes de la
       serie en «Artículos relacionados») está implementado en el change
-      `add-blog-series-nav`. Pendiente: página /blog/series/<id> y filtro en
-      el listado, para más adelante."
+      `add-blog-series-nav`. La página /blog/series/<id> está implementada en
+      el change `add-blog-series-page` (con el antetítulo y el badge de las
+      tarjetas enlazando a ella). Pendiente, para cuando haya más de una
+      serie: el filtro por serie en el listado de /blog, la banda de series en
+      /blog y, si hace falta un destino para el tramo «Series» del breadcrumb,
+      un índice /blog/series."
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
       asistente de código local con Ollama. El post 1 es
       ollama-primeros-pasos-asistente-de-codigo-local.mdx y el post 2 es
@@ -168,22 +172,16 @@ rules:
       construida sobre un repositorio público, pmeleroa/lab-harness-local, que
       crece parte a parte con un tag por post (parte-2 para el post 2) y debe
       converger con el proyecto harness del autor hasta ser el mismo
-      repositorio. Hoja de ruta orientativa, sin fechas ni títulos cerrados,
-      que el post 2 publica como «Lo que falta» y que puede cambiar el orden o
-      el reparto en posts al construirla: parte 2, bucle, contrato de
-      inferencia y herramientas de lectura (publicada con ese change); a
-      continuación, contexto (ventana, historial, recorte, limpieza,
-      compaction e instrucciones del proyecto; arranca de que la conversación
-      llena la ventana y de que /v1/chat/completions no permite fijar el
-      contexto por petición según la documentación de Ollama); escritura y
-      permisos (Write, Edit, Grep y el sistema de permisos); ejecución y
-      seguridad (Bash, procesos en segundo plano y sandbox en Linux y macOS;
-      justificar ahí cualquier excepción a la regla de Linux, y valorar si es
-      un post o dos por tamaño); extensibilidad (skills, hooks y MCP, con la
-      autenticación OAuth de servidores remotos); delegación (subagentes);
-      sesiones y evaluación (transcripciones, retomar, replay, registro de lo
-      que hace el agente y evals); e interfaz e integración (TUI y modo sin
-      interfaz para scripts y CI). Cubre las carencias de la lista del post 1:
+      repositorio. El contenido y el orden públicos de la serie (títulos y
+      resúmenes de las partes, orientativos y sin fechas) viven en
+      src/content/series/asistente-codigo-local.yaml, que es la fuente de
+      verdad; el post 2 conserva su «Lo que falta» como foto de ese momento y
+      enlaza a la página de la serie. Cualquier cambio de orden o de reparto en
+      posts se hace en ese yaml. Notas internas por parte, no públicas: en
+      contexto, arrancar de que la conversación llena la ventana y de que
+      /v1/chat/completions no permite fijar el contexto por petición según la
+      documentación de Ollama; en ejecución y seguridad, justificar cualquier
+      excepción a la regla de Linux y valorar si es un post o dos por tamaño. Cubre las carencias de la lista del post 1:
       el bucle agéntico queda resuelto en el post 2, las herramientas y el
       contexto propio a medias y la salida estructurada se trata dentro del
       contrato de herramientas, no como parte propia. La autenticación general

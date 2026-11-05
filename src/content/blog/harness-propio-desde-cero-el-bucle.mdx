@@ -388,7 +388,7 @@ En el [post 1](/blog/ollama-primeros-pasos-asistente-de-codigo-local) quedó una
 
 El límite más cercano está en la propia conversación. Cada turno añade al historial el texto del modelo y los resultados de las herramientas, y todo eso se envía de nuevo en la siguiente petición. En un repositorio de juguete cabe en 4.096 tokens. En uno real, no: la conversación crece hasta llenar el contexto, y el bucle de esta guía no hace nada al respecto.
 
-Estas son las capacidades que quedan por construir, en el orden en que pienso abordarlas. Es una proyección orientativa: sin fechas, y el orden o el reparto en posts puede cambiar al construirlas.
+Estas son las capacidades que quedan por construir, en el orden en que pienso abordarlas. Es una proyección orientativa: sin fechas, y el orden o el reparto en posts puede cambiar al construirlas. La hoja de ruta actualizada está en la [página de la serie](/blog/series/asistente-codigo-local).
 
 - **Contexto**: la ventana, el historial y qué hacer cuando la conversación la llena (recortar, limpiar resultados antiguos y resumir), más las instrucciones del proyecto que el modelo lee al empezar.
 - **Escritura y permisos**: herramientas para buscar y editar ficheros, y un sistema de permisos con reglas y confirmaciones.
