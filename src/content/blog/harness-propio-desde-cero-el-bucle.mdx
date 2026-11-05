@@ -1,6 +1,6 @@
 ---
 title: "Un harness propio desde cero: el bucle y cómo falla"
-description: "Segunda guía de la serie Asistente de código local: construye un harness de solo lectura para entender cómo funcionan los agentes de código y cómo falla su bucle."
+description: "Segunda guía de la serie Asistente de código local: construye un harness de solo lectura para entender qué ofrece a los agentes y a las skills que se ejecutan dentro, y cómo termina y falla su bucle."
 publishDate: 2026-11-04
 category: "Guía"
 tags: ["harness", "agentes", "llm-local", "ollama", "herramientas-dev"]
@@ -12,9 +12,9 @@ series:
 
 Un modelo solo genera texto. Todo lo demás lo hace el programa que lo rodea, el **harness**: decide qué herramientas existen, valida cada llamada, ejecuta lo que el modelo pide, le devuelve el resultado y decide cuándo parar. Esta guía es la segunda de la serie *Asistente de código local*. En la [primera](/blog/ollama-primeros-pasos-asistente-de-codigo-local) quedó un harness plano: un `curl` que manda un mensaje a un modelo y lee su respuesta.
 
-Aquí construimos la pieza central del harness: **el bucle**. El motivo de construir un harness no es tener uno propio que sustituya a otros, sino **entender cómo funcionan los agentes de código por dentro y cuáles son sus capacidades y sus límites**. Un agente es un modelo más un harness, y visto desde fuera parece magia. Construir el harness es la forma más directa de ver qué hace el modelo y qué hace el programa que lo rodea, y de comprobar con evidencia propia hasta dónde llega, en lugar de suponerlo.
+Aquí construimos la pieza central del harness: **el bucle**. El motivo de construir un harness no es tener uno propio que sustituya a otros, sino **entender cómo funcionan los harness y qué capacidades ofrecen** a lo que se ejecuta dentro de ellos: los agentes y las skills. Los agentes no viven solos: se ejecutan dentro de un harness, y es el harness el que les da las herramientas, valida lo que piden y decide cuándo paran. Visto desde fuera parece magia. Diseccionarlo y construirlo desde cero es la forma más directa de ver qué hace el modelo y qué hace el programa que lo rodea, y de comprobar con evidencia propia hasta dónde llega, en lugar de suponerlo.
 
-Y lo primero que se ve es que el bucle de un harness cabe en pocas líneas. Hay tutoriales de «tu agente en 50 líneas» de sobra. Lo que requiere diseño, y lo que más enseña sobre sus capacidades, es lo que esos tutoriales no cuentan: **cómo termina y cómo falla**.
+Y lo primero que se ve es que el bucle de un harness cabe en pocas líneas. Hay tutoriales de «tu agente en 50 líneas» de sobra. Lo que requiere diseño, y lo que más enseña sobre lo que ofrece un harness, es lo que esos tutoriales no cuentan: **cómo termina y cómo falla**.
 
 Una aclaración sobre el post anterior: el `curl` a `/api/chat` era una aproximación. El harness habla con `/v1/chat/completions`, el formato de chat completions que Ollama también expone y que entienden muchos otros servidores. El post 1 no cambia: aquel `curl` sigue sirviendo para probar el modelo.
 
