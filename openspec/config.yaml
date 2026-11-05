@@ -163,7 +163,7 @@ rules:
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
       asistente de código local con Ollama. El post 1 es
       ollama-primeros-pasos-asistente-de-codigo-local.mdx y el post 2 es
-      harness-de-codigo-desde-cero-el-bucle.mdx (change add-harness-loop-post).
+      harness-propio-desde-cero-el-bucle.mdx (change add-harness-loop-post).
       Desde el post 2 la serie es la arquitectura de un harness de agente de código,
       construida sobre un repositorio público, pmeleroa/lab-harness-local, que
       crece parte a parte con un tag por post (parte-2 para el post 2) y debe
