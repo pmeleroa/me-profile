@@ -88,7 +88,9 @@ Entre el adaptador y Ollama puede haber un gateway como LiteLLM: un proxy que ex
 
 ## El contrato de inferencia y el adaptador
 
-El contrato es lo que el bucle necesita de un modelo. Un proveedor recibe una petición y devuelve un stream de eventos:
+Cada servidor de modelos habla a su manera. Para que el bucle no tenga que saberlo, el harness define un **contrato de inferencia**: una especie de enchufe estándar. El bucle solo pide «dame la respuesta a esta conversación», y le da igual qué haya detrás: Ollama, un gateway o un modelo de mentira para los tests.
+
+El contrato está en [`src/providers/canonical.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/src/providers/canonical.ts). Un proveedor recibe la petición y devuelve la respuesta poco a poco, como una lista de eventos: los trozos de texto a medida que se generan, el aviso de que el modelo quiere usar una herramienta y un evento final con el mensaje completo y el motivo de parada.
 
 ```ts
 export type ProviderEvent =
@@ -110,11 +112,15 @@ export interface Provider {
 }
 ```
 
-Fíjate en el comentario de `stream`: termina siempre con **exactamente un** `message_end` o lanza. Es el único punto donde el bucle sabe que el turno ha acabado, así que es una garantía que el adaptador debe cumplir.
+Fíjate en el comentario de `stream`: la respuesta debe terminar siempre con **exactamente un** evento final (`message_end`) o fallar con un error. Es la señal con la que el bucle sabe que el turno ha acabado, así que el proveedor tiene que cumplirla siempre.
 
-El adaptador traduce ese contrato a `/v1/chat/completions` con `stream: true`, sin SDK: `fetch` y eventos SSE. Lo delicado son las llamadas a herramientas. En mi comprobación con Ollama 0.40.14 y `qwen2.5:7b`, la llamada llega entera en un solo chunk, con `id` e `index`, y la respuesta cierra con `finish_reason: "tool_calls"`. Pero el formato de streaming deja margen: los argumentos pueden llegar troceados en varios chunks, y no todos los servidores rellenan `id` o `index` ni cierran con el mismo `finish_reason`. No he comprobado otros servidores aquí. El adaptador está escrito para tolerar esas variantes, y `test/openai.test.ts` lo cubre con chunks sintéticos: llamadas completas en un chunk sin `id` ni `index`, llamadas troceadas, y `stop` con llamadas.
+### El adaptador
 
-Por eso existe `ChunkAccumulator`: absorbe las diferencias para que el bucle reciba siempre lo mismo.
+El adaptador es quien traduce ese contrato al idioma del servidor real. Está en [`src/providers/openai.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/src/providers/openai.ts), habla con `/v1/chat/completions` con `stream: true` y no usa ninguna librería: solo `fetch` y el formato en el que el servidor envía la respuesta por trozos.
+
+La parte delicada son las llamadas a herramientas, porque cada servidor las cuenta a su manera. En mi comprobación con Ollama 0.40.14 y `qwen2.5:7b`, la llamada llega entera de una vez, con su identificador y su posición, y el servidor cierra la respuesta indicando que toca ejecutar herramientas (`finish_reason: "tool_calls"`). Pero el formato deja margen: la llamada puede llegar troceada en varios mensajes, algunos servidores no rellenan el identificador o la posición, y no todos cierran la respuesta igual. No he comprobado otros servidores. El adaptador está escrito para tolerar esas variantes, y [`test/openai.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/test/openai.test.ts) lo cubre con respuestas simuladas: una llamada completa sin identificador ni posición, una llamada troceada y un cierre con `stop` aunque haya llamadas.
+
+De juntar esas piezas se encarga `ChunkAccumulator`, en el mismo fichero: va recogiendo los trozos que llegan y le entrega al bucle siempre lo mismo, venga del servidor que venga.
 
 ```ts
     for (const tc of d.tool_calls ?? []) {
@@ -134,9 +140,14 @@ Por eso existe `ChunkAccumulator`: absorbe las diferencias para que el bucle rec
     }
 ```
 
-Si no hay `index`, se usa la posición. Si llega un `id` nuevo en un índice ocupado, es otra llamada. Si no hay `id`, se inventa uno estable para poder emparejar el resultado después. Y una llamada se anuncia con `tool_use_start` en cuanto tiene nombre, sin esperar a que terminen los argumentos.
+Lo que hace ese código, dicho sin código:
 
-Sobre la ventana de contexto: esta vía no permite fijarla en cada petición. La [documentación de Ollama](https://docs.ollama.com/api/openai-compatibility) lo dice así: la API compatible no tiene forma de fijar el tamaño del contexto de un modelo. Lo retomaremos en la siguiente parte.
+- Si el servidor no dice la posición de la llamada, se usa el orden de llegada.
+- Si llega un identificador nuevo en una posición ya ocupada, es otra llamada distinta.
+- Si no hay identificador, se inventa uno para poder emparejar después el resultado con su llamada.
+- La llamada se anuncia (`tool_use_start`) en cuanto tiene nombre, sin esperar a que lleguen todos sus argumentos.
+
+Una limitación que retomaremos en la siguiente parte: por esta vía no se puede fijar la ventana de contexto, es decir, cuánto texto puede tener presente el modelo a la vez, en cada petición. La [documentación de Ollama](https://docs.ollama.com/api/openai-compatibility) lo dice así: la API compatible no tiene forma de fijar el tamaño del contexto de un modelo.
 
 ## El bucle
 
