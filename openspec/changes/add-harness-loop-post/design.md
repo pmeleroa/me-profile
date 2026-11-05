@@ -4,7 +4,7 @@
 
 Ver `proposal.md` - Why. Definido en entrevista con el autor mediante el skill `blog-post`.
 
-`harness` (`~/workspaces/cecabank/repos/harness`) es un agente de código en TypeScript, v1.0.0, de unas 16.000 líneas, licencia MIT a nombre del autor, sin remoto y con `private: true`. El autor confirma que puede publicar el código. Se ha leído `src/core/loop.ts`, `src/providers/canonical.ts`, `src/providers/openai.ts`, `src/tools/` y `test/fake-provider.ts`.
+`harness` (`~/workspaces/cecabank/repos/harness`) es un harness de agente de código en TypeScript, v1.0.0, de unas 16.000 líneas, licencia MIT a nombre del autor, sin remoto y con `private: true`. El autor confirma que puede publicar el código. Se ha leído `src/core/loop.ts`, `src/providers/canonical.ts`, `src/providers/openai.ts`, `src/tools/` y `test/fake-provider.ts`.
 
 Hechos comprobados el 2026-11-04 con Ollama 0.40.14 y `qwen2.5:7b`:
 
@@ -19,7 +19,7 @@ El lector objetivo es técnico y cómodo en terminal. Es la continuación del po
 ## Goals / Non-Goals
 
 **Goals:**
-- Que el lector ejecute un agente que responde a una pregunta sobre un repositorio pequeño, viendo cada llamada a herramienta.
+- Que el lector ejecute un harness con el que un modelo responde a una pregunta sobre un repositorio pequeño, viendo cada llamada a herramienta.
 - Que provoque a voluntad los fallos del bucle, sin depender de que el modelo falle.
 - Que `lab-harness-local` empiece ya con la forma de `harness`, para que evolucionar sea añadir y no reescribir.
 
@@ -68,7 +68,7 @@ El lector objetivo es técnico y cómodo en terminal. Es la continuación del po
 7. Cómo termina: los cuatro finales, provocando los fallos con `npm test`.
 8. Lo que le falta: la conversación crece hasta llenar el contexto, y eso abre la parte 3, sin fechas ni índice cerrado.
 
-Diagrama en HTML y CSS estáticos dentro del MDX, como en `golden-sets-y-pipelines-de-evaluacion.mdx`, sin JavaScript ni dependencias. Listas de una línea, sin sublistas. Título y slug provisionales: «Un agente de código desde cero: el bucle y cómo falla» y `agente-de-codigo-desde-cero-el-bucle`.
+Diagrama en HTML y CSS estáticos dentro del MDX, como en `golden-sets-y-pipelines-de-evaluacion.mdx`, sin JavaScript ni dependencias. Listas de una línea, sin sublistas. Título y slug (definitivos desde 2026-11-05, tras reencuadrar el post como la construcción de un harness): «Un harness de código desde cero: el bucle y cómo falla» y `harness-de-codigo-desde-cero-el-bucle`. Antes eran «Un agente de código desde cero…» y `agente-de-codigo-desde-cero-el-bucle`.
 
 **Hoja de ruta en `config.yaml`.** Sustituye el orden anterior por: parte 2 loop, contrato de inferencia y lectura; parte 3 contexto e historial; parte 4 editar y ejecutar, con permisos y sandbox en Linux y macOS; parte 5 MCP; parte 6 integración y sesiones. La salida estructurada se trata dentro del contrato de herramientas. Añade la convergencia con `harness` y la entrada del post independiente sobre LiteLLM, sin reabrir «varios modelos».
 

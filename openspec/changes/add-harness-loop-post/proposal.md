@@ -2,12 +2,12 @@
 
 ## Why
 
-El post 1 de la serie «Asistente de código local» termina con un harness plano y una lista de lo que le falta, pero la serie aún no ha construido nada sobre esa base. El autor ya tiene un harness real y probado (`harness`, v1.0.0), lo que permite reenfocar la serie en la arquitectura de un agente de código y publicar decisiones contrastadas con código ejecutable, empezando por la pieza central: el bucle.
+El post 1 de la serie «Asistente de código local» termina con un harness plano y una lista de lo que le falta, pero la serie aún no ha construido nada sobre esa base. El autor ya tiene un harness real y probado (`harness`, v1.0.0), lo que permite reenfocar la serie en la arquitectura de un harness de agente de código y publicar decisiones contrastadas con código ejecutable, empezando por la pieza central: el bucle.
 
 ## What Changes
 
-- Se publica la parte 2 de la serie, de tipo Guía. Su tesis es que el bucle de un agente cabe en pocas líneas y que lo que requiere diseño es cómo termina y cómo falla.
-- El lector construye un agente de solo lectura: loop con streaming, contrato de inferencia con un adaptador a `/v1/chat/completions` de Ollama, herramientas `Read` y `Glob`, y finales explícitos. Provoca los fallos con un proveedor simulado.
+- Se publica la parte 2 de la serie, de tipo Guía. Su tesis es que el bucle de un harness cabe en pocas líneas y que lo que requiere diseño es cómo termina y cómo falla.
+- El lector construye un harness de solo lectura, con el que un modelo responde preguntas sobre un repositorio: loop con streaming, contrato de inferencia con un adaptador a `/v1/chat/completions` de Ollama, herramientas `Read` y `Glob`, y finales explícitos. Provoca los fallos con un proveedor simulado.
 - El post explica en una frase que el `curl` a `/api/chat` del post 1 era una aproximación y que el harness usa `/v1`. El post 1 no se edita.
 - LiteLLM aparece solo como caja opcional del diagrama y en un párrafo, como gateway fuera del harness.
 - Código fuera de este repositorio: se crea `pmeleroa/lab-harness-local` (público, MIT, TypeScript), con el tag `parte-2`, que evolucionará post a post hasta ser el mismo repositorio que `harness`.
