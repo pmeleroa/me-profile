@@ -116,11 +116,11 @@ Fíjate en el comentario de `stream`: la respuesta debe terminar siempre con **e
 
 ### El adaptador
 
-El adaptador es quien traduce ese contrato al idioma del servidor real. Está en [`src/providers/openai.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/src/providers/openai.ts), habla con `/v1/chat/completions` con `stream: true` y no usa ninguna librería: solo `fetch` y el formato en el que el servidor envía la respuesta por trozos.
+Si el contrato es el enchufe, el adaptador es el **traductor**: convierte lo que pide el bucle al formato que entiende el servidor y devuelve la respuesta en el formato del contrato. Está en [`src/providers/openai.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/src/providers/openai.ts). Habla con `/v1/chat/completions`, pide la respuesta por trozos (`stream: true`) y no usa ninguna librería externa.
 
-La parte delicada son las llamadas a herramientas, porque cada servidor las cuenta a su manera. En mi comprobación con Ollama 0.40.14 y `qwen2.5:7b`, la llamada llega entera de una vez, con su identificador y su posición, y el servidor cierra la respuesta indicando que toca ejecutar herramientas (`finish_reason: "tool_calls"`). Pero el formato deja margen: la llamada puede llegar troceada en varios mensajes, algunos servidores no rellenan el identificador o la posición, y no todos cierran la respuesta igual. No he comprobado otros servidores. El adaptador está escrito para tolerar esas variantes, y [`test/openai.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/test/openai.test.ts) lo cubre con respuestas simuladas: una llamada completa sin identificador ni posición, una llamada troceada y un cierre con `stop` aunque haya llamadas.
+Lo más delicado de traducir son las **llamadas a herramientas**: el momento en que el modelo no responde con texto, sino que dice «quiero leer este fichero». Cada servidor las envía a su manera. En mi comprobación con Ollama 0.40.14 y `qwen2.5:7b`, la llamada llega entera de una vez, con su identificador y su posición, y el servidor avisa al final de que lo que toca es ejecutar herramientas. Pero otros servidores pueden enviarla troceada en varios mensajes, o sin identificador, y no todos avisan igual del final. No los he comprobado. El adaptador está escrito para tolerar esas variantes, y [`test/openai.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-2/test/openai.test.ts) lo prueba con respuestas simuladas: llamada completa sin identificador ni posición, llamada troceada y final con `stop` aunque haya llamadas.
 
-De juntar esas piezas se encarga `ChunkAccumulator`, en el mismo fichero: va recogiendo los trozos que llegan y le entrega al bucle siempre lo mismo, venga del servidor que venga.
+De recomponer esas piezas se encarga `ChunkAccumulator`, en el mismo fichero. Va recogiendo los trozos que llegan y le entrega al bucle siempre lo mismo, venga del servidor que venga.
 
 ```ts
     for (const tc of d.tool_calls ?? []) {
@@ -140,14 +140,14 @@ De juntar esas piezas se encarga `ChunkAccumulator`, en el mismo fichero: va rec
     }
 ```
 
-Lo que hace ese código, dicho sin código:
+Lo que hace ese código, en cuatro ideas:
 
 - Si el servidor no dice la posición de la llamada, se usa el orden de llegada.
-- Si llega un identificador nuevo en una posición ya ocupada, es otra llamada distinta.
-- Si no hay identificador, se inventa uno para poder emparejar después el resultado con su llamada.
-- La llamada se anuncia (`tool_use_start`) en cuanto tiene nombre, sin esperar a que lleguen todos sus argumentos.
+- Si llega un identificador nuevo donde ya había otra llamada, se trata como una llamada distinta.
+- Si no hay identificador, se inventa uno, para poder unir después el resultado con su llamada.
+- La llamada se anuncia en cuanto se sabe qué herramienta es, sin esperar a que lleguen todos sus datos.
 
-Una limitación que retomaremos en la siguiente parte: por esta vía no se puede fijar la ventana de contexto, es decir, cuánto texto puede tener presente el modelo a la vez, en cada petición. La [documentación de Ollama](https://docs.ollama.com/api/openai-compatibility) lo dice así: la API compatible no tiene forma de fijar el tamaño del contexto de un modelo.
+Queda una limitación que retomaremos en la siguiente parte: por esta vía no se puede indicar, en cada petición, cuánto texto puede tener presente el modelo (su ventana de contexto). La [documentación de Ollama](https://docs.ollama.com/api/openai-compatibility) lo dice así: la API compatible no tiene forma de fijar el tamaño del contexto de un modelo.
 
 ## El bucle
 
