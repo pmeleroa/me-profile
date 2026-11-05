@@ -71,8 +71,12 @@
 
 ## 5. Serie y configuración
 
-- [ ] 5.1 Actualizar `src/content/series/asistente-codigo-local.yaml`: título y resumen de la parte 3, y `/compact` y `/context` en «Interfaz e integración»; verificar con `npm run build` y en `dist/` la página de la serie y el bloque de navegación
-- [ ] 5.2 Actualizar en `openspec/config.yaml` la entrada de la serie: quitar el requisito de arreglar los 128.000, aclarar la deuda de `maxTokens` (reserva proporcional, sin opción configurable), registrar `/api/ps` como pendiente sin asignar y actualizar el contexto si la tarea 1.2 cambió la decisión; verificar con `grep -n '128.000\|api/ps\|maxTokens' openspec/config.yaml` y `openspec validate add-context-window-post --strict`
+- [x] 5.1 Actualizar `src/content/series/asistente-codigo-local.yaml`: título y resumen de la parte 3, y `/compact` y `/context` en «Interfaz e integración»; verificar con `npm run build` y en `dist/` la página de la serie y el bloque de navegación
+  - Registro (2026-11-05): `asistente-codigo-local.yaml`: la parte 3 pasa de «Contexto» al título del post («Compactar es lo fácil: lo difícil es saber que te quedaste sin sitio», como hace la parte 2) con un resumen nuevo, y «Interfaz e integración» menciona `/compact` y `/context`. `npm run build`: 69 páginas sin errores; `dist/blog/series/asistente-codigo-local/index.html` contiene el título de la parte 3 y `dist/blog/compactar-es-lo-facil/index.html` contiene «Parte 3» (2 apariciones). El detalle del bloque de navegación se revisa en 6.1.
+
+- [x] 5.2 Actualizar en `openspec/config.yaml` la entrada de la serie: quitar el requisito de arreglar los 128.000, aclarar la deuda de `maxTokens` (reserva proporcional, sin opción configurable), registrar `/api/ps` como pendiente sin asignar y actualizar el contexto si la tarea 1.2 cambió la decisión; verificar con `grep -n '128.000\|api/ps\|maxTokens' openspec/config.yaml` y `openspec validate add-context-window-post --strict`
+  - Registro (2026-11-05): `openspec/config.yaml`: el post 3 y el tag `parte-3` añadidos a la entrada de la serie; nota interna de contexto sustituida (cubierto en el post 3, `/compact` y `/context` pendientes en Interfaz e integración); `maxTokens` aclarado (reserva proporcional `min(maxTokens, 25 % de la ventana)`, sin opción); `/api/ps` registrado como pendiente sin parte asignada; el requisito de arreglar los 128.000 sustituido por «pasó a 4.096 con aviso». `grep -n '128.000\|api/ps\|maxTokens' openspec/config.yaml` ya no muestra los 128.000 y sí `maxTokens` y `/api/ps`. `openspec validate add-context-window-post --strict`: válido.
+
 
 ## 6. Integración y publicación
 

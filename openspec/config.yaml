@@ -167,20 +167,20 @@ rules:
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
       asistente de código local con Ollama. El post 1 es
       ollama-primeros-pasos-asistente-de-codigo-local.mdx y el post 2 es
-      harness-propio-desde-cero-el-bucle.mdx (change add-harness-loop-post).
+      harness-propio-desde-cero-el-bucle.mdx (change add-harness-loop-post); el
+      post 3 es compactar-es-lo-facil.mdx (change add-context-window-post).
       Desde el post 2 la serie es la arquitectura de un harness de agente de código,
       construida sobre un repositorio público, pmeleroa/lab-harness-local, que
-      crece parte a parte con un tag por post (parte-2 para el post 2) y debe
+      crece parte a parte con un tag por post (parte-2 para el post 2, parte-3 para el post 3) y debe
       converger con el proyecto harness del autor hasta ser el mismo
       repositorio. El contenido y el orden públicos de la serie (títulos y
       resúmenes de las partes, orientativos y sin fechas) viven en
       src/content/series/asistente-codigo-local.yaml, que es la fuente de
       verdad; el post 2 conserva su «Lo que falta» como foto de ese momento y
       enlaza a la página de la serie. Cualquier cambio de orden o de reparto en
-      posts se hace en ese yaml. Notas internas por parte, no públicas: en
-      contexto, arrancar de que la conversación llena la ventana y de que
-      /v1/chat/completions no permite fijar el contexto por petición según la
-      documentación de Ollama; en ejecución y seguridad, justificar cualquier
+      posts se hace en ese yaml. Notas internas por parte, no públicas: el
+      contexto ya está cubierto en el post 3, con /compact y /context
+      pendientes en Interfaz e integración; en ejecución y seguridad, justificar cualquier
       excepción a la regla de Linux y valorar si es un post o dos por tamaño. Cubre las carencias de la lista del post 1:
       el bucle agéntico queda resuelto en el post 2, las herramientas y el
       contexto propio a medias y la salida estructurada se trata dentro del
@@ -188,11 +188,14 @@ rules:
       de la lista del post 1 no existe en harness fuera del OAuth de MCP:
       no prometerla. Deuda conocida de harness que no se promete: replay
       ejecutando las herramientas, red con allowlist de dominios en el sandbox
-      y maxTokens configurable. Piezas sin parte asignada: el proveedor de
+      y maxTokens configurable (hoy la reserva de respuesta es proporcional,
+      min(maxTokens, 25 % de la ventana), y no hay opción para fijarlo).
+      Pendiente sin parte asignada: descubrir la ventana con /api/ps de Ollama,
+      que solo informa de modelos cargados y es propia de Ollama. Piezas sin parte asignada: el proveedor de
       Anthropic; decidir antes del último tag si recibe parte propia o entra en
       un tag sin post (los gateways y 'varios modelos' siguen fuera).
-      Antes del post de contexto, arreglar en harness la ventana por defecto de
-      128.000 tokens del adaptador OpenAI. Solo entran temas relacionados con
+      La ventana por defecto del adaptador OpenAI pasó a 4.096 tokens, con aviso
+      al arrancar, en el post 3. Solo entran temas relacionados con
       el harness local. 'Varios modelos', 'elección de modelo' y 'cuándo local
       no basta' quedan fuera de la serie; los dos últimos tienen su propia
       entrada de trabajo futuro, y el gateway LiteLLM la suya. Cada post de la
