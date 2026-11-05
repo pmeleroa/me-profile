@@ -161,21 +161,58 @@ rules:
       `add-blog-series-nav`. Pendiente: página /blog/series/<id> y filtro en
       el listado, para más adelante."
     - "Trabajo futuro pendiente (blog): continuar la serie de guías sobre un
-      asistente de código local con Ollama, cuyo post 1 es
-      ollama-primeros-pasos-asistente-de-codigo-local.mdx. Su lista final 'Lo
-      que le falta a este harness' es la hoja de ruta pública de la serie.
-      Orden recomendado: ventana de contexto y hardware (por defecto 4k tokens
-      con menos de 24 GiB de VRAM; las herramientas de código necesitan al
-      menos 64k) -> historial y contexto propio -> salida estructurada y
-      herramientas (decidir pronto si se usa MCP, porque cambia la
-      arquitectura) -> bucle agéntico -> seguridad -> integración. Solo entran
-      temas relacionados con el harness local. 'Varios modelos', 'elección de
-      modelo' y 'cuándo local no basta' quedan fuera de la serie; los dos
-      últimos tienen su propia entrada de trabajo futuro. Cada post de la serie debe: no justificar por qué ejecutar en
-      local; no usar el ángulo corporativo ni de aprobación de la empresa; no
-      nombrar productos comerciales como referencia del asistente; escribir
-      el contenido técnico para una terminal Linux (ver la regla de Linux); y
-      usar listas de una línea por punto, sin sublistas."
+      asistente de código local con Ollama. El post 1 es
+      ollama-primeros-pasos-asistente-de-codigo-local.mdx y el post 2 es
+      harness-propio-desde-cero-el-bucle.mdx (change add-harness-loop-post).
+      Desde el post 2 la serie es la arquitectura de un harness de agente de código,
+      construida sobre un repositorio público, pmeleroa/lab-harness-local, que
+      crece parte a parte con un tag por post (parte-2 para el post 2) y debe
+      converger con el proyecto harness del autor hasta ser el mismo
+      repositorio. Hoja de ruta orientativa, sin fechas ni títulos cerrados,
+      que el post 2 publica como «Lo que falta» y que puede cambiar el orden o
+      el reparto en posts al construirla: parte 2, bucle, contrato de
+      inferencia y herramientas de lectura (publicada con ese change); a
+      continuación, contexto (ventana, historial, recorte, limpieza,
+      compaction e instrucciones del proyecto; arranca de que la conversación
+      llena la ventana y de que /v1/chat/completions no permite fijar el
+      contexto por petición según la documentación de Ollama); escritura y
+      permisos (Write, Edit, Grep y el sistema de permisos); ejecución y
+      seguridad (Bash, procesos en segundo plano y sandbox en Linux y macOS;
+      justificar ahí cualquier excepción a la regla de Linux, y valorar si es
+      un post o dos por tamaño); extensibilidad (skills, hooks y MCP, con la
+      autenticación OAuth de servidores remotos); delegación (subagentes);
+      sesiones y evaluación (transcripciones, retomar, replay, registro de lo
+      que hace el agente y evals); e interfaz e integración (TUI y modo sin
+      interfaz para scripts y CI). Cubre las carencias de la lista del post 1:
+      el bucle agéntico queda resuelto en el post 2, las herramientas y el
+      contexto propio a medias y la salida estructurada se trata dentro del
+      contrato de herramientas, no como parte propia. La autenticación general
+      de la lista del post 1 no existe en harness fuera del OAuth de MCP:
+      no prometerla. Deuda conocida de harness que no se promete: replay
+      ejecutando las herramientas, red con allowlist de dominios en el sandbox
+      y maxTokens configurable. Piezas sin parte asignada: el proveedor de
+      Anthropic; decidir antes del último tag si recibe parte propia o entra en
+      un tag sin post (los gateways y 'varios modelos' siguen fuera).
+      Antes del post de contexto, arreglar en harness la ventana por defecto de
+      128.000 tokens del adaptador OpenAI. Solo entran temas relacionados con
+      el harness local. 'Varios modelos', 'elección de modelo' y 'cuándo local
+      no basta' quedan fuera de la serie; los dos últimos tienen su propia
+      entrada de trabajo futuro, y el gateway LiteLLM la suya. Cada post de la
+      serie debe: no justificar por qué ejecutar en local; no usar el ángulo
+      corporativo ni de aprobación de la empresa; no nombrar productos
+      comerciales como referencia del asistente; escribir el contenido técnico
+      para una terminal Linux (ver la regla de Linux); y usar listas de una
+      línea por punto, sin sublistas."
+    - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
+      de guías sobre el asistente de código local, sobre LiteLLM como gateway
+      delante de un servidor de modelos local. En el post 2 aparece solo como
+      caja opcional del diagrama y en un párrafo, y ahí se dice que apuntar el
+      adaptador a un gateway debería bastar con cambiar la URL base pero que no
+      se ha probado. Categoría propuesta: Guía. Debe verificar con ejecución
+      propia cualquier afirmación de uso. No reabre 'varios modelos', que sigue
+      fuera de la serie. No se hacen afirmaciones de rendimiento sin medición
+      propia o una fuente citada. Cuando exista, enlazarlo desde el párrafo de
+      LiteLLM del post 2."
     - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
       de guías sobre el asistente de código local, sobre cómo elegir un modelo
       para un asistente de código local. Categoría propuesta: Análisis, porque
