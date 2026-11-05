@@ -66,7 +66,7 @@ El lector objetivo es técnico y cómodo en terminal. Es la continuación del po
 5. El bucle: extracto real y ejecución con el modelo.
 6. Herramientas: contrato, validación que devuelve errores al modelo y límite de workspace.
 7. Cómo termina: los cuatro finales, provocando los fallos con `npm test`.
-8. Lo que le falta: la conversación crece hasta llenar el contexto, y eso abre la parte 3, sin fechas ni índice cerrado.
+8. Lo que falta: qué carencias del post 1 resuelve esta parte, la conversación que crece hasta llenar el contexto, y una proyección orientativa, sin fechas ni títulos cerrados, de las capacidades que quedan (contexto, escritura y permisos, ejecución y seguridad, extensibilidad, delegación, sesiones y evaluación, interfaz e integración). Añadido el 2026-11-05 a petición del autor.
 
 Diagrama en HTML y CSS estáticos dentro del MDX, como en `golden-sets-y-pipelines-de-evaluacion.mdx`, sin JavaScript ni dependencias. Listas de una línea, sin sublistas. Título y slug (definitivos desde 2026-11-05): «Un harness propio desde cero: el bucle y cómo falla» y `harness-propio-desde-cero-el-bucle`. «Propio» y no «de código» porque el harness dará soporte a todo lo que se construya sobre él, no solo a la implementación de código. Antes fueron «Un agente de código desde cero…» (`agente-de-codigo-desde-cero-el-bucle`) y «Un harness de código desde cero…» (`harness-de-codigo-desde-cero-el-bucle`).
 

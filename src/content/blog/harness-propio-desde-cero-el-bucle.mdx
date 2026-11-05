@@ -381,11 +381,23 @@ npx vitest run test/loop.test.ts --reporter=verbose
 
 Hay un test para cada final de la tabla, y otro que comprueba que toda llamada recibe su resultado. Fíjate en lo que demuestra el proveedor simulado además de los fallos: **el bucle no cambia al sustituir al modelo**. Es el contrato haciendo su trabajo.
 
-## Lo que le falta
+## Lo que falta
 
-Este harness ya hace algo útil, y su límite está en la propia conversación. Cada turno añade al historial el texto del modelo y los resultados de las herramientas, y todo eso se envía de nuevo en la siguiente petición. En un repositorio de juguete cabe en 4.096 tokens. En uno real, no: la conversación crece hasta llenar el contexto, y el bucle de esta guía no hace nada al respecto.
+En el [post 1](/blog/ollama-primeros-pasos-asistente-de-codigo-local) quedó una lista de carencias de un harness plano. Esta parte resuelve el **bucle agéntico**: el modelo ya decide qué herramienta usar, ve el resultado y sigue. Resuelve a medias las **herramientas**, porque solo leen. Y avanza en otras dos: el **contexto propio**, ya que el modelo puede leer tu repositorio, y la **salida estructurada**, porque el esquema de cada herramienta valida lo que el modelo manda y devuelve el error si no cumple. Lo demás sigue pendiente.
 
-Cómo decidir qué se guarda, qué se resume y qué se tira es el tema de la siguiente parte de la serie. Antes, repasa lo esencial de esta:
+El límite más cercano está en la propia conversación. Cada turno añade al historial el texto del modelo y los resultados de las herramientas, y todo eso se envía de nuevo en la siguiente petición. En un repositorio de juguete cabe en 4.096 tokens. En uno real, no: la conversación crece hasta llenar el contexto, y el bucle de esta guía no hace nada al respecto.
+
+Estas son las capacidades que quedan por construir, en el orden en que pienso abordarlas. Es una proyección orientativa: sin fechas, y el orden o el reparto en posts puede cambiar al construirlas.
+
+- **Contexto**: la ventana, el historial y qué hacer cuando la conversación la llena (recortar, limpiar resultados antiguos y resumir), más las instrucciones del proyecto que el modelo lee al empezar.
+- **Escritura y permisos**: herramientas para buscar y editar ficheros, y un sistema de permisos con reglas y confirmaciones.
+- **Ejecución y seguridad**: ejecutar comandos, también en segundo plano, y un sandbox que limite lo que pueden tocar, frente a la inyección de instrucciones y la fuga de secretos.
+- **Extensibilidad**: skills, hooks sobre cada herramienta y MCP, para incorporar herramientas estándar sin programarlas a mano, incluida la autenticación de servidores remotos.
+- **Delegación**: subagentes, otro bucle con otras herramientas del que al principal solo vuelve un informe.
+- **Sesiones y evaluación**: transcripciones que se retoman y se reproducen, el registro de lo que hizo el agente y evaluaciones contra modelos reales.
+- **Interfaz e integración**: una interfaz de terminal completa y un modo sin interfaz para scripts y CI, para que el harness viva en tu flujo de trabajo.
+
+Cómo decidir qué se guarda, qué se resume y qué se tira es el tema de la siguiente parte. Antes, repasa lo esencial de esta:
 
 - **Construirlo es entenderlo**: separa lo que hace el modelo, que genera texto, de lo que hace el harness, que lo ejecuta todo y decide cuándo parar.
 - **El bucle cabe en un método**: llamar al modelo, ejecutar herramientas, devolver todos los resultados.
