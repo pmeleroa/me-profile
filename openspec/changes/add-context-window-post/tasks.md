@@ -95,7 +95,8 @@
   - Q07: 13 enlaces internos del post, todos 200 en el preview; 7 externos con 200 (Microsoft WSL, ripgrep, `tree/parte-3`, `docs.ollama.com/context-length`, `blob/parte-3/examples/salidas/contexto-4096.txt`, LinkedIn y GitHub del autor).
   - Q08: sin `<script>`, HTML arbitrario ni secretos en el MDX (solo bloques de código y texto); la búsqueda de secretos del lab se hizo en 3.7.
 
-- [ ] 6.3 Antes de archivar, preguntar al autor si confirma publicar este post y registrar aquí pregunta y respuesta literales. Con confirmación, dejar `draft: false`. Sin ella, dejar `draft: true` y registrar que no hubo confirmación; verificar con `grep -n '^draft:'` sobre el MDX
+- [x] 6.3 Antes de archivar, preguntar al autor si confirma publicar este post y registrar aquí pregunta y respuesta literales. Con confirmación, dejar `draft: false`. Sin ella, dejar `draft: true` y registrar que no hubo confirmación; verificar con `grep -n '^draft:'` sobre el MDX
+  - Registro (2026-11-09): pregunta literal al autor (regla Q09), formulada el 2026-11-05 y repetida el 2026-11-09: «¿confirmas publicar «Compactar es lo fácil: lo difícil es saber que te quedaste sin sitio» con `draft: false`? Sin tu confirmación lo dejo en `draft: true`.» Respuesta literal: «si». Con confirmación, el post queda con `draft: false` (`grep -n '^draft:' src/content/blog/compactar-es-lo-facil.mdx` → `draft: false`, `publishDate: 2026-11-09`). Las valoraciones del enfoque intermedias («me giusta como ha quedado el enfoque…») no se tomaron como confirmación. El merge de la PR de este repositorio lo hace el autor.
 
 ## Workflow follow-up
 
