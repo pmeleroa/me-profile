@@ -103,3 +103,7 @@
 - Integrar la PR del lab y crear el tag `parte-3` antes de publicar el post, porque sus enlaces dependen de él. El merge lo hace el autor.
 - Archivar el change en la misma rama antes del merge y ejecutar `openspec validate --all --strict`.
 - El merge de la PR de este repositorio lo hace el autor.
+
+## Archivo
+
+- 2026-11-09: change archivado en `openspec/changes/archive/2026-11-09-add-context-window-post` con 27 de 27 tareas completadas y `specs` omitido (`skip_specs`, sin deltas). `openspec validate --all --strict` sobre los specs principales: 1 pasa (`lab`) y 3 fallan (`blog`, `how-site-is-made`, `site-footer`) por avisos de requisitos muy largos; este change no toca `openspec/specs/` (`git diff main -- openspec/specs` vacío), así que los fallos son preexistentes.
