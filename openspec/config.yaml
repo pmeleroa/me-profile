@@ -262,6 +262,18 @@ rules:
       con ai-routing-y-soberania-tecnologica.mdx. No se hacen afirmaciones de
       rendimiento o calidad sin medición propia o una fuente citada. Distinto
       del post de elección de modelo, que da por hecho usar local."
+    - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
+      de guías sobre el asistente de código local, sobre NVIDIA SkillEvaluator
+      (github.com/NVIDIA/SkillEvaluator), un framework para evaluar skills de
+      agentes con puertas de calidad, detección de solapamiento semántico,
+      datasets sintéticos y evaluación en vivo que compara ejecuciones con y
+      sin la skill. Categoría propuesta: por decidir (Análisis o Guía); el
+      ángulo se cierra con /blog-post al abordarlo. Enlaces naturales con
+      golden-sets-y-pipelines-de-evaluacion.mdx y con la entrada de «quién
+      evalúa al evaluador». Debe verificar con ejecución propia cualquier
+      afirmación de uso (por ejemplo `skillevaluator validate --tiers 1`) y no
+      hacer afirmaciones de rendimiento sin medición propia o una fuente
+      citada."
     - "Trabajo futuro pendiente (sitio): el token --color-text-muted
       (#6b6b90) sobre --color-bg (#08080f) da 3.93:1 de contraste, por
       debajo del 4.5:1 de WCAG 2.2 AA (Q03) para texto normal. Se usa en 17
