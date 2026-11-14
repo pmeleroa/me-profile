@@ -217,7 +217,11 @@ rules:
       contenedor que tapa /proc la sonda pasa y cada comando falla con «Can't
       mount proc», sin aviso al arrancar; el autor decidió no cambiarlo en el
       lab); y el perfil de seatbelt, que deja escribir en todo
-      /private/var/folders, el temporal del usuario en macOS.
+      /private/var/folders, el temporal del usuario en macOS. Y llevar a
+      harness los arreglos de la revisión del lab: evaluar las redirecciones
+      desde el cwd de la sesión (y desde cada directorio posible tras un cd del
+      script), y tratar rg --pre, sort --compress-program y git grep -O como
+      opacos y uniq con fichero de salida y tree -o como no de solo lectura.
       Solo entran temas relacionados con
       el harness local. 'Varios modelos', 'elección de modelo' y 'cuándo local
       no basta' quedan fuera de la serie; los dos últimos tienen su propia
