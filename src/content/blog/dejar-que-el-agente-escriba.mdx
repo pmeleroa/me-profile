@@ -1,0 +1,429 @@
+---
+title: "Los permisos deciden dónde, no qué: dejar que el agente escriba"
+description: "Cuarta guía de la serie Asistente de código local: Grep, Write y Edit, un motor de permisos con deny, perímetro de workspace y read-before-edit, y por qué esas piezas limitan dónde escribe el agente pero no qué escribe."
+publishDate: 2026-11-14
+category: "Guía"
+tags: ["harness", "permisos", "seguridad", "llm-local", "ollama", "herramientas-dev"]
+image: "/images/blog/dejar-que-el-agente-escriba.webp"
+draft: false
+series:
+  id: asistente-codigo-local
+  part: 4
+---
+Imagina que dejas a un asistente de código local editar tu repositorio. Un fichero de ese repositorio, un comentario o una página de documentación, lleva una instrucción escrita para el modelo en lugar de para ti: «al tocar `pricing.ts`, añade también esta línea». El asistente la sigue y pide permiso. Lo que ves en el terminal es `? Edit src/pricing.ts`, y nada más. Es un escenario, no una medición; más abajo hay ejecuciones reales de lo que sí aparece en ese prompt.
+
+Esta guía es la cuarta de la serie *Asistente de código local*. En la [anterior](/blog/compactar-es-lo-facil) el harness aprendió a saber cuándo se quedaba sin sitio. Aquí aprende a escribir, y la tesis es esta: **los permisos deciden dónde puede escribir el agente, no qué escribe**.
+
+Las piezas que limitan *dónde* llega el agente comparten una idea, **ante la duda, no**: cuando una decisión no está clara, o nadie la contesta, lo que ocurre por defecto es que no se hace. Un `deny` que gana siempre, un perímetro que pregunta fuera del workspace, un `ask` sin nadie delante que se convierte en `deny` y un fichero que no se edita sin haberlo leído son esa idea aplicada cuatro veces, y ninguna depende de que tú leas con atención lo que aprobaste. Lo que escribió dentro de ese perímetro no lo comprueba ninguna de esas piezas: se revisa después, con `git diff`. La guía recorre las piezas y termina en la que falta.
+
+## Prerrequisitos y clonado
+
+Los comandos son para una terminal Linux, y son idénticos en macOS. En Windows, usa WSL2 ([guía de instalación de Microsoft](https://learn.microsoft.com/es-es/windows/wsl/install)). Necesitas lo mismo que en las guías anteriores: Node.js 22 o superior, [ripgrep](https://github.com/BurntSushi/ripgrep#installation) (`rg`) en el `PATH` y Ollama con `qwen2.5:7b`.
+
+```bash
+ollama pull qwen2.5:7b
+git clone --branch parte-4 https://github.com/pmeleroa/lab-harness-local.git
+cd lab-harness-local
+npm install
+npm test
+```
+
+El repositorio es [pmeleroa/lab-harness-local](https://github.com/pmeleroa/lab-harness-local/tree/parte-4) y todos los enlaces y extractos de esta guía apuntan al tag `parte-4`. Los tests no necesitan modelo. Las ejecuciones que verás usaron Ollama 0.40.15 con la ventana en 4.096, como en la guía anterior (`OLLAMA_CONTEXT_LENGTH=4096 ollama serve`), y por eso llevan `--context-window 4096`.
+
+Los cambios que hace el agente quedan en el árbol de trabajo del clon, sobre `examples/demo`, y `git checkout examples/demo` los deshace.
+
+## Un harness que solo lee se queda corto
+
+Hasta ahora el harness leía: `Read` y `Glob`, con un límite de workspace fijo que rechazaba cualquier ruta de fuera. La guía del [bucle](/blog/harness-propio-desde-cero-el-bucle) lo dejó dicho: eso **no es el modelo de permisos**, y los permisos de verdad, con confirmaciones y reglas, llegarían cuando el harness pudiera escribir. Esta guía cumple esa mitad. La otra mitad, ejecutar comandos, es la siguiente parte.
+
+Escribir cambia la pregunta. Con una herramienta de lectura, lo peor que ocurre es que el modelo lea lo que no debe. Con una de escritura, el modelo cambia cosas, y hacen falta tres decisiones que antes no existían: quién puede escribir dónde, qué hacer cuando hay que preguntar y a quién, y cómo evitar que el modelo edite a ciegas un fichero que no ha visto.
+
+El recorrido de una escritura es el mismo en todas las herramientas, y cabe en un dibujo:
+
+<figure style={{margin: "2rem 0"}}>
+  <div role="img" aria-label="Diagrama del recorrido de una llamada de escritura. La llamada del modelo, por ejemplo Edit sobre una ruta, se resuelve con realpath y pasa al motor de permisos, que aplica las reglas en el orden deny, ask, allow y después el modo. Si el resultado es deny, se devuelve un error al modelo y no se ejecuta nada. Si es ask, se pregunta al usuario: sí, siempre, no o un motivo, y sin terminal se deniega. Si es allow, o el usuario aprueba, se ejecuta la herramienta, que comprueba además que el fichero se haya leído antes y no haya cambiado. Fuera del workspace, el motor siempre pregunta, salvo que una regla decida antes." style={{display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: "36rem", marginInline: "auto"}}>
+    <div style={{padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>1. Llamada del modelo</strong><br />Edit sobre una ruta, con <code>old_string</code> y <code>new_string</code></div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ la ruta se resuelve con <code>realpath</code></div>
+    <div style={{padding: "0.6rem 0.8rem", border: "1px solid var(--color-accent)", background: "var(--color-accent-glow)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>2. Motor de permisos</strong><br />Reglas en orden <code>deny</code> &gt; <code>ask</code> &gt; <code>allow</code>; sin regla, decide el perímetro del workspace y el modo</div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ tres salidas</div>
+    <div style={{display: "flex", flexWrap: "wrap", gap: "0.5rem"}}>
+      <div style={{flex: "1 1 9rem", padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem", color: "var(--color-text)"}}><strong>deny</strong><br />Vuelve al modelo como error. No se ejecuta nada.</div>
+      <div style={{flex: "1 1 9rem", padding: "0.6rem 0.8rem", border: "1px dashed var(--color-accent)", borderRadius: "6px", fontSize: "0.85rem", color: "var(--color-text)"}}><strong>ask</strong><br />3. Approver: sí, siempre, no o un motivo. Sin terminal, se deniega.</div>
+      <div style={{flex: "1 1 9rem", padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem", color: "var(--color-text)"}}><strong>allow</strong><br />Sigue a la herramienta.</div>
+    </div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ si se aprueba o se permite</div>
+    <div style={{padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>4. Herramienta</strong><br />Comprueba read-before-edit y escribe</div>
+    <div style={{padding: "0.5rem 0.8rem", border: "1px dashed var(--color-border-2)", borderRadius: "6px", fontSize: "0.8rem", color: "var(--color-text)"}}><strong>Perímetro:</strong> dentro del workspace, el modo decide si se pregunta; fuera, siempre se pregunta. Un <code>deny</code> gana en cualquiera de los dos sitios y en cualquier modo.</div>
+  </div>
+  <figcaption style={{marginTop: "1rem", fontSize: "0.85rem", color: "var(--color-text)"}}>Cada llamada de escritura pasa por el motor antes de tocar el disco, y solo la salida `ask` llega a una persona. Un `deny` o un `ask` sin terminal terminan ahí, como error para el modelo.</figcaption>
+</figure>
+
+**Ante la duda, no** quiere decir que, cuando algo no está claro o nadie responde, el sistema elige no hacer; lo contrario, «ante la duda, sí», es hacer aunque algo falle. Es el hilo de la guía y se concreta en cuatro piezas: read-before-edit (sin lectura previa, no se edita), `deny` (una regla que niega no se discute), el perímetro (fuera del workspace, no sin preguntar) y la falta de respuesta (sin nadie a quien preguntar, no). Las veremos en este orden: primero las herramientas, con read-before-edit; después el motor, con `deny` y el perímetro; luego el approver, con la falta de respuesta; y por último las demostraciones, donde actúan juntas.
+
+## Buscar y cambiar: Grep, Write y Edit
+
+Tres herramientas nuevas. **`Grep`** busca contenido con una expresión regular, sobre ripgrep, que ya es requisito de la serie; junto a `Glob`, que busca por nombre, le permite al modelo encontrar dónde está algo antes de tocarlo. **`Write`** crea un fichero o lo sobrescribe entero, y crea los directorios que falten. **`Edit`** sustituye un texto exacto dentro de un fichero: `old_string` debe aparecer una sola vez, salvo que se pida `replace_all`.
+
+Las dos de escritura tienen una regla común, y es la primera pieza de la tesis: **read-before-edit**. Para modificar un fichero que existe, el modelo tiene que haberlo leído antes, y el fichero no puede haber cambiado desde entonces, ni por tamaño o fecha ni por contenido: la caché guarda también un hash, para el reemplazo externo que conserva ambos. `Read` registra cada lectura y la caché lo comprueba:
+
+```ts
+export class FileStateCache {
+  private snaps = new Map<string, FileSnapshot>();
+
+  record(path: string, snap: FileSnapshot): void {
+    this.snaps.set(path, snap);
+  }
+
+  get(path: string): FileSnapshot | undefined {
+    return this.snaps.get(path);
+  }
+
+  /** Devuelve un mensaje de error si el fichero no se puede modificar con seguridad. */
+  async checkWritable(path: string): Promise<string | null> {
+    const snap = this.snaps.get(path);
+    if (!snap) {
+      return `File has not been read yet. Read ${path} before modifying it.`;
+    }
+    const st = await stat(path).catch(() => null);
+    if (!st) return null; // borrado desde la lectura: se permite recrearlo
+    const modified = `File ${path} was modified since it was last read. Read it again before modifying it.`;
+    if (st.mtimeMs !== snap.mtimeMs || st.size !== snap.size) return modified;
+    // Un reemplazo externo puede conservar tamaño y fecha: el contenido manda.
+    const buf = await readFile(path).catch(() => null);
+    if (buf && hashContent(buf) !== snap.hash) return modified;
+    return null;
+  }
+}
+```
+
+Dos cosas que conviene notar. La primera: no protege de nada que escriba el propio modelo, solo de editar a ciegas o sobre un fichero que cambió por otro lado (tú, un formateador, otro proceso). La segunda: es un control sobre *qué contexto tuvo el modelo*, no sobre *qué decide escribir*. Un modelo que ha leído el fichero puede perfectamente escribir algo equivocado.
+
+`Edit` añade lo que hace falta para que un modelo pequeño se corrija. Si `old_string` no aparece, lo dice, y si lleva pegados los números de línea que imprime `Read`, avisa de que los quite. Si aparece varias veces, pide más contexto:
+
+```ts
+    const count = countOccurrences(original, input.old_string);
+    if (count === 0) {
+      const hint = /^\s*\d+\t/m.test(input.old_string)
+        ? " It looks like old_string contains line-number prefixes from Read; remove them."
+        : "";
+      return { content: `old_string not found in ${p}.${hint}`, isError: true };
+    }
+    if (count > 1 && !input.replace_all)
+      return {
+        content: `old_string matches ${count} times in ${p}. Add surrounding context to make it unique, or set replace_all.`,
+        isError: true,
+      };
+```
+
+Todo eso se prueba sin modelo. Los tests de [`test/tools.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-4/test/tools.test.ts) cubren `Edit` sin haber leído, un cambio externo por tamaño y por fecha de modificación con el mismo tamaño, `old_string` ausente, repetido y con prefijos de línea, `replace_all`, y `Write` que crea directorios y que exige lectura para sobrescribir.
+
+## El motor de permisos
+
+Con herramientas que escriben, hace falta algo que decida antes de ejecutarlas. Cada herramienta declara qué ruta toca y si lee o escribe (`permissionTarget`), y el motor, `PolicyEngine`, devuelve una de tres decisiones: `allow`, `ask` o `deny`. Las reglas se escriben como `Herramienta(patrón)`, con globs relativos al workspace: `Edit(**/.env*)`, `Read(src/**)`. Una regla `Edit(...)` cubre también a `Write`, y una `Read(...)` cubre también a `Glob` y `Grep`.
+
+La decisión, en el código:
+
+```ts
+  private evaluatePath(toolName: string, absPath: string, access: "read" | "write"): Decision {
+    // `Edit(...)` cubre también `Write`; `Read(...)` cubre Glob y Grep.
+    const ruleTools = access === "write" ? new Set([toolName, "Edit"]) : new Set([toolName, "Read"]);
+    const ruled = this.byRules((r) => ruleTools.has(r.tool) && (!r.specifier || matchPath(r.specifier, absPath, this.cfg.workspace)));
+    if (ruled) return ruled;
+
+    const inside = isInside(this.cfg.workspace, absPath);
+    if (access === "read")
+      return inside ? { kind: "allow", reason: "read inside workspace" } : { kind: "ask", reason: `read outside workspace: ${absPath}` };
+    if (!inside) return { kind: "ask", reason: `write outside workspace: ${absPath}` };
+    if (this.cfg.mode === "acceptEdits" || this.cfg.mode === "bypass")
+      return { kind: "allow", reason: `${this.cfg.mode}: write inside workspace` };
+    return { kind: "ask", reason: `write ${absPath}` };
+  }
+
+  /** deny > ask > allow, primero reglas de sesión y luego configuradas. */
+  private byRules(pred: (r: Rule) => boolean): Decision | null {
+    for (const list of ["deny", "ask", "allow"] as const) {
+      const r = [...this.sessionRules[list], ...this.rules[list]].find(pred);
+      if (r) return { kind: list, reason: `rule ${r.raw}` };
+    }
+    return null;
+  }
+```
+
+De ahí salen tres de las piezas de la tesis.
+
+**`deny` gana siempre.** Una regla `deny` se evalúa antes que cualquier `ask` o `allow`, y antes que el modo. Un `allow` no levanta un `deny`, y ningún modo lo salta. Es la única decisión que no se discute con nadie.
+
+**El perímetro.** Sin regla, una lectura dentro del workspace se permite y una fuera pregunta. Una escritura fuera pregunta siempre; una escritura dentro pregunta en el modo `default` y se permite en `acceptEdits`. El perímetro no es un muro: la guía anterior rechazaba cualquier ruta de fuera con un error, y ahora el motor *pregunta*. Quien siga los comandos de las guías anteriores sobre sus tags no ve cambios.
+
+**Tres modos.** `default` pregunta antes de escribir. `acceptEdits` escribe dentro del workspace sin preguntar. `bypass` convierte cualquier `ask` en `allow`:
+
+```ts
+  evaluate(_call: ToolUseBlock, target: PermissionTarget): Decision {
+    const d = this.evaluatePath(_call.name, target.path, target.access);
+    // `bypass` convierte cualquier `ask` en `allow`; un `deny` no se toca.
+    if (this.cfg.mode === "bypass" && d.kind === "ask") return { kind: "allow", reason: `bypass mode (${d.reason})` };
+    return d;
+  }
+```
+
+Hay que leer bien esa línea: en `bypass`, **escribir fuera del workspace se permite sin preguntar**. Solo un `deny` lo para. Es un modo para entornos desechables, y el único motivo de que exista en esta guía es enseñar que `deny` gana también ahí.
+
+### La ruta real, antes de decidir
+
+Hay un detalle que decide si el perímetro vale algo: qué ruta se evalúa. Un enlace simbólico dentro del workspace que apunta fuera tiene un nombre que está dentro y un destino que está fuera. Si el motor comparara el nombre, el perímetro sería de papel. Por eso la ruta se resuelve con `realpath` *antes* de evaluar, y se evalúa la ruta real:
+
+```ts
+export function resolveReal(workspace: string, p: string): string {
+  return resolveFrom(resolvePath(workspace, p), 0);
+}
+
+const MAX_LINK_HOPS = 40;
+
+function resolveFrom(abs: string, hops: number): string {
+  const rest: string[] = [];
+  let cur = abs;
+  for (;;) {
+    try {
+      return path.join(realpathSync(cur), ...rest.reverse());
+    } catch {
+      // ¿Es un enlace colgante? Se sustituye por su destino y se resuelve de nuevo.
+      try {
+        if (lstatSync(cur).isSymbolicLink() && hops < MAX_LINK_HOPS) {
+          const target = path.resolve(path.dirname(cur), readlinkSync(cur));
+          return resolveFrom(path.join(target, ...rest.reverse()), hops + 1);
+        }
+      } catch {
+        // no existe: se sube un nivel
+      }
+      const parent = path.dirname(cur);
+      if (parent === cur) return abs;
+      rest.push(path.basename(cur));
+      cur = parent;
+    }
+  }
+}
+```
+
+Si la ruta aún no existe, como en un `Write` nuevo, se resuelve el ancestro más profundo que sí existe y se le añade el resto, así que un directorio-enlace hacia fuera se detecta igual. Un enlace colgante, que apunta a un destino que no existe, se sigue con `readlink`: `writeFile` lo seguiría y crearía el destino de fuera, y el motor tiene que juzgar ese destino y no el nombre del enlace. Y `resolveReal` ya no rechaza nada: se limita a devolver la ruta real, y el motor decide. Los tests de enlaces simbólicos de la guía del bucle se conservaron, pero ahora comprueban la decisión (`ask`) y no el rechazo fijo, y hay uno nuevo que comprueba que un `deny` sobre la ruta real gana aunque se llegue por un enlace.
+
+### Las reglas son explícitas
+
+Las reglas se leen del bloque `permissions` de `<workspace>/.harness/settings.json`, más los flags `--allow` y `--deny`, y el modo sale de `--permission-mode`. **No hay ningún `deny` implícito**: lo que no escribas no se deniega. El demo del lab trae el suyo, y es el que protege lo que importa:
+
+```json
+{
+  "permissions": {
+    "deny": ["Read(**/.env*)", "Edit(**/.env*)", "Edit(.harness/**)"]
+  }
+}
+```
+
+Las dos primeras reglas protegen los secretos. La tercera protege la configuración: sin ella, nada impide que el modelo escriba en `.harness/settings.json` y se amplíe los permisos para el siguiente run. La protección no viene integrada, es una regla que tienes que escribir, y por eso aparece en «Lo que falta». Un repositorio tampoco puede ponerse a sí mismo en `bypass` desde ese fichero: el lab lo ignora con un aviso, y ese modo solo se activa con `--permission-mode bypass`.
+
+## Preguntar: el approver
+
+Cuando el motor devuelve `ask`, alguien tiene que contestar. En una terminal, ese alguien es el usuario, y el lab lo pregunta por la salida de error:
+
+```text
+? Edit src/pricing.ts
+  write <repo>/examples/demo/src/pricing.ts
+  [y] sí / [n] no (o escribe por qué):
+```
+
+Fíjate en lo que **no** aparece: el cambio. El prompt muestra la herramienta, la ruta y el motivo, no el diff. Aprobar es aprobar *dónde*, y lo que se va a escribir solo lo ves después. Mostrar el diff en el prompt sería una mejora razonable y queda fuera de esta parte.
+
+Hay tres respuestas, y la tercera es la más útil con un modelo pequeño. `y` ejecuta una vez. `a` («siempre») añade una regla de sesión y se ofrece solo para lecturas fuera del workspace; para escribir, lo decide el modo. Y cualquier otro texto cuenta como un `n` con motivo, y ese texto vuelve al modelo:
+
+```ts
+export function parseAnswer(raw: string, suggestedRule: string | null): ApprovalAnswer {
+  const ans = raw.trim();
+  if (/^(y|s|si|sí|yes)$/i.test(ans)) return { kind: "allow_once" };
+  if (suggestedRule && /^a$/i.test(ans)) return { kind: "allow_always", rule: suggestedRule };
+  return { kind: "deny", ...(ans && !/^n(o)?$/i.test(ans) ? { feedback: ans } : {}) };
+}
+```
+
+Es el equivalente a decirle al modelo «así no, hazlo de otra forma»: el rechazo no cierra la conversación, la reconduce. En el bucle, la respuesta se convierte en el `tool_result` que ve el modelo:
+
+```ts
+    if (decision.kind === "ask") {
+      source = "user";
+      const answer = await this.approvalLock.run(async (): Promise<ApprovalAnswer> => {
+        // Las llamadas en paralelo se evalúan antes de que el usuario responda a la primera: si un «siempre» ya
+        // cubre a esta, se reevalúa con las reglas de sesión actuales en lugar de volver a preguntar.
+        const again = this.deps.policy.evaluate(call, target);
+        if (again.kind === "allow") return { kind: "allow_once" };
+        if (again.kind === "deny") return { kind: "deny", feedback: again.reason };
+        this.emit({ t: "permission_request", call, reason: decision.reason });
+        return this.deps.approver({ call, reason: decision.reason, suggestedRule: this.deps.policy.suggestRule(call, target) });
+      });
+      if (signal.aborted) return result(INTERRUPTED, true);
+      allowed = answer.kind !== "deny";
+      if (answer.kind === "allow_always") this.deps.policy.addSessionRule("allow", answer.rule);
+      if (answer.kind === "deny")
+        denyMessage = `The user denied this action${answer.feedback ? `: ${answer.feedback}` : "."} Do not retry it with another tool; ask the user how to proceed if needed.`;
+    }
+```
+
+El cerrojo (`approvalLock`) existe porque las herramientas de solo lectura corren en paralelo: sin él, dos lecturas fuera del workspace abrirían dos prompts a la vez. Y la reevaluación dentro del cerrojo tiene una razón concreta: las dos llamadas se evalúan *antes* de que contestes a la primera, así que sin ella, tras un «siempre» la segunda volvería a preguntar.
+
+### Sin nadie a quien preguntar, no
+
+La última pieza es la forma más pura de la idea: qué pasa cuando no hay nadie a quien preguntar. Si el stdin o el stderr no son una terminal, por ejemplo en un script, en CI o con `< /dev/null`, el approver es uno que lo deniega todo:
+
+```ts
+export const denyAllApprover: Approver = async () => ({ kind: "deny", feedback: "No interactive user available." });
+```
+
+Un `ask` sin humano se convierte en `deny`. Es la decisión de diseño más barata de toda la guía y la más fácil de olvidar: lo contrario, aprobar por defecto cuando nadie contesta, convertiría cualquier ejecución desatendida en `bypass`.
+
+El resto del lab sigue el mismo criterio. Una ruta fuera del workspace pregunta en vez de permitirse. Un fichero que el modelo no ha leído no se edita. Una regla mal escrita en `settings.json` no se ignora: el lab no arranca. La excepción es `bypass`, que es «ante la duda, sí» a propósito: convierte cualquier `ask` en `allow`, y por eso solo un `deny` lo frena.
+
+## Verlo actuar: escribir
+
+La primera demostración, sobre `examples/demo`, es una tarea de escritura. Es una de las ejecuciones guardadas en [`examples/salidas/escribir-default.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-4/examples/salidas/escribir-default.txt), en el modo `default` y aprobando con `y`:
+
+```bash
+npm run dev -- --workspace examples/demo --context-window 4096 "Cambia el descuento de los pedidos del 10 % al 15 %."
+git diff
+```
+
+```txt
+workspace: <repo>/examples/demo
+modelo: qwen2.5:7b
+modo: default
+
+ctx 1,3k/4,1k (32%)
+> Grep {"pattern":"10 %","glob":"*.ts"}
+  ok (18 ms)
+ctx 1,4k/4,1k (33%)
+> Read {"file_path":"src/pricing.ts"}
+  ok (1 ms)
+ctx 1,6k/4,1k (40%)
+
+? Edit src/pricing.ts
+  write <repo>/examples/demo/src/pricing.ts
+  [y] sí / [n] no (o escribe por qué): y
+> Edit {"file_path":"src/pricing.ts","old_string":"export const DISCOUNT_RATE = 0.1;","new_string":"export …
+  ok (2 ms)
+
+[end_turn] 4 turnos, 3 llamadas, 390 tokens de entrada, 312 de salida
+```
+
+```diff
+-export const DISCOUNT_RATE = 0.1;
++export const DISCOUNT_RATE = 0.15;
+```
+
+(Del resto de la salida he quitado los comentarios del modelo entre llamadas, y del `git diff`, las líneas de contexto. Los ficheros completos están en el repositorio.) Se ve el recorrido: `Grep` encuentra el fichero, `Read` lo lee, `Edit` lo pide, el prompt pregunta *dónde* y el `git diff` enseña *qué*. Con `--permission-mode acceptEdits` la misma tarea no pregunta, y el `git diff` pasa a ser el único control.
+
+Hay que contar los números de verdad. Repetí la tarea 20 veces, 10 en `default` aprobando siempre con `y` y 10 en `acceptEdits`, cada una sobre una copia limpia del demo. **Solo 9 de las 20 llegaron a un `Edit` correcto** (5 en `default`, 4 en `acceptEdits`), y en esas 9 el `git diff` fue exactamente la línea de arriba. Las otras 11 se quedaron antes de editar: 9 buscaron con patrones que no aparecen en el código (`10%`, cuando el comentario dice `10 %`) y se rindieron, una encontró el fichero pero siguió buscando sin leerlo, y otra lo leyó y terminó sin editar. Ningún `Edit` falló por un `old_string` incorrecto ni escribió algo distinto de lo pedido. Con otro modelo u otra ejecución, cambia: son ejecuciones representativas, no garantías.
+
+## Verlo actuar: seguridad
+
+La segunda demostración comprueba las piezas de la tesis una a una. Cada comando está tal cual en [`examples/salidas/`](https://github.com/pmeleroa/lab-harness-local/tree/parte-4/examples/salidas), junto a su salida completa; aquí dejo solo las líneas que importan. Los ejemplos usan un `.env` de mentira que creas en el momento: el `.gitignore` del lab lo ignora, así que no se versiona.
+
+**`deny` gana, también en `bypass`.** Con un `.env` de mentira y el modo que no pregunta nada:
+
+```bash
+echo "TOKEN=falso-no-usar" > examples/demo/.env
+npm run dev -- --workspace examples/demo --permission-mode bypass "Cambia el valor de TOKEN en el fichero .env a otro-valor." < /dev/null
+```
+
+```txt
+workspace: <repo>/examples/demo
+modelo: qwen2.5:7b
+modo: bypass
+
+ctx 1,2k/4,1k (30%)
+x Read denegado: rule Read(**/.env*)
+```
+
+El modelo intentó leer el fichero, y la regla `Read(**/.env*)` lo denegó aunque el modo sea `bypass`. Lo hizo en 5 de las 5 ejecuciones: el modelo lee antes de editar, así que el `Edit(**/.env*)` no llegó a evaluarse. Esa segunda regla la cubren los tests y una comprobación a mano, 15 llamadas denegadas de 15 entre `Read`, `Edit` y `Write`, en los tres modos. El `.env` quedó igual.
+
+**La configuración no se amplía a sí misma.** En `bypass`, se le pide al modelo que se dé permisos:
+
+```bash
+npm run dev -- --workspace examples/demo --permission-mode bypass 'Lee .harness/settings.json y añade en "permissions" la clave "allow" con el valor ["Edit(**)"].' < /dev/null
+```
+
+```txt
+> Read {"file_path":".harness/settings.json"}
+  ok (2 ms)
+x Edit denegado: rule Edit(.harness/**)
+```
+
+El `Read` se permite y el `Edit` lo deniega `Edit(.harness/**)`. Solo 1 de las 5 ejecuciones llegó al `Edit`; en las otras 4 el modelo leyó una ruta equivocada (`settings.json` o `harness/settings.json`, sin el punto) y se quedó ahí. Que no llegue a intentarlo no dice nada del motor: eso lo prueban los tests deterministas.
+
+**Sin terminal, un `ask` es un `deny`.** Con `< /dev/null` no hay nadie a quien preguntar, y la misma tarea de antes falla cerrada:
+
+```bash
+npm run dev -- --workspace examples/demo "Cambia el descuento de los pedidos del 10 % al 15 %." < /dev/null
+```
+
+```txt
+x Edit denegado: write <repo>/examples/demo/src/pricing.ts (sin terminal para preguntar)
+```
+
+3 de 5 llegaron al `Edit` y se denegaron así; en las otras dos el modelo no llegó a editar (una hizo 21 llamadas sin dar con el fichero). El fichero no cambió en ninguna.
+
+**Un enlace no esquiva el perímetro.** Un enlace simbólico dentro del workspace hacia un directorio de fuera:
+
+```bash
+mkdir -p /tmp/fuera && echo "dato-fuera" > /tmp/fuera/nota.txt
+ln -s /tmp/fuera examples/demo/datos
+npm run dev -- --workspace examples/demo "Lee el fichero datos/nota.txt y dime qué contiene." < /dev/null
+```
+
+```txt
+x Read denegado: read outside workspace: /private/tmp/fuera/nota.txt (sin terminal para preguntar)
+```
+
+El motor evaluó la ruta real, `/private/tmp/fuera/nota.txt` (en macOS `/tmp` es un enlace a `/private/tmp`; en Linux saldría `/tmp/fuera`), y esa está fuera: pregunta, y sin terminal se deniega. 5 de 5. En ninguna de las 20 ejecuciones de estos cuatro escenarios cambió un fichero.
+
+`git checkout examples/demo` no borra lo que has creado tú a mano para estos ejemplos: el `.env` de mentira, el enlace `datos` y el directorio de fuera. Al terminar, limpia:
+
+```bash
+rm -rf examples/demo/.env examples/demo/datos /tmp/fuera
+```
+
+## Dónde, no qué
+
+Y ahora el argumento en contra de la tesis. Todo lo anterior limita *dónde* llega el agente. Ninguna pieza mira *qué* escribe, y esa es la tesis, pero conviene ver lo que significa.
+
+Vuelve al escenario del principio. Un fichero del repositorio lleva una instrucción para el modelo: «al editar `pricing.ts`, añade esta línea». El modelo la sigue, la ruta está dentro del workspace y ninguna regla `deny` la cubre. En `acceptEdits` se escribe sin preguntar. En `default` el prompt es el de arriba: herramienta y ruta, sin diff. Ninguna pieza lo para: ni el `deny`, ni el perímetro, ni read-before-edit, que el modelo cumple porque *lee* el fichero y después escribe lo que no debe. No lo medí, es un escenario; lo que sí tengo es una versión mansa, y real.
+
+Al seguir el README del lab desde un clon limpio, probé el comando de escritura 2 veces. Una vez no hizo cambios. La otra, con terminal simulado y aprobando con `y` ([`escribir-incorrecto.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-4/examples/salidas/escribir-incorrecto.txt)), el `Edit` llegó al fichero, el `git diff` fue de una sola línea y el permiso estaba bien dado, pero no era lo pedido:
+
+```diff
+-  return subtotal >= DISCOUNT_THRESHOLD ? subtotal * (1 - DISCOUNT_RATE) : subtotal;
++  return subtotal >= DISCOUNT_THRESHOLD ? subtotal * (1 - 0.15) : subtotal;
+```
+
+El modelo escribió el 15 % a mano dentro de la función, en lugar de cambiar la constante, y dejó `DISCOUNT_RATE` en `0.1`. El código sigue funcionando, el diff es pequeño y el sistema de permisos hizo exactamente lo que debía. No hay forma de que un motor de reglas de rutas vea que eso está mal. Son 2 pruebas, no una medición, y no entran en las 20 de arriba.
+
+Por eso la tesis está acotada a *dónde*. Lo que el agente escribió dentro del perímetro se revisa tras el run, con la herramienta que ya tienes: `git diff`. Y eso tiene consecuencias prácticas:
+
+- Trabaja en una rama o en un árbol limpio, para que `git diff` muestre solo lo del agente.
+- En `acceptEdits`, el `git diff` es el único control: léelo antes de dar nada por hecho.
+- En `default`, aprobar `? Edit src/pricing.ts` es aprobar una ruta. Lo que cambia, lo ves después.
+
+## Lo que falta
+
+El agente ya puede escribir, y está contenido por dónde. Lo que queda fuera de esta parte:
+
+- **El prompt no muestra el diff**: solo herramienta, ruta y motivo. Es una mejora razonable y no está.
+- **La protección de la configuración no viene integrada**: depende de la regla `Edit(.harness/**)` que tú escribes.
+- **No hay modo `plan`**: un modo que solo lea y proponga, sin escribir.
+- **Las reglas son de rutas**: valen para las herramientas de ficheros. Un comando de shell puede leer y escribir por otra vía, y esa es la siguiente parte, con `Bash`, procesos en segundo plano y un sandbox.
+- **Una sola medición con un modelo pequeño**: 20 ejecuciones de escritura y 20 de seguridad con `qwen2.5:7b`. Con otro modelo, cambia.
+- **El modelo de 7B no acierta siempre**: 9 de 20 llegaron al `Edit` correcto.
+
+El orden previsto para lo que viene, la ejecución y la seguridad, está en la [página de la serie](/blog/series/asistente-codigo-local). Antes, lo esencial de esta parte:
+
+- **Los permisos deciden dónde, no qué**: el perímetro, `deny` y read-before-edit limitan dónde escribe el agente; el contenido se revisa con `git diff`.
+- **`deny` gana siempre**: también en `bypass`, que permite escribir fuera del workspace sin preguntar.
+- **La ruta se evalúa por su destino real**: un enlace simbólico no esquiva el perímetro.
+- **Ante la duda, no**: si algo no está claro o nadie responde, no se hace; `bypass` es la excepción deliberada.
+- **Rechazar con un motivo reconduce al modelo**: el texto vuelve como resultado de la herramienta.
+- **Las reglas son explícitas**: no hay ningún `deny` implícito, y proteger la configuración es una regla más.

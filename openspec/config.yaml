@@ -168,10 +168,11 @@ rules:
       asistente de código local con Ollama. El post 1 es
       ollama-primeros-pasos-asistente-de-codigo-local.mdx y el post 2 es
       harness-propio-desde-cero-el-bucle.mdx (change add-harness-loop-post); el
-      post 3 es compactar-es-lo-facil.mdx (change add-context-window-post).
+      post 3 es compactar-es-lo-facil.mdx (change add-context-window-post); el
+      post 4 es dejar-que-el-agente-escriba.mdx (change add-write-permissions-post).
       Desde el post 2 la serie es la arquitectura de un harness de agente de código,
       construida sobre un repositorio público, pmeleroa/lab-harness-local, que
-      crece parte a parte con un tag por post (parte-2 para el post 2, parte-3 para el post 3) y debe
+      crece parte a parte con un tag por post (parte-2 para el post 2, parte-3 para el post 3, parte-4 para el post 4) y debe
       converger con el proyecto harness del autor hasta ser el mismo
       repositorio. El contenido y el orden públicos de la serie (títulos y
       resúmenes de las partes, orientativos y sin fechas) viven en
@@ -195,7 +196,18 @@ rules:
       Anthropic; decidir antes del último tag si recibe parte propia o entra en
       un tag sin post (los gateways y 'varios modelos' siguen fuera).
       La ventana por defecto del adaptador OpenAI pasó a 4.096 tokens, con aviso
-      al arrancar, en el post 3. Solo entran temas relacionados con
+      al arrancar, en el post 3. Trabajo posterior al cierre del change
+      add-write-permissions-post, fuera de él y en harness, no en el lab: arreglar el
+      realpath en su motor de políticas (isInside es léxico y no resuelve la ruta
+      real del destino, así que un enlace simbólico dentro del workspace que apunta
+      fuera cuenta como dentro; el lab lo resuelve con realpath antes de evaluar);
+      la falta de protección integrada de .harness/settings.json (hoy solo la cubre
+      una regla Edit(.harness/**) escrita a mano); el prompt de aprobación, que no
+      muestra el diff; y llevar a harness las otras dos diferencias deliberadas del
+      lab, que son ofrecer «siempre» para las lecturas fuera del workspace y
+      reevaluar dentro del cerrojo del prompt para que un «siempre» evite la
+      segunda pregunta en llamadas en paralelo. El modo plan y las reglas de Bash
+      no entran en el post 4. Solo entran temas relacionados con
       el harness local. 'Varios modelos', 'elección de modelo' y 'cuándo local
       no basta' quedan fuera de la serie; los dos últimos tienen su propia
       entrada de trabajo futuro, y el gateway LiteLLM la suya. Cada post de la
