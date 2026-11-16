@@ -6,7 +6,7 @@ La parte 4 de la serie «Asistente de código local» dejó que el harness escri
 
 ## What Changes
 
-- Se publica la parte 5 de la serie, de tipo Guía, con título provisional «El sandbox es la defensa real: aislar lo que ejecuta el agente» (se cierra con el autor en el apply).
+- Se publica la parte 5 de la serie, de tipo Guía, con título «El sandbox es la defensa real: aislar lo que ejecuta el agente» y slug `el-sandbox-es-la-defensa-real`, cerrados con el autor en el apply (tarea 2.1).
 - **Alcance: un solo post, con el sandbox como foco principal.** El concepto central es el sandbox: qué es, qué garantiza (raíz de solo lectura, escritura solo en el workspace, credenciales ocultas, red opcional), cómo se construye con bubblewrap y qué no cubre. `Bash` y los procesos en segundo plano (`run_in_background`, `BashOutput`, `KillShell`) son secundarios: se presentan lo justo para tener algo que aislar, y el análisis de comandos y las reglas `Bash(...)` aparecen como el contraste (lo que no basta). Más de la mitad del post es sandbox. Si no cabe en el tamaño de la parte 4, se recorta lo secundario, no el sandbox.
 - **Tesis y contraargumento.** Las reglas son comodidad (deciden cuándo preguntar) y se pueden rodear con un comando que parece inocuo; el sandbox decide qué puede pasar aunque una regla se equivoque. El contraargumento honesto es que el sandbox no ve el contenido: dentro del workspace y con red, un comando aprobado sigue pudiendo hacer daño. El post lo acota con lo que el sandbox sí garantiza (raíz de solo lectura, escritura solo en el workspace, credenciales ocultas, red opcional).
 - **Linux como camino principal.** El sandbox se explica y se verifica con bubblewrap en Linux; macOS (`sandbox-exec`) entra como nota, sin variantes en los comandos del lector.
@@ -36,14 +36,14 @@ Contrato de publicación: no cambia. `status`, `approvedBy` y `approvedAt` no se
 ## Impact
 
 - **Contenido:**
-  - `src/content/blog/<slug>.mdx`, nuevo.
+  - `src/content/blog/el-sandbox-es-la-defensa-real.mdx`, nuevo.
   - `src/content/series/asistente-codigo-local.yaml`.
-  - `public/images/blog/<slug>.webp`, si el autor aporta imagen.
+  - `public/images/blog/el-sandbox-es-la-defensa-real.webp`, aportada por el autor (tarea 2.1).
 - **Configuración de OpenSpec:** `openspec/config.yaml` (`rules.design`).
 - **Repositorios externos:**
   - `pmeleroa/lab-harness-local`, público: nuevo tag `parte-5`. Los tags `parte-2` a `parte-4` no cambian.
   - `harness`: no se modifica.
-- **Comportamiento del lab:** `Bash` aparece por primera vez; por defecto pregunta y se ejecuta dentro del sandbox. Quien siga los comandos de los posts 2 a 4 sobre sus tags no ve cambios.
+- **Comportamiento del lab:** `Bash` aparece por primera vez; los comandos de solo lectura se ejecutan sin preguntar, el resto pregunta por defecto, y todos se ejecutan dentro del sandbox. Quien siga los comandos de los posts 2 a 4 sobre sus tags no ve cambios.
 - **Tamaño:** cerca de la parte 4 (~32 KB).
 - Sin cambios de código ni dependencias npm en este repositorio. En el lab, el parser de Bash añade `web-tree-sitter` y `tree-sitter-bash`, justificado en `design.md`.
 - **SEO:** página nueva con `isPartOf` de la serie. Las partes 1 a 4 ganan una entrada en el bloque de navegación.

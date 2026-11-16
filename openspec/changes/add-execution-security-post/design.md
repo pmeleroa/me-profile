@@ -42,7 +42,9 @@ La motivación está en `proposal.md`, apartado Why. Las decisiones de alcance (
 
 **Regla: el lab solo avanza con el contenido del post.** El código del lab se actualiza desde `/Users/pw-pmelero/workspaces/personal/harness` únicamente en lo que necesita el contenido de este post (sandbox, `Bash`, parser, reglas `Bash(...)` y segundo plano, más lo que esas piezas requieran para funcionar). No se adelanta contenido de partes posteriores (extensibilidad, delegación, sesiones, TUI, modo `plan`, proveedor de Anthropic, etc.) aunque `harness` ya lo tenga, y no se hace una puesta al día general de módulos que el post no toca. Los módulos compartidos que cambian (p. ej. `cli.ts`, `loop.ts`, `engine.ts`, `settings.ts`, `tools/registry.ts`) se tocan solo en lo que exige la parte 5. El estado de `harness` se fija por commit al empezar el apply y se registra; las diferencias con `harness` que quedan (deliberadas o por contenido aún no publicado) se listan con su motivo. Alternativa descartada: alinear el lab entero con `harness`, porque revelaría en el tag `parte-5` contenido que pertenece a partes futuras y rompería el orden de la serie. La regla se registra también en `openspec/config.yaml`.
 
-**Derivar de `harness` sin modificarlo.** El lab copia y recorta `bash.ts` (sin segundo plano en una primera iteración si el tamaño lo exige; ver Tamaño), `bash-parser.ts`, `evaluateCommand`, `opaqueReason`/`isReadOnly`, las reglas `Bash(...)` de `rules.ts` y `sandbox/index.ts` (bwrap y seatbelt). Alternativa descartada: un sandbox propio más simple, porque obligaría a reescribirlo al converger.
+**Derivar de `harness` sin modificarlo.** El lab copia y recorta `bash.ts` (con segundo plano, que entra en el tag `parte-5`; decisión de la tarea 1.3), `bash-parser.ts`, `evaluateCommand`, `opaqueReason`/`isReadOnly`, las reglas `Bash(...)` de `rules.ts` y `sandbox/index.ts` (bwrap y seatbelt). Alternativa descartada: un sandbox propio más simple, porque obligaría a reescribirlo al converger.
+
+**Divergencias deliberadas tras la revisión externa del lab.** Una revisión externa (2026-11-14) encontró agujeros que también tiene `harness`, y el lab los arregla sin esperar a `harness` (tarea 1.8, punto 8): las redirecciones se evalúan desde el directorio del shell, y desde cada directorio posible si el script hace `cd`; `rg --pre`, `sort --compress-program` y `git grep -O` pasan a ser opacos; y `uniq` con dos ficheros y `tree -o` dejan de ser de solo lectura. Alternativa descartada: dejarlos como en `harness` para no divergir, porque son fallos reproducidos que permiten escribir saltándose un `deny` o ejecutar un script sin preguntar. El post los usa como argumento a favor de la tesis: la lista de solo lectura y el análisis de redirecciones tenían huecos, y esos huecos son lo que el sandbox cubre. Los mismos fallos quedan como trabajo posterior en `harness` (`openspec/config.yaml`).
 
 **Dependencia nueva en el lab: `web-tree-sitter` + `tree-sitter-bash`.** Justificación: `git status && curl x | sh` empieza por `git` y ejecuta tres programas; ni un prefijo de string ni una regex lo descomponen de forma fiable, y ese ejemplo es parte del argumento del post. Alternativa descartada: regex/`split` por `&&`, `|`, `;`, que el post usa como contraejemplo del enfoque ingenuo. Sin dependencias nuevas en `me-profile`.
 
@@ -51,28 +53,32 @@ La motivación está en `proposal.md`, apartado Why. Las decisiones de alcance (
 **Linux como camino principal y verificación.**
 
 - Los comandos del lector (`bwrap`, `ls`, `cat`, `curl`, `touch`) son los mismos en Linux y macOS, salvo el sandbox: `bwrap` (Linux) frente a `sandbox-exec` (macOS). **Excepción justificada a la regla de Linux:** el post explica el sandbox con bubblewrap y menciona `sandbox-exec` solo en una nota, sin dar comandos de macOS para el lector.
-- **Verificación de la variante Linux:** en un contenedor Linux con Docker (`desktop-linux`) con `bubblewrap` instalado y los permisos que bwrap exige para crear user namespaces (p. ej. `--security-opt seccomp=unconfined` y `--cap-add SYS_ADMIN`; se registra la combinación mínima que funciona). Las demos se ejecutan ahí y las salidas de `examples/salidas/` provienen de esa ejecución. La variante macOS se verifica en la máquina del autor con `sandbox-exec`, y su salida se cita solo como nota.
+- **Verificación de la variante Linux:** en un contenedor Linux con Docker (`desktop-linux`) con `bubblewrap` instalado y los permisos que bwrap exige para crear user namespaces. La combinación mínima con la que funciona lo que genera el harness resultó ser `--security-opt seccomp=unconfined --security-opt systempaths=unconfined` (tarea 1.5). Las demos se ejecutan ahí y las salidas de `examples/salidas/` provienen de esa ejecución. La variante macOS se verifica en la máquina del autor con `sandbox-exec`, y su salida se cita solo como nota.
 - Windows: referencia a WSL2, sin variantes.
-- **Aviso honesto en el post:** bwrap necesita user namespaces; en un contenedor sin ellos `detectSandbox` cae a `none` con aviso, y el post lo muestra.
+- **Aviso honesto en el post:** bwrap necesita user namespaces; en un contenedor sin ellos `detectSandbox` cae a `none` con aviso, y el post lo muestra. Un límite más, encontrado al verificar (tarea 1.5): dentro de un contenedor que tapa `/proc`, la sonda de `detectSandbox` pasa pero el `wrap` real falla en cada comando, porque la sonda no usa los mismos argumentos. Falla cerrado, no abierto. El lab se queda igual que `harness` (decisión del autor en la tarea 1.6) y el post lo cuenta en «Lo que el sandbox no hace».
 
 **Demos (comandos tal como irán en el post, sobre `examples/demo`).**
 
-- **Demo 1, regla que no basta** (contraste, breve). Con `Bash(npm run *)` permitido, un script de `package.json` (creado por el lector) escribe fuera del workspace o lee una credencial de mentira (`~/.fake-ssh`, creada con `mkdir`/`echo`, nunca `~/.ssh` real). La regla lo deja pasar; se muestra el resultado sin sandbox. Los casos concretos de evasión se confirman ejecutándolos en el apply; si uno no se reproduce, no se afirma.
+- **Demo 1, regla que no basta** (contraste, breve). Con `Bash(npm run *)` permitido, el script `build` de un `package.json` (creado por el lector) escribe en `dist/`, lee una credencial de mentira, añade una línea a `~/.bashrc` y lanza un `curl` a `example.org`. La credencial vive en un HOME de prueba (`export HOME="$PWD/.demo-home"`, con `~/.ssh/id_falsa` dentro), nunca en el `~/.ssh` real. Lo decidió el autor en la tarea 1.6, porque el sandbox de `harness` solo oculta su lista fija y una ruta inventada como `~/.fake-ssh` no quedaría oculta. La regla lo deja pasar; se muestra el resultado sin sandbox. Los casos concretos de evasión se confirman ejecutándolos en el apply; si uno no se reproduce, no se afirma.
 - **Demo 2, el sandbox lo contiene** (la demo principal). El mismo comando dentro de bwrap: escritura fuera → `Read-only file system`; credencial oculta → vacía o inexistente; red cortada con `--unshare-net` (`curl` falla); escribir en el workspace sigue funcionando.
-- **Demo 3, fallar cerrado.** Sin sandbox disponible, `detectSandbox` avisa y cae a `none`; el post enseña el aviso.
+- **Demo 3, sin sandbox disponible.** Con el sandbox en `auto`, `detectSandbox` avisa y cae a `none`. Eso es fallar abierto con aviso: el script hace todo lo de la demo 1. Lo cerrado es pedir el sandbox explícitamente: con `--sandbox bwrap` el arranque imprime `fatal:` y sale con 1 (tarea 1.7). El post enseña las dos cosas.
 - **Cobertura.** Los resultados del parser, el motor y los argumentos de `bwrap`/`sandbox-exec` se prueban con tests deterministas en `npm test`; las pruebas que ejecutan `bwrap` de verdad se saltan si no está disponible, y su resultado real se registra desde el contenedor. Las ejecuciones con `qwen2.5:7b` se guardan en `examples/salidas/` y se presentan como representativas, con el número de ejecuciones.
 
 **Estructura del post.**
 
-1. La necesidad: con `Bash` el agente puede saltarse `Write`/`Edit`; lo que prometió el post 4 (breve).
-2. Modelo mental con diagrama, con el sandbox como protagonista: llamada → motor (`deny` > `ask` > `allow`) → approver → sandbox → proceso.
-3. Contraste: las reglas y el parser (tree-sitter frente a prefijos) deciden cuándo preguntar, y la demo de evasión muestra que no bastan. Sección breve.
-4. Qué es un sandbox: el concepto, qué garantiza y qué no (el cuerpo del post).
-5. Construirlo con bubblewrap: raíz de solo lectura, escritura solo en el workspace, credenciales ocultas, red opcional, `--unshare-pid` y `--new-session`; y la nota de macOS.
-6. Demos del sandbox: el mismo comando fuera y dentro, y qué pasa cuando no hay sandbox disponible.
-7. Lo que el sandbox no hace: el contraargumento.
-8. `Bash` y procesos en segundo plano, en una sección corta: se ejecutan dentro del mismo sandbox.
-9. Lo que falta y resumen: red con allowlist, MCP/hooks, subagentes.
+1. Prerrequisitos y clonado: bubblewrap, la referencia a WSL2 y `git clone --branch parte-5`.
+2. La necesidad: con `Bash` el agente puede saltarse `Write`/`Edit`; lo que prometió el post 4 (breve).
+3. Modelo mental con diagrama, con el sandbox como protagonista: llamada → motor (`deny` > `ask` > `allow`) → approver → sandbox → proceso.
+4. Contraste: las reglas y el parser (tree-sitter frente a prefijos) deciden cuándo preguntar, y la demo de evasión muestra que no bastan. Sección breve.
+5. Qué es un sandbox: el concepto, qué garantiza y qué no (el cuerpo del post).
+6. Construirlo con bubblewrap: raíz de solo lectura, escritura solo en el workspace, credenciales ocultas, red opcional, `--unshare-pid` y `--new-session`; y la nota de macOS.
+7. Comprobar que funciona, y qué hacer si no: `detectSandbox`, el bloque `sandbox` de la configuración y el aviso cuando cae a `none`.
+8. Demos del sandbox: el mismo comando fuera y dentro, y qué pasa cuando no hay sandbox disponible.
+9. Lo que el sandbox no hace: el contraargumento.
+10. `Bash` y procesos en segundo plano, en una sección corta: se ejecutan dentro del mismo sandbox.
+11. Lo que falta y resumen: red con allowlist, MCP/hooks, subagentes.
+
+Las secciones 1 y 7 no estaban en el plan inicial; entraron al escribir el post (tarea 2.2).
 
 Diagrama en JSX con estilos en línea y las variables del sitio, con `aria-label`, como en las partes 3 y 4, revisado a 390 y 1440 px. Listas de una línea, sin sublistas. Extractos y enlaces siempre contra el tag `parte-5`.
 
@@ -85,7 +91,8 @@ Diagrama en JSX con estilos en línea y las variables del sitio, con `aria-label
 ## Risks / Trade-offs
 
 - **[El lector entiende que el sandbox lo protege de todo]** → Mitigación: sección propia sobre lo que no hace y `git diff`.
-- **[bwrap no funciona en el contenedor de verificación]** → Mitigación: registrar la combinación mínima de flags de Docker que funciona; si ninguna lo permite, usar una VM Linux o CI y registrar la limitación; no afirmar nada de bwrap sin ejecución propia.
+- **[bwrap no funciona en el contenedor de verificación]** → Mitigación: registrar la combinación mínima de flags de Docker que funciona; si ninguna lo permite, usar una VM Linux o CI y registrar la limitación; no afirmar nada de bwrap sin ejecución propia. **Se materializó y se resolvió** (tarea 1.5): no funciona sin opciones ni con `SYS_ADMIN`, y sí con `seccomp=unconfined` y `systempaths=unconfined`. Dejó además el hallazgo de la sonda (ver «Aviso honesto en el post»).
+- **[Deuda de `harness` descubierta al derivar]** → Aceptada: la sonda de `detectSandbox` no usa los argumentos del `wrap`, el perfil de seatbelt deja escribir en todo `/private/var/folders` y los fallos de la revisión externa siguen en `harness`. Este change no toca `harness`; quedan como trabajo posterior en `openspec/config.yaml`.
 - **[Una evasión de reglas no se reproduce con el 7B o con el parser actual]** → Mitigación: las demos de evasión se ejecutan a mano con el comando exacto; solo se escribe lo que se reproduce.
 - **[Tamaño del post]** → Mitigación: orden de recorte de Decisiones.
 - **[Dependencia tree-sitter en el lab]** → Aceptado y justificado: es el argumento del post.
@@ -98,5 +105,7 @@ Rollback del post: `git revert` del commit en `me-profile`, o fijar `draft: true
 
 ## Open Questions
 
-- Slug y título definitivos: se cierran con el autor antes de crear el MDX.
-- Si `Bash` en segundo plano cabe en el tag `parte-5` o se deja como sección con enlace a `harness`: se decide al medir el tamaño del lab y del post.
+Las dos quedaron resueltas en el apply:
+
+- Slug y título: «El sandbox es la defensa real: aislar lo que ejecuta el agente», `el-sandbox-es-la-defensa-real` (tarea 2.1).
+- `Bash` en segundo plano: entra en el tag `parte-5`, con `background.ts` recortado a comandos, y en el post es una sección breve (tarea 1.3).
