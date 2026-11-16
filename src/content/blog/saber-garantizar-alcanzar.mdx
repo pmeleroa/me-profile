@@ -1,0 +1,351 @@
+---
+title: "Saber, garantizar, alcanzar: extender el harness sin tocar su código"
+description: "Sexta guía de la serie Asistente de código local: skills, hooks y servidores MCP, tres formas de ampliar el harness, cada una con una capacidad distinta, dentro del mismo sandbox, y lo que cuestan en contexto."
+publishDate: 2026-11-16
+category: "Guía"
+tags: ["harness", "skills", "hooks", "mcp", "llm-local", "ollama"]
+draft: false
+series:
+  id: asistente-codigo-local
+  part: 6
+---
+Imagina una tarea corriente: «arregla la issue 4 y haz commit». Para hacerla bien, el asistente necesita tres cosas que el harness de la guía anterior no tiene. Tiene que saber cómo se escriben los commits en este proyecto, porque esa convención no la conoce nadie fuera del equipo. Tiene que respetarla siempre, también cuando el modelo se olvide. Y tiene que poder leer la issue, que no está en el disco sino en GitHub.
+
+Esta guía es la sexta de la serie *Asistente de código local*. En la [anterior](/blog/el-sandbox-es-la-defensa-real) el harness aprendió a ejecutar comandos dentro de un sandbox. Aquí aprende a crecer sin que toques su código, y la idea es esta: **hay tres formas de extender el harness, y cada una le da una capacidad distinta**:
+
+- **Skills, saber**: el agente aprende procedimientos que no traía.
+- **Hooks, garantizar**: el harness ejecuta lo que no puede depender de que el modelo se acuerde.
+- **MCP, alcanzar**: el agente usa herramientas que no has escrito, en otro proceso.
+
+Las tres se configuran desde el propio repositorio, con ficheros, y las tres resuelven una parte de la misma tarea. Al final de la guía la tarea sale entera, y también lo que cuesta.
+
+## Prerrequisitos y clonado
+
+Los comandos son para una terminal Linux. En Windows, usa WSL2 ([guía de instalación de Microsoft](https://learn.microsoft.com/es-es/windows/wsl/install)). Necesitas lo de las guías anteriores (Node.js 22 o superior, [ripgrep](https://github.com/BurntSushi/ripgrep#installation), [bubblewrap](https://github.com/containers/bubblewrap) y Ollama con `qwen2.5:7b`) y, nuevo en esta parte, el binario de [github-mcp-server](https://github.com/github/github-mcp-server). La versión está fijada para que los comandos de la guía den lo mismo:
+
+```bash
+VERSION=v2.1.0
+ARCH=$(uname -m); [ "$ARCH" = aarch64 ] && ARCH=arm64
+mkdir -p ~/.local/bin
+curl -fsSL "https://github.com/github/github-mcp-server/releases/download/${VERSION}/github-mcp-server_Linux_${ARCH}.tar.gz" | tar -xz -C ~/.local/bin github-mcp-server
+~/.local/bin/github-mcp-server --version
+```
+
+La línea del `ARCH` está porque `uname -m` dice `aarch64` en ARM y el release llama a ese fichero `arm64`. En macOS el fichero es otro (`Darwin` en lugar de `Linux`); lo tienes en la [página del release](https://github.com/github/github-mcp-server/releases/tag/v2.1.0).
+
+El servidor necesita un token de GitHub. Crea un [token *fine-grained*](https://github.com/settings/personal-access-tokens/new) con acceso de solo lectura a los repositorios públicos, sin más permisos, y expórtalo en la terminal donde vayas a lanzar el harness:
+
+```bash
+export GITHUB_PERSONAL_ACCESS_TOKEN=<tu token>
+git clone --branch parte-6 https://github.com/pmeleroa/lab-harness-local.git
+cd lab-harness-local
+npm install
+npm test
+```
+
+El repositorio es [pmeleroa/lab-harness-local](https://github.com/pmeleroa/lab-harness-local/tree/parte-6) y todos los enlaces y extractos de esta guía apuntan al tag `parte-6`. Los tests no necesitan modelo ni GitHub: usan un servidor MCP de prueba. Las ejecuciones que verás usaron Ollama 0.40.16 con la ventana en **8.192**, no en 4.096 como en las partes anteriores (`OLLAMA_CONTEXT_LENGTH=8192 ollama serve`). El motivo está en la sección de contexto, más abajo, y es parte de lo que enseña esta guía.
+
+## Lo que el harness no puede hacer solo
+
+Hasta ahora, todo lo que hacía el harness estaba en su código: su system prompt, sus ocho herramientas (`Read`, `Glob`, `Grep`, `Write`, `Edit`, `Bash`, `BashOutput` y `KillShell`) y su motor de permisos. Para que hiciera algo más, había que cambiarlo. Con la tarea del principio eso se nota en tres sitios:
+
+- **No sabe la convención de commits**: podrías escribirla en el system prompt, pero entonces la cargaría en cada conversación, también en las que no hacen commit.
+- **No la puede garantizar**: aunque la sepa, un modelo de 7B se olvida de instrucciones, y el motor de permisos decide *si* se ejecuta `git commit`, no *con qué mensaje*.
+- **No llega a la issue**: con `Bash` podría llamar a la API de GitHub, pero eso es un comando con red y un token en el entorno, justo lo que la parte 5 aprendió a contener.
+
+Las tres extensiones de esta guía son las respuestas a esos tres huecos. No son ideas del lab: las toma de `harness`, el proyecto con el que converge.
+
+## Dónde se engancha cada una
+
+<figure style={{margin: "2rem 0"}}>
+  <div role="img" aria-label="Diagrama del bucle del harness con las tres extensiones. Antes de llamar al modelo, el system prompt lleva el catálogo de skills, solo con nombre y descripción, y el registro de herramientas incluye la tool Skill y las tools de los servidores MCP. El modelo responde con una llamada a una herramienta. Primero corre el hook PreToolUse, que puede bloquearla con código 2 antes de que el motor de permisos pregunte. Si pasa, el motor de permisos decide. Si se permite, la herramienta se ejecuta: Skill devuelve el cuerpo de la skill, y una tool MCP se reenvía a un proceso aparte, el servidor MCP. Después corre el hook PostToolUse, que puede añadir un aviso al resultado. Los hooks, Bash y los servidores MCP son procesos que corren dentro del mismo sandbox." style={{display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: "36rem", marginInline: "auto"}}>
+    <div style={{padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>1. Petición al modelo</strong><br />System prompt con el <em>catálogo de skills</em> (nombre y descripción) y herramientas propias, <code>Skill</code> y las <code>mcp__…</code></div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ el modelo pide una herramienta</div>
+    <div style={{padding: "0.6rem 0.8rem", border: "2px solid var(--color-accent)", background: "var(--color-accent-glow)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>2. Hook PreToolUse</strong><br />Con código 2 bloquea la llamada, antes de que nadie pregunte</div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ si pasa</div>
+    <div style={{padding: "0.6rem 0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>3. Motor de permisos</strong><br /><code>deny</code> &gt; <code>ask</code> &gt; <code>allow</code>, como en las partes 4 y 5</div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ si se permite</div>
+    <div style={{padding: "0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}>
+      <div><strong>4. Ejecución</strong></div>
+      <div style={{display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem"}}>
+        <div style={{flex: "1 1 7rem", padding: "0.5rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}><code>Skill</code>: devuelve el cuerpo de la skill</div>
+        <div style={{flex: "1 1 7rem", padding: "0.5rem 0.6rem", border: "1px dashed var(--color-accent)", borderRadius: "6px", fontSize: "0.85rem"}}><code>mcp__…</code>: se reenvía al servidor MCP, otro proceso</div>
+        <div style={{flex: "1 1 7rem", padding: "0.5rem 0.6rem", border: "1px dashed var(--color-accent)", borderRadius: "6px", fontSize: "0.85rem"}}><code>Bash</code> y el resto, como antes</div>
+      </div>
+    </div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓</div>
+    <div style={{padding: "0.6rem 0.8rem", border: "2px solid var(--color-accent)", background: "var(--color-accent-glow)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}><strong>5. Hook PostToolUse</strong><br />Puede añadir un aviso al resultado que lee el modelo</div>
+  </div>
+  <figcaption style={{marginTop: "1rem", fontSize: "0.85rem", color: "var(--color-text)"}}>Las skills entran por la petición, los hooks (resaltados) rodean cada llamada y MCP añade herramientas que ejecuta otro proceso (en discontinuo, como Bash). Los hooks, Bash y los servidores MCP son procesos, y corren dentro del mismo sandbox de la parte 5.</figcaption>
+</figure>
+
+Las tres viven en el workspace de la demo, `examples/demo`, junto al código:
+
+- `.harness/skills/convencion-commits/SKILL.md`: la skill.
+- `.harness/hooks/check-commit.mjs`, declarado en `.harness/settings.json`: el hook.
+- `.mcp.json`: el servidor MCP.
+
+## Skills: saber
+
+Una skill es una carpeta con un fichero `SKILL.md`: un frontmatter con `name` y `description`, y debajo unas instrucciones. La de la demo es la convención de commits del proyecto:
+
+```markdown
+---
+name: convencion-commits
+description: Convención de los mensajes de commit de este proyecto. Cárgala antes de hacer cualquier git commit.
+---
+
+# Convención de commits
+
+El mensaje es una sola línea:
+
+<tipo>(<ámbito>): <descripción> (#<issue>)
+```
+
+El resto del fichero lista los tipos (`fix`, `feat`, `refactor`, `test`, `docs`, `chore`), pide la descripción en minúsculas y sin punto, el número de la issue si la hay y como mucho 72 caracteres, y da un ejemplo. Está entero en [`convencion-commits/SKILL.md`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/examples/demo/.harness/skills/convencion-commits/SKILL.md), dentro de `examples/demo/.harness/skills`.
+
+La capacidad que añade es que el agente sepa algo que no venía en el harness, **pero solo cuando lo necesita**. Esa es la diferencia con meterlo en el system prompt. El harness carga al arrancar las skills de `.harness/skills`, y al modelo solo le enseña un catálogo, con el nombre y la descripción de cada una:
+
+```ts
+export function skillCatalog(skills: Skill[]): string {
+  const visible = skills.filter((s) => s.modelInvocable);
+  if (!visible.length) return "";
+  const clip = (d: string) => (d.length > MAX_DESCRIPTION ? `${d.slice(0, MAX_DESCRIPTION - 1)}…` : d);
+  return [
+    "# Skills",
+    "Skills are packaged instructions for specific tasks. When a task matches a skill's description, call the",
+    "Skill tool with its name before doing anything else, then follow the instructions it returns.",
+    "<available_skills>",
+    ...visible.map((s) => `- ${s.name}: ${clip(s.description)}`),
+    "</available_skills>",
+  ].join("\n");
+}
+```
+
+Cuando una tarea encaja con una descripción, el modelo llama a la herramienta `Skill` con el nombre, y el cuerpo entra en la conversación como resultado de esa llamada. Si ya estaba cargada, la herramienta devuelve una referencia («ya está cargada, síguela») en lugar de repetir el cuerpo. La descripción se recorta a 250 caracteres porque está en cada petición: es el anuncio de la skill, y tiene que decir *cuándo* usarla, no *qué* dice. Una skill con `disable-model-invocation: true` no aparece en el catálogo.
+
+Leer el `SKILL.md` es una lectura dentro del workspace, así que el motor la permite sin preguntar. Y si una skill trae scripts, los ejecuta `Bash`, con sus reglas y su sandbox: la skill no añade ningún camino nuevo para ejecutar código. El código está en [`src/skills/loader.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/src/skills/loader.ts) y [`src/tools/skill.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/src/tools/skill.ts).
+
+La pega es la que ya intuyes: **decide el modelo**. Si no ve que la tarea encaja con la descripción, o se olvida de llamar a `Skill`, no sabe nada. Para eso está la siguiente pieza.
+
+## Hooks: garantizar
+
+Un hook es un comando que el harness ejecuta en un punto fijo del bucle, sin preguntar al modelo. El lab tiene dos: `PreToolUse`, antes de cada llamada a una herramienta, y `PostToolUse`, después. Se declaran en `.harness/settings.json`, con un `matcher` que dice para qué herramientas:
+
+```json
+{
+  "permissions": {
+    "deny": ["Read(**/.env*)", "Edit(**/.env*)", "Edit(.harness/**)"]
+  },
+  "hooks": {
+    "PreToolUse": [{ "matcher": "Bash", "command": "node .harness/hooks/check-commit.mjs" }]
+  }
+}
+```
+
+El hook recibe la llamada como JSON por la entrada estándar: el evento, la herramienta y su input. El de la demo mira si el comando es un `git commit -m` y comprueba el mensaje contra la convención. Si no la cumple, sale con código 2 y explica por qué en la salida de error:
+
+```js
+const FORMAT = "<tipo>(<ámbito>): <descripción> (#<issue>), por ejemplo: fix(cart): redondea el total a céntimos (#12)";
+const block = (why) => {
+  process.stderr.write(`Commit bloqueado por la convención del proyecto: ${why}. Formato: ${FORMAT}.\n`);
+  process.exit(2);
+};
+```
+
+Lo entero, con las comprobaciones del tipo, las minúsculas, el punto final y los 72 caracteres, está en [`examples/demo/.harness/hooks/check-commit.mjs`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/examples/demo/.harness/hooks/check-commit.mjs). No comprueba el `(#N)`, porque el hook no sabe si el cambio resuelve una issue. Es un ejemplo: solo entiende `git commit -m`, y un `-F` o un editor se le escaparían.
+
+La capacidad que añade es que algo ocurra **siempre**, decida lo que decida el modelo. El harness ejecuta el hook antes de los permisos, así que un bloqueo ni siquiera llega a preguntarte:
+
+```ts
+    // Hooks antes de permisos: un bloqueo no llega a preguntar al usuario.
+    const notes: string[] = [];
+    if (this.deps.hooks && !this.deps.hooks.empty) {
+      const pre = await this.deps.hooks.run("PreToolUse", { tool: call.name, input }, signal);
+      if (pre.block) {
+        this.emit({ t: "hook_blocked", call, message: pre.message });
+        return result(pre.message, true);
+      }
+      notes.push(...pre.notes);
+```
+
+El motivo vuelve al modelo como resultado de error de la herramienta, y así puede corregir. Las reglas son pocas y conviene tenerlas claras:
+
+- **Código 2 en `PreToolUse`**: bloquea, y el stderr es el motivo.
+- **Código 2 en `PostToolUse`**: la herramienta ya se ejecutó, así que solo avisa.
+- **Un `{"message": "…"}` en la salida estándar**: se añade al resultado como aviso.
+- **Cualquier otro fallo o un timeout (10 segundos)**: el hook se ignora con un aviso, para que un hook roto no pare el trabajo.
+
+Un hook es código, y el lab lo trata como al resto: corre dentro del mismo sandbox que `Bash`, con escritura solo en el workspace, sin las rutas de credenciales y sin las variables que acaban en `_TOKEN`, `_SECRET` o `API_KEY`. Fíjate también en el `deny` de `Edit(.harness/**)` que ya venía de la parte 4: impide que el agente edite su propio hook para quitárselo de en medio.
+
+Una objeción razonable: git ya tiene un hook `commit-msg` que hace esto mismo. Es cierto, y en un proyecto real usarías ese. Aquí el hook del harness está para enseñar la capacidad, que va más allá de git: un `PreToolUse` puede mirar cualquier herramienta (un `Edit` sobre las migraciones, una tool MCP que escribe) y un `PostToolUse` puede actuar donde git no ve nada, como después de cada edición. El código está en [`src/hooks/runner.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/src/hooks/runner.ts).
+
+## MCP: alcanzar
+
+La issue está en GitHub. MCP (*Model Context Protocol*) es un protocolo para que un programa ofrezca herramientas a un agente: el harness es el cliente, el programa es el servidor, y hablan JSON-RPC, en este caso por la entrada y la salida estándar de un proceso hijo (stdio). El servidor de la demo es `github-mcp-server`, declarado en `examples/demo/.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "${HOME}/.local/bin/github-mcp-server",
+      "args": ["stdio", "--tools=issue_read", "--read-only"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" }
+    }
+  }
+}
+```
+
+La capacidad que añade es que el agente use herramientas que **no has escrito y que viven en otro proceso**. Al arrancar, el harness lanza el servidor, le pide su lista de herramientas y las registra junto a las suyas como `mcp__<servidor>__<tool>`, con el schema que da el servidor. Aquí solo hay una, `mcp__github__issue_read`, porque el servidor se lanza con `--tools=issue_read --read-only`. Lo que pasa si no se limita está en la sección de contexto.
+
+Tres decisiones del lab alrededor de eso:
+
+- **Preguntan por defecto**: una tool MCP es código ajeno, así que pide permiso salvo regla. Las reglas valen por servidor (`mcp__github`), por nombre (`mcp__github__issue_read`) o con comodín (`mcp__github__issue_*`), y un `deny` gana siempre.
+- **El token no se escribe en el fichero**: `${GITHUB_PERSONAL_ACCESS_TOKEN}` se expande al arrancar, y un servidor con una variable sin definir no se conecta (con aviso). El servidor recibe un entorno mínimo más su `env`, no el tuyo entero, y `Bash` y los hooks no ven el token: lo comprueban los tests de [`test/mcp.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/test/mcp.test.ts) y [`test/hooks.test.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/test/hooks.test.ts).
+- **Lo que declara el servidor no cuenta**: un servidor puede marcar una tool como de solo lectura, pero el motor no se fía. Lo que garantiza la solo lectura aquí es `--read-only` y un token sin permisos de escritura.
+
+### Dentro del sandbox, siempre
+
+La guía anterior acabó con una promesa: los servidores MCP y los hooks también ejecutan código, y correrían dentro del mismo sandbox. En el lab, todo servidor stdio se lanza envuelto en él, como `Bash`:
+
+```ts
+  private transport(c: McpServerConfig, stderr: StderrTail): StdioClientTransport {
+    // Dentro del sandbox, como Bash: escritura solo en el workspace y el tmp, sin leer las rutas de credenciales.
+    // La red, la del harness; el servidor solo puede cortarla para sí.
+    const sandbox = this.o.sandbox ?? noSandbox;
+    const network = this.o.network === "none" || c.network === "none" ? "none" : "host";
+    const argv = sandbox.wrap([c.command, ...c.args], {
+      cwd: this.o.workspace,
+      writablePaths: [this.o.workspace, os.tmpdir()],
+      hiddenPaths: this.o.hiddenPaths ?? [],
+      network,
+    });
+```
+
+Aquí el lab se aparta a propósito de `harness`, donde el sandbox de un servidor es opcional y hay que pedirlo con `"sandbox": true` en su configuración. El motivo es la propia parte 5: allí un repositorio no podía apagar el sandbox, y si el sandbox de MCP fuera opcional, un `.mcp.json` de un repositorio ajeno lanzaría un proceso sin aislar con solo no pedirlo. En el lab, un `"sandbox": false` se ignora con aviso, un servidor solo puede cortarse la red (`"sandbox": { "network": "none" }`), y lo único que lo saca es `--sandbox none`, que saca a la vez a `Bash` y a los hooks.
+
+El servidor de GitHub funciona dentro de bubblewrap sin nada especial: necesita red para llegar a la API, y la tiene, y no necesita escribir fuera del workspace. Lo que no funcionaría es lanzarlo con `docker run`, que es otra forma habitual de instalarlo. El harness envolvería al cliente de Docker, pero el contenedor lo arranca el daemon de Docker, fuera de bubblewrap, así que el sandbox no aislaría nada. Por eso esta guía usa el binario.
+
+La cabecera de cada run dice qué se ha lanzado y cómo, para que un repositorio ajeno no pueda ejecutar nada sin que lo veas:
+
+```text
+skills: convencion-commits
+hooks (código del repositorio, dentro del sandbox):
+  PreToolUse(Bash): node .harness/hooks/check-commit.mjs
+mcp: github (~/.local/bin/github-mcp-server stdio --tools=issue_read --read-only) 1 tools, sandbox bwrap
+```
+
+### Y en remoto
+
+GitHub ofrece el mismo servidor en remoto, por HTTP. Ahí no hay binario ni proceso hijo: el cliente solo necesita la URL y una cabecera con el token, y el código del servidor corre en las máquinas de GitHub. Por eso mismo el sandbox no tiene nada que aislar, y la defensa pasa a ser la autenticación y lo que devuelve el servidor. El lab no tiene el transporte HTTP. Su autenticación habitual, OAuth, da para una guía propia por su complejidad, y la tendrá, fuera de esta serie.
+
+## Verlo actuar
+
+La demo trabaja sobre una copia de `examples/demo` con su propio repositorio git. No es capricho: con el workspace en `examples/demo`, el `.git` del clon queda fuera del workspace, y el sandbox de la parte 5 lo deja en solo lectura. Lo comprobé con un commit dentro del sandbox: `fatal: Unable to create '…/.git/index.lock': Read-only file system`.
+
+```bash
+cp -r examples/demo ~/tienda-demo
+(cd ~/tienda-demo && git init -q && git add -A && git commit -qm "chore: estado inicial")
+npm run dev -- --workspace ~/tienda-demo --context-window 8192 --permission-mode acceptEdits \
+  --allow "mcp__github__issue_read" --allow "Bash(git add *)" --allow "Bash(git commit *)" \
+  "Lee la issue 4 de pmeleroa/lab-harness-local con la herramienta de GitHub, arréglala en este proyecto y haz commit." < /dev/null
+git -C ~/tienda-demo log --oneline -2
+```
+
+La [issue 4](https://github.com/pmeleroa/lab-harness-local/issues/4) es real y está en el repositorio del lab: `total()` devuelve 120,9879 donde debería devolver 120,99. El prompt nombra la herramienta de GitHub a propósito. En una primera prueba, con un prompt que solo decía «arregla la issue 4», el modelo buscó la issue con Grep en el disco e intentó clonar el repositorio. En esa prueba, nombrar la herramienta marcó la diferencia. Al terminar, borra `~/tienda-demo`.
+
+Lancé esa tarea 10 veces, con la ventana a 8.192 en un contenedor Linux con bubblewrap. Para cada ejecución apunté si cargó la skill, si leyó la issue por MCP, si editó `src/cart.ts`, si el hook bloqueó algo y si hubo commit:
+
+| Qué hizo | Ejecuciones |
+| --- | --- |
+| Cargó la skill | 7 de 10 |
+| Leyó la issue por MCP | 8 de 10 |
+| Editó `src/cart.ts` | 5 de 10 |
+| El hook bloqueó un commit | 0 de 10 |
+| Hizo commit | 1 de 10 |
+
+Las nueve que no llegaron al commit se quedaron a medias de varias formas: tres preguntaron si seguían, tres dejaron el siguiente paso escrito como texto o como JSON en lugar de ejecutarlo, dos buscaron la issue en el disco y no la encontraron, y una aseguró que había hecho el commit sin hacerlo. Es lo de las partes anteriores: un 7B pierde el hilo. Pero mira lo que sí funcionó: la skill se cargó casi siempre, y en primer lugar, antes de nada más; y la issue se leyó por MCP en 8 de 10, dentro del sandbox, con un token que `Bash` no podía ver.
+
+El único commit es este:
+
+```text
+> Skill {"skill":"convencion-commits"}
+> mcp__github__issue_read {"repo":"lab-harness-local","issue_number":4,"method":"get","owner":"pmeleroa"}
+…
+> Bash {"command":"git add src/cart.ts && git commit -m 'fix(cart): redondea el total a céntimos (#4)'","de…
+…
+9f2f39d fix(cart): redondea el total a céntimos (#4)
+```
+
+El mensaje es impecable, con la convención y la referencia a la issue. Y el código está mal: el modelo falló un `Edit`, reescribió `src/cart.ts` entero con un `Write` y lo dejó importando un `./utils` que no existe. Es la lección de la parte 4 con otro disfraz: el hook garantiza el mensaje, no el contenido. Lo que cambió se revisa con `git diff`. La salida completa está en [`examples/salidas/extensibilidad-tarea.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/examples/salidas/extensibilidad-tarea.txt).
+
+### El hook, cuando hace falta
+
+En las 10 el hook no bloqueó nada, porque el único commit ya cumplía la convención. Para verlo actuar hay que ponérselo difícil, así que hice una demo aparte: sin la skill (borrando `.harness/skills` de la copia), con el arreglo ya hecho, y pidiendo el commit literal con un mensaje que incumple la convención:
+
+```bash
+npm run dev -- --workspace ~/tienda-demo --context-window 8192 --permission-mode acceptEdits \
+  --allow "Bash(git add *)" --allow "Bash(git commit *)" \
+  "Ejecuta con Bash: git add src/cart.ts && git commit -m 'arreglos'" < /dev/null
+```
+
+```text
+> Bash {"command":"if [ -f src/cart.ts ]; then echo 'File exists'; git add src/cart.ts; git commit -m 'arre…
+x bloqueado por un hook: Blocked by PreToolUse hook (node .harness/hooks/check-commit.mjs): Commit bloqueado por la convención del proyecto: «arreglos» no empieza por un tipo válido seguido de «: ». Formato: <tipo>(<ámbito>): <descripción> (#<issue>), por ejemplo: fix(cart): redondea el total a céntimos (#12).
+…
+> Bash {"command":"git add src/cart.ts && git commit -m 'fix(cart): arreglos (#12)'","description":"Commit …
+…
+3a44eed fix(cart): arreglos (#12)
+```
+
+El hook bloqueó el commit antes de que el motor de permisos interviniera, el modelo leyó el motivo y lo rehízo con el formato. Se lo tomó tan al pie de la letra que copió el `#12` del ejemplo del mensaje. De 3 ejecuciones, en 2 el hook bloqueó (una corrigió, la otra se detuvo) y en la tercera el modelo no llegó a intentar el commit. La salida está en [`examples/salidas/extensibilidad-hook.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/examples/salidas/extensibilidad-hook.txt).
+
+Un detalle que dice mucho de las skills: con la skill cargada, el mismo prompt literal no llegó al hook. El modelo cargó la convención y cambió el mensaje por su cuenta, aunque le había pedido `arreglos`. Saber hace que el hook casi nunca tenga que actuar; garantizar es para cuando falla el saber.
+
+Son pocas ejecuciones y un solo modelo pequeño, así que tómalas como lo que son. Lo que los mecanismos hacen *siempre* (el catálogo, el bloqueo antes de los permisos, el sandbox de los servidores, el token que `Bash` no ve) lo cubren los tests deterministas de `npm test`.
+
+## Lo que cuesta en contexto
+
+Las tres extensiones ocupan sitio en la ventana, y no igual. Lo medí con los `prompt_tokens` que devuelve Ollama, con y sin cada pieza, sobre la demo:
+
+| Pieza | Tokens | Cuándo |
+| --- | --- | --- |
+| El harness sin extensiones | 1.689 | siempre |
+| Catálogo de skills y tool `Skill` | +231 | siempre |
+| La tool `issue_read` | +305 | siempre |
+| Cuerpo de la skill | +278 | al cargarla |
+| Mensaje de bloqueo del hook | +84 | solo cuando bloquea |
+
+El patrón es el de cada mecanismo. Una skill cuesta poco hasta que se usa, porque el cuerpo espera fuera. Un hook no cuesta nada mientras calla. Y una herramienta MCP cuesta siempre, en cada petición, porque su schema va entero. Con el servidor de GitHub sin limitar a una tool, sus seis herramientas de issues de solo lectura sumaban 1.576 tokens, y con las de escritura ni siquiera cabían en una ventana de 4.096: Ollama recortó en silencio, como en la [parte 3](/blog/compactar-es-lo-facil). Conecta solo lo que vayas a usar.
+
+Y esto explica la ventana de 8.192. Con las tres extensiones, el harness arranca en 2.225 tokens antes de que digas nada. Con 4.096, quitando la reserva para la respuesta, el umbral de compactación de la parte 3 está en 2.611, y la skill lo cruza. En una prueba a 4.096, el harness compactó en cada turno: el modelo perdía la skill y la volvía a cargar, y llegó a cargarla 21 veces antes de agotar los 25 turnos. Cada extensión es poca cosa; tres juntas, en una ventana pequeña, son casi la mitad.
+
+## El harness como producto
+
+Con las tres juntas, el harness de la tarea del principio ya no es solo su código. Es su código más lo que el repositorio le añade:
+
+- **Sabe** la convención del proyecto, solo cuando la necesita, y cualquiera del equipo puede cambiarla editando un Markdown.
+- **Garantiza** que ningún commit sale sin ella, aunque el modelo se olvide o se lo pidas mal, y eso tampoco requiere tocar el harness.
+- **Alcanza** la issue en GitHub con una herramienta que no ha escrito nadie del proyecto, en un proceso aislado, con un token que solo ve ese proceso.
+
+La idea de fondo es un núcleo pequeño y estable, con la especialización fuera, en ficheros que viajan con el repositorio. El precio de esa comodidad es que un repositorio ajeno también trae sus skills, sus hooks y sus servidores. Por eso el lab los anuncia al arrancar y los mete en el sandbox: abrir un repositorio con el harness es ejecutar lo que ese repositorio declara.
+
+## Lo que falta
+
+El harness ya se puede ampliar sin tocar su código. Lo que queda fuera de esta parte:
+
+- **OAuth para servidores MCP remotos**: por su complejidad, tendrá un post propio, fuera de esta serie.
+- **El transporte HTTP en el lab**: solo stdio; el remoto queda en el párrafo de arriba.
+- **Resources y prompts de MCP**: el lab solo usa sus herramientas.
+- **Reconexión y cambios en caliente**: si un servidor muere, queda caído hasta el siguiente run.
+- **Skills y servidores de usuario**: el lab solo lee los del proyecto.
+- **Una sola tarea medida con un modelo pequeño**: 10 ejecuciones y una demo de 3, con `qwen2.5:7b`.
+
+El orden previsto para lo que viene está en la [página de la serie](/blog/series/asistente-codigo-local). Antes, lo esencial de esta parte:
+
+- **Skills, saber**: el catálogo va siempre; el cuerpo, solo cuando el modelo lo pide.
+- **Hooks, garantizar**: corren antes de los permisos y no dependen del modelo.
+- **MCP, alcanzar**: herramientas de otro proceso, que preguntan por defecto.
+- **Todo proceso, dentro del sandbox**: `Bash`, los hooks y los servidores MCP, y un repositorio no puede sacarlos.
+- **El hook garantiza el mensaje, no el contenido**: lo que cambió se sigue revisando con `git diff`.
+- **Conecta solo lo que uses**: cada herramienta MCP ocupa la ventana en cada petición.
