@@ -237,6 +237,11 @@
   - Registro (2026-11-16). Preguntas y respuestas literales:
     - «¿Qué título y slug usamos para la parte 6?» → «Saber, garantizar, alcanzar (Recomendado)». La opción decía: título «Saber, garantizar, alcanzar: extender el harness sin tocar su código», slug `saber-garantizar-alcanzar`.
     - «¿Aportas imagen destacada para el post de la parte 6?» → «Sin imagen por ahora». Sin imagen no hay conversión con `sharp`; el placeholder se verifica con `npm run build` en 4.1.
+  - Actualización (2026-11-16): el autor aportó después la imagen destacada (mensaje literal: «esta es la imagen del post»), que sustituye a «Sin imagen por ahora».
+    - **Conversión**: con `sharp`, desde un WebP de 1600×900 (153.578 bytes), a `public/images/blog/saber-garantizar-alcanzar.webp`. El resultado es WebP, 1600×900 (`fit: cover`, calidad 80) y 108.500 bytes; la de la parte 5 pesa 69.166.
+    - **Frontmatter**: campo `image` añadido.
+    - **Build**: `npm run build` sin errores (72 páginas). El artículo usa la portada, la tarjeta de `/blog` ya no usa el placeholder y `og:image` apunta a la imagen nueva.
+    - **Q05**: se repite con la imagen al cerrar 4.2.
 - [x] 2.2 Crear `src/content/blog/<slug>.mdx` con:
   - `category: "Guía"`, `series: { id: asistente-codigo-local, part: 6 }` y `draft: false` para QA real.
   - La estructura de `design.md`: cada mecanismo con capacidad, implementación y ejemplo; el contexto solo en el resumen final, corto; la frase sobre `commit-msg`; por qué no `docker run`; el párrafo del servidor remoto; y OAuth en «Lo que falta» como post propio fuera de la serie por su complejidad.
@@ -281,7 +286,7 @@
 ## 4. Integración y publicación
 
 - [x] 4.1 Con el post en `draft: false` para QA real, verificar en `dist/` el antetítulo «Parte 6», el bloque de navegación en las partes 1 a 6 y que no se listan entre sí en «Artículos relacionados»; registrar el resultado
-  - Registro (2026-11-16, sobre `dist/` tras `npm run build`): el post lleva el antetítulo «Parte 6». El bloque de navegación tiene 6 entradas en las seis partes; de la 1 a la 5 enlazan a la 6, y en la 6 es la entrada actual, sin enlace. «Artículos relacionados» solo lista `golden-sets-y-pipelines-de-evaluacion` en las seis, sin que se listen entre sí. La tarjeta del post en `/blog` usa `blog-card-media--placeholder` (no tiene imagen) y `og:image` es la de marca.
+  - Registro (2026-11-16, sobre `dist/` tras `npm run build`): el post lleva el antetítulo «Parte 6». El bloque de navegación tiene 6 entradas en las seis partes; de la 1 a la 5 enlazan a la 6, y en la 6 es la entrada actual, sin enlace. «Artículos relacionados» solo lista `golden-sets-y-pipelines-de-evaluacion` en las seis, sin que se listen entre sí. La tarjeta del post en `/blog` usa `blog-card-media--placeholder` (no tiene imagen) y `og:image` es la de marca. Con la imagen de 2.1, la tarjeta pasa a usar la portada y `og:image` apunta a ella.
 - [ ] 4.2 Verificar y registrar el resultado de cada uno:
   - Q01, con la limitación de `.reveal` si sigue pendiente en `main`.
   - Q02 a 360, 390, 768 y 1440 px.
