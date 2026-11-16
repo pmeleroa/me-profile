@@ -227,7 +227,12 @@ rules:
       el lab: que todo servidor MCP stdio corra dentro del sandbox por defecto
       (hoy solo con sandbox: true en su configuración, así que un .mcp.json de
       un repositorio ajeno lanza un proceso sin aislar con solo no pedirlo; el
-      lab ya lo hace y solo --sandbox none lo saca). En el lab, fuera de la
+      lab ya lo hace y solo --sandbox none lo saca); y los dos arreglos de la
+      revisión del lab de la parte 6: comprobar la cancelación justo después de
+      un PreToolUse (si se cancela mientras corre el hook, el runner lo mata sin
+      bloquear y la tool se ejecuta igual) y decidir si una skill está cargada
+      sobre la historia que ve el modelo (clearing.view), no sobre la guardada.
+      En el lab, fuera de la
       parte 6: dos tests de test/bash.test.ts (KillShell y la limpieza del
       grupo de procesos) fallan por timeout en el contenedor Linux arm64 de
       verificación, también sobre el tag parte-5.

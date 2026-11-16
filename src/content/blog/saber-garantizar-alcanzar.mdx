@@ -166,6 +166,8 @@ La capacidad que añade es que algo ocurra **siempre**, decida lo que decida el 
         this.emit({ t: "hook_blocked", call, message: pre.message });
         return result(pre.message, true);
       }
+      // Si se canceló mientras corría el hook, el runner lo mata y no bloquea: no se sigue hacia los permisos ni la tool.
+      if (signal.aborted) return result(INTERRUPTED, true);
       notes.push(...pre.notes);
 ```
 
