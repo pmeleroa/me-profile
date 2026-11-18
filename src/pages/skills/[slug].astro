@@ -62,10 +62,12 @@ const relatedSkills = detail.related
             </div>
           </div>
 
-          <div class="skill-hero-meta">
-            <span>{levelLabels[skill.level]}</span>
-            {skill.featured && <span>Destacada</span>}
-          </div>
+          {(skill.level || skill.featured) && (
+            <div class="skill-hero-meta">
+              {skill.level && <span>{levelLabels[skill.level]}</span>}
+              {skill.featured && <span>Destacada</span>}
+            </div>
+          )}
         </article>
 
         <div class="skill-detail-grid">
