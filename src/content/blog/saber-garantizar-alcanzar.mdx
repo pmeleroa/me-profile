@@ -1,7 +1,7 @@
 ---
 title: "Saber, garantizar, alcanzar: extender el harness sin tocar su código"
 description: "Sexta guía de la serie Asistente de código local: skills, hooks y servidores MCP, tres formas de ampliar el harness, cada una con una capacidad distinta, dentro del mismo sandbox, y lo que cuestan en contexto."
-publishDate: 2026-11-16
+publishDate: 2026-11-23
 category: "Guía"
 tags: ["harness", "skills", "hooks", "mcp", "llm-local", "ollama"]
 image: "/images/blog/saber-garantizar-alcanzar.webp"
@@ -90,7 +90,7 @@ Las tres viven en el workspace de la demo, `examples/demo`, junto al código:
 
 Una skill es una carpeta con un fichero `SKILL.md`: un frontmatter con `name` y `description`, y debajo unas instrucciones. La de la demo es la convención de commits del proyecto:
 
-```markdown
+````markdown
 ---
 name: convencion-commits
 description: Convención de los mensajes de commit de este proyecto. Cárgala antes de hacer cualquier git commit.
@@ -100,8 +100,10 @@ description: Convención de los mensajes de commit de este proyecto. Cárgala an
 
 El mensaje es una sola línea:
 
+```
 <tipo>(<ámbito>): <descripción> (#<issue>)
 ```
+````
 
 El resto del fichero lista los tipos (`fix`, `feat`, `refactor`, `test`, `docs`, `chore`), pide la descripción en minúsculas y sin punto, el número de la issue si la hay y como mucho 72 caracteres, y da un ejemplo. Está entero en [`convencion-commits/SKILL.md`](https://github.com/pmeleroa/lab-harness-local/blob/parte-6/examples/demo/.harness/skills/convencion-commits/SKILL.md), dentro de `examples/demo/.harness/skills`.
 
@@ -273,6 +275,7 @@ El único commit es este:
 
 ```text
 > Skill {"skill":"convencion-commits"}
+…
 > mcp__github__issue_read {"repo":"lab-harness-local","issue_number":4,"method":"get","owner":"pmeleroa"}
 …
 > Bash {"command":"git add src/cart.ts && git commit -m 'fix(cart): redondea el total a céntimos (#4)'","de…
