@@ -170,10 +170,11 @@ rules:
       harness-propio-desde-cero-el-bucle.mdx (change add-harness-loop-post); el
       post 3 es compactar-es-lo-facil.mdx (change add-context-window-post); el
       post 4 es dejar-que-el-agente-escriba.mdx (change add-write-permissions-post); el
-      post 5 es el-sandbox-es-la-defensa-real.mdx (change add-execution-security-post).
+      post 5 es el-sandbox-es-la-defensa-real.mdx (change add-execution-security-post); el
+      post 6 es saber-garantizar-alcanzar.mdx (change add-extensibility-post).
       Desde el post 2 la serie es la arquitectura de un harness de agente de código,
       construida sobre un repositorio público, pmeleroa/lab-harness-local, que
-      crece parte a parte con un tag por post (parte-2 para el post 2, parte-3 para el post 3, parte-4 para el post 4, parte-5 para el post 5) y debe
+      crece parte a parte con un tag por post (parte-2 para el post 2, parte-3 para el post 3, parte-4 para el post 4, parte-5 para el post 5, parte-6 para el post 6) y debe
       converger con el proyecto harness del autor hasta ser el mismo
       repositorio. El contenido y el orden públicos de la serie (títulos y
       resúmenes de las partes, orientativos y sin fechas) viven en
@@ -222,6 +223,19 @@ rules:
       desde el cwd de la sesión (y desde cada directorio posible tras un cd del
       script), y tratar rg --pre, sort --compress-program y git grep -O como
       opacos y uniq con fichero de salida y tree -o como no de solo lectura.
+      Trabajo posterior al cierre de add-extensibility-post, en harness y no en
+      el lab: que todo servidor MCP stdio corra dentro del sandbox por defecto
+      (hoy solo con sandbox: true en su configuración, así que un .mcp.json de
+      un repositorio ajeno lanza un proceso sin aislar con solo no pedirlo; el
+      lab ya lo hace y solo --sandbox none lo saca); y los dos arreglos de la
+      revisión del lab de la parte 6: comprobar la cancelación justo después de
+      un PreToolUse (si se cancela mientras corre el hook, el runner lo mata sin
+      bloquear y la tool se ejecuta igual) y decidir si una skill está cargada
+      sobre la historia que ve el modelo (clearing.view), no sobre la guardada.
+      En el lab, fuera de la
+      parte 6: dos tests de test/bash.test.ts (KillShell y la limpieza del
+      grupo de procesos) fallan por timeout en el contenedor Linux arm64 de
+      verificación, también sobre el tag parte-5.
       Solo entran temas relacionados con
       el harness local. 'Varios modelos', 'elección de modelo' y 'cuándo local
       no basta' quedan fuera de la serie; los dos últimos tienen su propia
@@ -241,6 +255,17 @@ rules:
       fuera de la serie. No se hacen afirmaciones de rendimiento sin medición
       propia o una fuente citada. Cuando exista, enlazarlo desde el párrafo de
       LiteLLM del post 2."
+    - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
+      de guías sobre el asistente de código local, sobre OAuth para servidores
+      MCP remotos. Salió de la parte 6 por su complejidad, y la parte 6 lo
+      anuncia en «Lo que falta». Categoría por decidir. Punto de partida, por
+      confirmar en su momento con ejecución propia: el servidor remoto de
+      GitHub no admitía Dynamic Client Registration (issue #1404 de
+      github/github-mcp-server), así que hace falta una OAuth App propia;
+      harness ya acepta clientId/clientSecret y el callback en 127.0.0.1; y el
+      binario local de github-mcp-server v2.1.0 trae --oauth-client-id. No se
+      hacen afirmaciones de uso sin ejecución propia. No reabre 'varios
+      modelos'."
     - "Trabajo futuro pendiente (blog): post independiente, fuera de la serie
       de guías sobre el asistente de código local, sobre cómo elegir un modelo
       para un asistente de código local. Categoría propuesta: Análisis, porque
