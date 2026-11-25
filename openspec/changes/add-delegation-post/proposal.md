@@ -21,7 +21,7 @@ El post no parte de un fallo vivido. Parte de una necesidad corriente: una pregu
   - Paralelo para los de solo lectura, hasta 4.
   - Segundo plano con `run_in_background` y deduplicación (decisión del autor: entra en esta parte).
   - `--no-agents`.
-- **`model:` entra en el código y en una sola línea del post** (decisión del autor). La línea remite al post fuera de la serie sobre cómo elegir modelo y no promete nada de rendimiento. Así se cumple la regla de que «varios modelos» queda fuera de la serie.
+- **`model:` entra en el código y en una sola línea del post** (decisión del autor). La línea remite al post fuera de la serie sobre cómo elegir modelo y no promete nada de rendimiento. Así se cumple la regla de que «varios modelos» queda fuera de la serie. Revisado por el autor el 2026-11-25: `model:` aparece también en «Lo que cuesta» como opción para el trabajo del subagente, sin cifra ni rendimiento (ver `design.md`, «Revisión del autor»).
 - **Código fuera de este repositorio, en `pmeleroa/lab-harness-local`.** El lab se actualiza desde `harness` con la parte 7 y nada más, con demo, salidas, README y documentación. Se etiqueta `parte-7` sobre `main` después de que el autor integre la PR.
 - **Sin cambios en `harness`.**
 - **Serie:** `src/content/series/asistente-codigo-local.yaml` actualiza el título y el resumen de la parte 7.

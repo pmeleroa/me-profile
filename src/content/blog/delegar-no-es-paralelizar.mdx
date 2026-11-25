@@ -175,7 +175,7 @@ La especialización está en tres campos:
 
 Menos herramientas también es menos contexto, en la ventana del subagente: cada definición viaja en cada petición, y la parte 6 ya midió lo que ocupan. `explore` lleva cuatro y unas instrucciones de búsqueda; el principal, todas. En la ejecución que verás más abajo, el subagente arrancó en 1,7k tokens con el prompt incluido, y el principal en 2,4k.
 
-El campo `model` cambia el modelo del subagente por otro del mismo servidor; con `inherit`, o sin el campo, usa el del principal. Qué modelo poner ahí da para un debate que queda fuera de esta serie.
+El campo `model` cambia el modelo del subagente por otro del mismo servidor; con `inherit`, o sin el campo, usa el del principal. Lo que eso puede cambiar en el coste lo verás en «Lo que cuesta».
 
 ## Permisos que solo restringen
 
@@ -274,9 +274,9 @@ Son pocas ejecuciones, con un solo modelo pequeño y una sola tarea, así que t�
 
 ## Lo que cuesta, y cuándo no delegar
 
-La tabla tiene una columna que no sale gratis. Delegar costó una mediana de 13.290 tokens frente a 8.448: **un 57 % más**, y once segundos más. El subagente paga su propio arranque, el principal paga el prompt y el informe, y cada uno lleva sus definiciones de herramientas en cada petición. Se protege una ventana gastando más en total.
+La tabla tiene una columna que no sale gratis. Delegar costó una mediana de 13.290 tokens frente a 8.448: **un 57 % más**, y once segundos más. Pero leer no se paga dos veces. El subagente hizo las seis lecturas por 7.807, algo menos que el principal sin delegar, porque lleva cuatro herramientas y no todas. Lo que se suma es el principal: 5.479 tokens en dos peticiones, la que delega y la que recibe el informe, cada una con su system prompt y todas sus herramientas, más el informe, que copia en su respuesta. Es un coste fijo por delegación: el principal nunca ve las lecturas, así que no crece con lo que lea el subagente.
 
-Y la herramienta cuesta aunque no se use. Medí la misma pregunta trivial con y sin ella: 1.793 tokens de entrada con `--no-agents` y 2.243 con `Agent`. **Su descripción ocupa 450 tokens en cada petición.** En el piloto en que el modelo no delegó, esos 450 tokens bastaron: las mismas seis lecturas cruzaron el umbral de compactación en dos de tres ejecuciones, y después de compactar ninguna de las dos hizo el resumen: una respondió que los ficheros no existían y la otra preguntó si seguía. Es la [salida del piloto](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-piloto.txt):
+Y 8.448 es el mejor caso de no delegar: los seis ficheros caben por poco bajo el umbral de compactación y la tarea acaba ahí. Hace falta muy poco para que no quepan, y lo pone la propia herramienta. Medí la misma pregunta trivial con y sin ella: 1.793 tokens de entrada con `--no-agents` y 2.243 con `Agent`. **Su descripción ocupa 450 tokens en cada petición.** En el piloto en que el modelo no delegó, esos 450 tokens bastaron: las mismas seis lecturas cruzaron el umbral de compactación en dos de tres ejecuciones, y después de compactar ninguna de las dos hizo el resumen: una respondió que los ficheros no existían y la otra preguntó si seguía. Es la [salida del piloto](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-piloto.txt):
 
 ```text
 ctx 2,5k/8,2k (30%)
@@ -285,7 +285,16 @@ ctx 2,5k/8,2k (30%)
 ~ conversación compactada: 5,6k -> 2,7k tokens
 ```
 
-Una herramienta para proteger la ventana que, si no se usa, la llena antes. Es la lección de la parte 6 otra vez: conecta solo lo que vayas a usar, y si no vas a delegar, `--no-agents`.
+Esas dos ejecuciones costaron 12.037 y 12.324 tokens, con la compactación incluida. Contra eso, delegar sale unos mil tokens más caro, y la tarea acaba. Una herramienta para proteger la ventana que, si no se usa, la llena antes: es la lección de la parte 6 otra vez. Conecta solo lo que vayas a usar, y si no vas a delegar, `--no-agents`.
+
+Si la sesión sigue, la cuenta cambia otra vez, porque cada petición reenvía la conversación entera. Sin delegar, el principal termina con 6,4k en la ventana, y su siguiente petición ya pasa del umbral de compactación: compactará antes de contestar. Con subagente termina en 3,0k y ni llega al del clearing. Esto no lo medí: sale de los umbrales de la parte 3 y de los números de la tabla.
+
+Las dos rutas acaban igual, con un resumen donde estaban los ficheros. Lo que cambia es quién lo escribe y cuándo. **Delegar es compactar por adelantado**: el resumen lo escribe el subagente al principio, a propósito y con el prompt de la tarea. Sin delegar, lo escribe el principal cuando el umbral le obliga, con lo que el modelo decida guardar, y en el piloto eso se llevó la tarea por delante.
+
+Tampoco todos los tokens tienen por qué costar lo mismo. De esos 13.290, 7.807 son del subagente, y son el trabajo más mecánico: leer y resumir. Con el campo `model` de su definición, esa parte puede ir a un modelo más pequeño del mismo servidor, y el principal se queda con el suyo para lo que exige razonar. Qué modelo poner y cuánto se ahorra es elegir modelo, que queda fuera de esta serie, y no lo medí. Antes de probarlo, dos peros:
+
+- **El modelo pequeño también tiene que saber hacerlo**: con el de 7B ya hizo falta escribir el prompt entero y pedir los ficheros enteros, y uno menor tiene menos margen.
+- **En una sola máquina, los dos modelos tienen que caber a la vez**: la [FAQ de Ollama](https://docs.ollama.com/faq) dice que carga varios a la vez si caben en la memoria disponible. Si no, encola las peticiones y descarga el que esté ocioso para cargar el otro, y cada delegación pagaría una carga a la ida y otra a la vuelta.
 
 Lo demás que cuesta salió en los pilotos:
 
@@ -295,7 +304,7 @@ Lo demás que cuesta salió en los pilotos:
 
 De ahí sale cuándo no delegar:
 
-- **Cuando cabe**: si lo que hay que leer entra de sobra en la ventana, el clearing ni se activa y delegar solo añade tokens. Un `Read` o un `grep` directos son más rápidos, y la propia descripción de `Agent` lo dice.
+- **Cuando cabe**: si lo que hay que leer entra de sobra en la ventana, el clearing ni se activa y delegar solo añade el coste fijo del principal. Un `Read` o un `grep` directos son más rápidos, y la propia descripción de `Agent` lo dice.
 - **Cuando la tarea necesita tu conversación**: si el subagente necesita saber lo que habéis hablado, tendrás que escribirlo entero en el prompt.
 - **Cuando vas a usar el detalle**: si después vas a editar esos ficheros, el principal tendrá que leerlos igual.
 
@@ -335,7 +344,7 @@ El harness ya sabe repartir el trabajo. Lo que queda fuera de esta parte:
 - **`/agents` y lo que gastan en pantalla**: verlos desde la interfaz es de la parte 9.
 - **Definiciones de usuario**: el lab solo lee las del proyecto, como con las skills.
 - **Herramientas MCP en modo `plan`**: el lab no tiene la lista de herramientas de solo lectura que permitiría alguna; en `plan` no pasa ninguna.
-- **Una sola tarea medida**: 10 y 10 ejecuciones con `qwen2.5:7b`, más pilotos y una demo de 3.
+- **Una sola tarea medida**: 10 y 10 ejecuciones con `qwen2.5:7b`, más pilotos y una demo de 3. Ni la sesión que sigue ni un subagente con otro modelo.
 
 El orden previsto para lo que viene está en la [página de la serie](/blog/series/asistente-codigo-local). Antes, lo esencial de esta parte:
 
@@ -343,5 +352,5 @@ El orden previsto para lo que viene está en la [página de la serie](/blog/seri
 - **Delegar actúa antes que el clearing**: las lecturas no llegan a entrar en la ventana del principal.
 - **El prompt es todo lo que sabe el subagente**: escríbelo entero, con lo que hay que hacer y cómo.
 - **Los permisos solo se restringen**: el modo efectivo es el más restrictivo, y `plan` solo lee.
-- **Delegar cuesta**: más tokens en total, y 450 en cada petición solo por tener la herramienta.
+- **Delegar cuesta, pero es compactar por adelantado**: un coste fijo por delegación y 450 tokens por petición solo por tener la herramienta. Se recupera cuando lo leído no cabe o la sesión sigue, y el trabajo del subagente puede ir a un modelo más pequeño.
 - **El paralelo, en local, depende del servidor**: Ollama atiende una petición a la vez si no lo configuras.
