@@ -1,0 +1,346 @@
+---
+title: "Delegar no es paralelizar: subagentes para proteger la ventana"
+description: "Séptima guía de la serie Asistente de código local: subagentes que leen en su propia ventana y devuelven solo un informe, con tipos especializados, permisos que solo restringen, y lo que cuesta delegar, medido."
+publishDate: 2026-11-25
+category: "Guía"
+tags: ["harness", "subagentes", "contexto", "llm-local", "ollama"]
+draft: false
+series:
+  id: asistente-codigo-local
+  part: 7
+---
+Pídele al asistente algo corriente: «lee estos seis ficheros y dime en una línea qué hace cada uno». La respuesta son seis líneas. Para escribirlas, el agente tiene que leer seis ficheros enteros, y todo lo que lee se queda en su conversación. Cuando termina, la ventana está casi llena de código que ya no le sirve para nada, y la siguiente tarea empieza con poco sitio.
+
+Esta guía es la séptima de la serie *Asistente de código local*. En la [anterior](/blog/saber-garantizar-alcanzar) el harness aprendió a crecer sin tocar su código. Aquí aprende a repartir el trabajo, y la idea es esta: **delegar sirve, sobre todo, para que lo que se lee por el camino no ocupe la ventana del agente principal**. El paralelismo existe, pero llega al final y con matices.
+
+## Prerrequisitos y clonado
+
+Los comandos son para una terminal Linux. En Windows, usa WSL2 ([guía de instalación de Microsoft](https://learn.microsoft.com/es-es/windows/wsl/install)). Necesitas lo de las guías anteriores: Node.js 22 o superior, [ripgrep](https://github.com/BurntSushi/ripgrep#installation), [bubblewrap](https://github.com/containers/bubblewrap) y Ollama con `qwen2.5:7b`. Esta parte no añade nada que instalar.
+
+```bash
+git clone --branch parte-7 https://github.com/pmeleroa/lab-harness-local.git
+cd lab-harness-local
+npm install
+npm test
+```
+
+El repositorio es [pmeleroa/lab-harness-local](https://github.com/pmeleroa/lab-harness-local/tree/parte-7) y todos los enlaces y extractos de esta guía apuntan al tag `parte-7`. Los tests no necesitan modelo. Las ejecuciones que verás usaron Ollama 0.40.18 con la ventana en **8.192**, como en la parte 6 (`OLLAMA_CONTEXT_LENGTH=8192 ollama serve`).
+
+## Lo que se lee y no sirve
+
+En la [parte 3](/blog/compactar-es-lo-facil) la ventana era el recurso escaso. Con 8.192 tokens y la reserva para la respuesta, al harness le quedan 6.144 para todo lo demás: el system prompt, las definiciones de las herramientas y la conversación. Cada `Read` mete un fichero entero en esa conversación, y ahí se queda.
+
+Para la tarea del principio, eso significa:
+
+- **Leer es obligatorio**: un resumen sin leer el código sale de los nombres de los ficheros, no de lo que hacen.
+- **Lo leído ya no sirve**: después de escribir las seis líneas, el contenido de los seis ficheros es peso muerto.
+- **Pero sigue ahí**: el harness lo envía en cada petición hasta que el clearing o la compactación de la parte 3 lo quiten.
+
+Lo que te interesa es la conclusión, no las lecturas. Si otro las hiciera por ti y solo te contara el resultado, tu ventana quedaría limpia. Eso es un subagente.
+
+## Otro bucle, otra ventana
+
+Un subagente no es una pieza nueva. Es el mismo bucle de la [parte 2](/blog/harness-propio-desde-cero-el-bucle), con su propia conversación, sus propias herramientas y su propia ventana. El agente principal lo lanza con una herramienta, `Agent`, y de todo lo que hace solo recibe una cosa: su informe final.
+
+<figure style={{margin: "2rem 0"}}>
+  <div role="img" aria-label="Diagrama de la delegación. Arriba, la ventana del agente principal: system prompt, herramientas y conversación. El principal llama a la herramienta Agent con un prompt, que baja al subagente. Abajo, la ventana del subagente, otro bucle con sus propias herramientas: recibe solo ese prompt, lee los seis ficheros y su ventana se llena hasta el 74 por ciento. Al principal vuelve solo el informe, unos 313 tokens, y su ventana se queda en el 36 por ciento. Las lecturas no salen de la ventana del subagente." style={{display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: "36rem", marginInline: "auto"}}>
+    <div style={{padding: "0.8rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}>
+      <div><strong>Ventana del principal</strong></div>
+      <div style={{marginTop: "0.5rem", padding: "0.4rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>System prompt y herramientas</div>
+      <div style={{marginTop: "0.4rem", padding: "0.4rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>Tu pregunta</div>
+      <div style={{marginTop: "0.4rem", padding: "0.4rem 0.6rem", border: "2px solid var(--color-accent)", background: "var(--color-accent-glow)", borderRadius: "6px", fontSize: "0.85rem"}}><code>Agent</code>: el prompt para el subagente</div>
+      <div style={{marginTop: "0.4rem", padding: "0.4rem 0.6rem", border: "2px solid var(--color-accent)", background: "var(--color-accent-glow)", borderRadius: "6px", fontSize: "0.85rem"}}>El informe (~313 tokens)</div>
+      <div style={{marginTop: "0.5rem", fontSize: "0.8rem"}}>Se queda en el 36 %</div>
+    </div>
+    <div aria-hidden="true" style={{textAlign: "center", fontSize: "0.8rem", color: "var(--color-text)"}}>↓ el prompt baja · el informe sube ↑</div>
+    <div style={{padding: "0.8rem", border: "1px dashed var(--color-accent)", borderRadius: "6px", fontSize: "0.9rem", color: "var(--color-text)"}}>
+      <div><strong>Ventana del subagente</strong></div>
+      <div style={{marginTop: "0.5rem", padding: "0.4rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>Sus instrucciones y sus herramientas</div>
+      <div style={{marginTop: "0.4rem", padding: "0.4rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>El prompt, y nada más de tu conversación</div>
+      <div style={{marginTop: "0.4rem", padding: "0.4rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", fontSize: "0.85rem"}}>Seis <code>Read</code>, con los ficheros enteros</div>
+      <div style={{marginTop: "0.5rem", fontSize: "0.8rem"}}>Llega al 74 %, y ahí se queda</div>
+    </div>
+  </div>
+  <figcaption style={{marginTop: "1rem", fontSize: "0.85rem", color: "var(--color-text)"}}>Lo resaltado es lo único que la delegación añade a la ventana del principal: el prompt de ida y el informe de vuelta. Las lecturas viven y mueren en la ventana del subagente (en discontinuo). Los porcentajes son de una ejecución real, la de <code>delegacion-con.txt</code>, sobre una ventana de 8.192.</figcaption>
+</figure>
+
+Dos consecuencias se ven ya en el diagrama, y las dos vuelven más abajo:
+
+- **El subagente no ve tu conversación**: el prompt que le escribe el principal es todo lo que sabe.
+- **El informe es lo único que vuelve**: si se deja algo, el principal no tiene cómo saberlo.
+
+### ¿Y el clearing de la parte 3?
+
+Es la objeción obvia. La parte 3 ya enseñó al harness a vaciar la ventana: por encima del 60 % del espacio útil sustituye los resultados de herramientas antiguos por una nota, y por encima del 85 % resume la conversación. Si el harness ya sabe limpiar, ¿para qué delegar?
+
+Porque el clearing actúa **después**, y delegar actúa **antes**:
+
+- **El clearing llega cuando la ventana ya está llena**, y lo que quita lo pierde el modelo. Si lo vuelve a necesitar, lo tiene que releer.
+- **Con pocas lecturas no tiene nada que quitar**: guarda siempre los seis resultados más recientes. Con seis ficheros, como en la tarea del principio, no limpia ninguno.
+- **La compactación sí quita, pero resume**: cambia lo leído por un resumen escrito por el modelo, y en la parte 3 un modelo de 7B no supo retomar la tarea desde su propio resumen.
+- **Con un subagente, las lecturas no entran nunca** en la ventana del principal. Lo que entra es la conclusión, y esa no hay que limpiarla.
+
+Tampoco compiten. El subagente tiene su propia ventana con su propio clearing y su propia compactación: delegar no sustituye a la parte 3, la reparte entre dos ventanas. Y hay un caso en el que la objeción gana: si lo que hay que leer cabe de sobra, el clearing ni se activa y delegar solo añade coste. Lo verás medido en «Lo que cuesta».
+
+## La tool `Agent`
+
+El modelo ve `Agent` como una herramienta más, con tres campos: una descripción corta, el prompt completo para el subagente y el tipo de subagente. La descripción que lee el modelo dice cuándo usarla y, sobre todo, cómo escribir el prompt:
+
+```text
+Launches a subagent that works autonomously on a task in its own context window and returns a final report.
+Use it for work that would fill this conversation with intermediate output (broad searches, reading many files,
+a self-contained change), or to run independent investigations in parallel.
+- The subagent does not see this conversation. Write a self-contained prompt: the goal, relevant paths and
+  what the report must contain.
+- Only its final message comes back to you, and the user does not see it: relay what matters.
+…
+- Do not delegate what a couple of direct tool calls can do: a single Read or grep is faster.
+```
+
+Al ejecutarla, el harness construye otro `Agent`, el mismo objeto que el principal, con su registro de herramientas, su política de permisos y su propia sesión de `Bash`:
+
+```ts
+const childBash = new BashSession({ workspace, sandbox, network, hiddenPaths: defaultHiddenPaths() });
+const toolNames = toolsFor(def, baseTools);
+const childPolicy = policy.derive(def.mode);
+…
+const child: Agent = new Agent(
+  {
+    provider,
+    registry: childRegistry,
+    bus: bus.child(ref),
+    workspace,
+    system: systemFor(toolNames.includes("Skill"), subagentInstructions(def)),
+    policy: childPolicy,
+    approver,
+    approvalLock,
+    ref,
+    hooks,
+  },
+  {
+    ...config,
+    model: childModel,
+    maxTurns: Math.min(def.maxTurns ?? SUBAGENT_MAX_TURNS, config.maxTurns),
+    maxToolCalls: Math.min(200, config.maxToolCalls),
+  },
+);
+```
+
+El subagente arranca con el prompt como único mensaje y unas instrucciones que le explican su papel: no ve la conversación de quien lo lanzó, no puede hacer preguntas y su último mensaje es su informe. Sus eventos llegan al mismo bus, etiquetados con su id, así que la salida los enseña sangrados bajo la llamada. El código está en [`src/index.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/src/index.ts) y [`src/tools/agent.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/src/tools/agent.ts).
+
+Lo que vuelve al principal lo decide una función pequeña:
+
+```ts
+const result = (r: RunResult) => {
+  const report = truncateMiddle(r.text.trim() || "(the subagent finished without a final message)", maxChars);
+  if (r.reason === "end_turn") return { content: report };
+  if (r.reason === "aborted") return { content: `[subagent interrupted by the user]\n\n${report}`, isError: true };
+  const why = r.error ? `${r.reason}: ${r.error}` : r.reason;
+  // Un límite no es un fallo: lo hecho hasta ahí puede servir. Error solo si no llegó a responder.
+  return { content: `[subagent stopped early (${why}); its report may be incomplete]\n\n${report}`, isError: r.reason === "error" };
+};
+```
+
+Solo el texto final, recortado por el medio a 40.000 caracteres. Si el subagente se quedó sin turnos, el informe llega igual, marcado como posiblemente incompleto: lo que hizo hasta ahí puede servir, y el principal tiene que saber que no terminó.
+
+## Especialización
+
+Un subagente que hace de todo no ahorra nada. El harness trae dos tipos:
+
+| Tipo | Herramientas y modo | Para qué |
+| --- | --- | --- |
+| `explore` | `Read`, `Glob`, `Grep` y `Bash`, en `plan` | Buscar y leer mucho, en 40 turnos como mucho y nunca más que el principal. |
+| `general` | Las del principal salvo `Agent`, en su modo | Una tarea autocontenida que llenaría la conversación de salida intermedia. |
+
+Y se definen más con un fichero en `.harness/agents/<nombre>.md`, el mismo formato que las skills de la parte 6:
+
+```markdown
+---
+name: revisor
+description: Revisa el diff actual y señala bugs. Devuelve una lista priorizada.
+tools: Read, Grep, Bash
+model: inherit        # u otro modelo del mismo servidor; sin el campo, el del principal
+mode: plan            # solo restringe
+maxTurns: 20
+---
+Eres un revisor de código. ...
+```
+
+La especialización está en tres campos:
+
+- **`tools`**: un subconjunto de las del principal. Las desconocidas y `Agent` se descartan con aviso. Si la lista nombra herramientas MCP (`mcp__github`), el subagente recibe solo esas.
+- **`mode`**: el modo de permisos, que solo puede restringir (la sección siguiente).
+- **El cuerpo**: las instrucciones del tipo, que van a su system prompt.
+
+Menos herramientas también es menos contexto, en la ventana del subagente: cada definición viaja en cada petición, y la parte 6 ya midió lo que ocupan. `explore` lleva cuatro y unas instrucciones de búsqueda; el principal, todas. En la ejecución que verás más abajo, el subagente arrancó en 1,7k tokens con el prompt incluido, y el principal en 2,4k.
+
+El campo `model` cambia el modelo del subagente por otro del mismo servidor; con `inherit`, o sin el campo, usa el del principal. Qué modelo poner ahí da para un debate que queda fuera de esta serie.
+
+## Permisos que solo restringen
+
+Un subagente actúa sin que veas su conversación, así que no puede tener más permisos que quien lo lanza. El modo efectivo es el más restrictivo de los dos:
+
+```ts
+export function narrowMode(current: PermissionMode, requested?: PermissionMode): PermissionMode {
+  if (!requested) return current;
+  return MODE_ORDER.indexOf(requested) < MODE_ORDER.indexOf(current) ? requested : current;
+}
+```
+
+El orden va de `plan` a `bypass`, pasando por `default` y `acceptEdits`. `plan` es nuevo en esta parte, y es el que las partes 4 y 5 dejaron pendiente: **todo lo que preguntaría se deniega**. Leer dentro del workspace y los comandos de solo lectura pasan; escribir, los comandos que pueden escribir y las herramientas MCP, no. Es el modo de `explore`, y también puedes arrancar el principal en él con `--permission-mode plan`.
+
+Lo demás del motor de las partes 4 y 5 se mantiene:
+
+- **Hereda las reglas**: los `deny`, los `ask` y las reglas «siempre» aceptadas hasta ese momento. Lo que acepte el subagente con «siempre» se queda en él.
+- **Lanzar no pregunta**: cada cosa que haga el subagente pasa por su propia política. `Agent` o `Agent(general)` en `deny` lo impiden, y `--no-agents` quita la herramienta.
+- **Un solo nivel**: un subagente nunca recibe `Agent`. Tampoco `BashOutput` ni `KillShell`: sus comandos en segundo plano morirían con él.
+- **Mismo sandbox**: su `Bash` corre dentro del sandbox de la parte 5, con su propia sesión para que el directorio y el entorno no se pisen con los del principal.
+- **Una pregunta a la vez**: si un subagente necesita permiso, el prompt dice quién lo pide (`general·a1b2c3d4 pide Write …`) y espera turno con los del principal.
+
+Como las skills y los hooks, las definiciones de `.harness/agents` son contenido del repositorio. La cabecera del arranque las lista con «(de .harness/agents)», y como una definición solo puede restringir, un repositorio ajeno no puede darse más permisos por esta vía.
+
+## Verlo actuar
+
+La demo es `examples/delegacion`, una tienda de juguete con planes de suscripción en once ficheros. La tarea es la del principio: leer enteros seis de ellos (pedidos, facturas y envíos, unos 4.000 tokens con los números de línea) y resumir qué hace cada uno. La lancé así, con y sin subagente:
+
+```bash
+cp -r examples/delegacion ~/tienda-planes
+FICHEROS="src/orders/refunds.ts, src/orders/checkout.ts, src/billing/invoices.ts, src/billing/taxes.ts, src/shipping/rates.ts y src/shipping/zones.ts"
+TAREA="Lee enteros con Read, sin limit ni offset, $FICHEROS, y resume en una línea qué hace cada uno."
+
+npm run -s dev -- --workspace ~/tienda-planes --context-window 8192 --no-agents "$TAREA" < /dev/null > sin.txt 2> sin-traza.txt
+node examples/comprobar-delegacion.mjs sin.txt sin-traza.txt
+
+npm run -s dev -- --workspace ~/tienda-planes --context-window 8192 \
+  "Usa un subagente explore, sin run_in_background, con este prompt: «$TAREA». Después responde con su resumen." < /dev/null > con.txt 2> con-traza.txt
+node examples/comprobar-delegacion.mjs con.txt con-traza.txt
+```
+
+Los dos prompts dicen lo mismo; el segundo, además, delega. Que el prompt del subagente vaya escrito, y que pida leer enteros, no es capricho: sin eso, el modelo de 7B no lo hacía (lo verás en la nota de pilotos). `comprobar-delegacion.mjs` da por buena una ejecución si la respuesta nombra los seis ficheros **y** la traza muestra que se leyeron enteros, el principal o el subagente. Sin la segunda condición, un resumen inventado a partir de los nombres contaría como acierto. Al terminar, borra `~/tienda-planes` y los cuatro ficheros.
+
+Sin subagente, el principal lee los seis ficheros en un turno y el contexto le salta del 24 % al 79 %:
+
+```text
+ctx 2,0k/8,2k (24%)
+> Read {"file_path":"src/orders/refunds.ts"}
+…
+> Read {"file_path":"src/shipping/zones.ts"}
+…
+ctx 6,4k/8,2k (79%)
+
+[end_turn] 2 turnos, 6 llamadas, 7958 tokens de entrada (3595 de caché), 486 de salida, contexto máximo 6449
+```
+
+Con subagente, las mismas lecturas aparecen sangradas bajo la llamada, y es la ventana del subagente la que se llena:
+
+```text
+ctx 2,4k/8,2k (30%)
+> Agent explore·dd3c076b: Resumen de archivos
+  prompt: Lee enteros con Read, sin limit ni offset, src/orders/refunds.ts, src/orders/checkout.ts, src/billing/invoices.ts, src/billing/taxes.ts, src/shipping/rates.ts y src/shipping/zones.ts, y resume en una línea qué hace cada uno.
+  · explore·dd3c076b ctx 1,7k/8,2k (21%)
+  · explore·dd3c076b > Read {"file_path":"src/orders/refunds.ts"}
+…
+  · explore·dd3c076b ctx 6,1k/8,2k (74%)
+  < explore·dd3c076b informe listo: 2 turnos, 6 llamadas, contexto máximo 6,1k, 7,2k tokens de entrada, 589 de salida, 25 s
+  al principal vuelve un informe de ~313 tokens
+ctx 3,0k/8,2k (36%)
+
+[end_turn] 2 turnos, 1 llamadas, 5077 tokens de entrada (4071 de caché), 305 de salida, contexto máximo 2962
+[subagentes] 1 (explore·dd3c076b), 7214 tokens de entrada (2963 de caché), 589 de salida, contexto máximo 6061
+```
+
+Las dos salidas completas están en [`delegacion-sin.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-sin.txt) y [`delegacion-con.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-con.txt). Lancé cada condición 10 veces, en un contenedor Linux con bubblewrap, sin elegir ejecuciones:
+
+| | Sin subagente | Con subagente |
+| --- | --- | --- |
+| Aciertos | 10 de 10 | 9 de 10 |
+| Contexto máximo del principal | 6.438 a 6.777 (mediana 6.452) | 2.909 a 3.161 (mediana 3.056) |
+| Contexto máximo del subagente | — | 6.024 a 6.259 |
+| Tokens totales, entrada y salida | 8.436 a 8.772 (mediana 8.448) | 13.056 a 13.601 (mediana 13.290) |
+| Segundos | 21 a 36 (mediana 25,5) | 31 a 42 (mediana 36,5) |
+
+El contexto máximo es lo que ocupó el turno más grande, entrada más salida, sobre una ventana de 8.192. Sin subagente, el principal pasa muy por encima del umbral de clearing de la parte 3 (3.686 tokens) y no limpia nada, porque solo hay seis resultados. Con subagente, se queda por debajo de ese umbral en las diez: la tarea está hecha y la ventana, libre para la siguiente. El fallo con subagente fue un resumen que se saltó `zones.ts`, aunque el subagente lo había leído.
+
+**Nota de pilotos.** Antes de esas 20 ejecuciones probé otras preguntas, y lo que salió es parte de la lección:
+
+- **Una pregunta de un dato**, que obligaba a seguir los `import` de tres ficheros: 0 de 11. El modelo buscaba con patrones que no aparecen o leía rutas inventadas, con y sin subagente.
+- **El prompt escrito por el principal**: cuando el principal redactaba él el prompt del subagente, lo dejaba en «Explore … and summarize their purpose», y el `explore` buscaba con `Grep` sin llegar a usar `Read` (0 de 4). El principal escribía después un resumen verosímil a partir de los nombres.
+- **Sin pedir los ficheros enteros**: los leía con `limit` 1, 10 o 20. Las instrucciones de `explore` le dicen que lea «solo las partes relevantes».
+- **Sin pedir primer plano**: con el prompt del subagente escrito, el modelo lo lanzó en segundo plano por su cuenta (2 de 2).
+- **Sin pedir que delegara**, con `Agent` disponible y el prompt de la columna sin subagente: no delegó en ninguna de 3. De lo que pasó entonces va la sección siguiente.
+
+Son pocas ejecuciones, con un solo modelo pequeño y una sola tarea, así que tómalas como lo que son. Lo que el harness hace *siempre* (que solo vuelva el informe, el modo `plan`, los límites, un solo nivel) lo cubren los tests deterministas de `npm test`.
+
+## Lo que cuesta, y cuándo no delegar
+
+La tabla tiene una columna que no sale gratis. Delegar costó una mediana de 13.290 tokens frente a 8.448: **un 57 % más**, y once segundos más. El subagente paga su propio arranque, el principal paga el prompt y el informe, y cada uno lleva sus definiciones de herramientas en cada petición. Se protege una ventana gastando más en total.
+
+Y la herramienta cuesta aunque no se use. Medí la misma pregunta trivial con y sin ella: 1.793 tokens de entrada con `--no-agents` y 2.243 con `Agent`. **Su descripción ocupa 450 tokens en cada petición.** En el piloto en que el modelo no delegó, esos 450 tokens bastaron: las mismas seis lecturas cruzaron el umbral de compactación en dos de tres ejecuciones, y después de compactar ninguna de las dos hizo el resumen: una respondió que los ficheros no existían y la otra preguntó si seguía. Es la [salida del piloto](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-piloto.txt):
+
+```text
+ctx 2,5k/8,2k (30%)
+> Read {"file_path":"src/orders/refunds.ts"}
+…
+~ conversación compactada: 5,6k -> 2,7k tokens
+```
+
+Una herramienta para proteger la ventana que, si no se usa, la llena antes. Es la lección de la parte 6 otra vez: conecta solo lo que vayas a usar, y si no vas a delegar, `--no-agents`.
+
+Lo demás que cuesta salió en los pilotos:
+
+- **El informe pierde información**: el resumen que se saltó `zones.ts` es eso. Si el subagente no lo dice, el principal no puede saberlo.
+- **El prompt también pierde**: el subagente no ve la conversación, así que un prompt reescrito con prisa («Explore … and summarize») le quitó justo lo que importaba, que había que leer.
+- **El subagente no sabe lo que tú sabes**: cualquier contexto que no esté en el prompt no existe para él.
+
+De ahí sale cuándo no delegar:
+
+- **Cuando cabe**: si lo que hay que leer entra de sobra en la ventana, el clearing ni se activa y delegar solo añade tokens. Un `Read` o un `grep` directos son más rápidos, y la propia descripción de `Agent` lo dice.
+- **Cuando la tarea necesita tu conversación**: si el subagente necesita saber lo que habéis hablado, tendrás que escribirlo entero en el prompt.
+- **Cuando vas a usar el detalle**: si después vas a editar esos ficheros, el principal tendrá que leerlos igual.
+
+## Delegar no es paralelizar, pero también paraleliza
+
+Lo que la intuición asocia a los subagentes viene al final. Los dos usos existen en el harness:
+
+- **En paralelo**: los tipos que acaban en modo `plan` cuentan como de solo lectura, así que varios `explore` en el mismo turno corren a la vez, como mucho 4. Los que pueden escribir van en serie.
+- **En segundo plano**: con `run_in_background`, `Agent` vuelve al momento con un id y el principal sigue trabajando; el informe le llega después como aviso, como el de un comando en segundo plano de la parte 5. Solo para tipos en `plan`: uno que escribe chocaría con el principal.
+
+El paralelo tiene un matiz en local. Con el servidor de Ollama sin configurar, cuatro `explore` «en paralelo» no van más rápido: la [FAQ de Ollama](https://docs.ollama.com/faq) dice que `OLLAMA_NUM_PARALLEL`, si no se define, vale 1 en todos los backends salvo MLX en Metal, y el resto de peticiones espera en su cola. Subirlo es posible, a cambio de más memoria. No lo medí, así que no te prometo cuánto se gana.
+
+El segundo plano sí lo probé, en una demo aparte: el principal lanza un `explore` que lee `src/config/limits.ts` y, mientras tanto, escribe `NOTAS.md`. En las 3 ejecuciones lanzó un solo subagente, escribió `NOTAS.md` antes de que llegara el informe y no repitió la búsqueda. Y en una pasó esto ([salida completa](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-segundo-plano.txt)):
+
+```text
+& agent·361d737f en segundo plano: explore · Explore subagent
+> Write {"file_path":"NOTAS.md","content":"pendiente: días de prueba"}
+…
+  agent·361d737f ya está en marcha con la misma tarea: no se relanza
+…
+& agent·361d737f completed
+ctx 2,8k/8,2k (34%)
+<- agent·361d737f: otro run con su aviso
+```
+
+Mientras esperaba, el modelo intentó lanzar otra vez el mismo subagente. Los modelos pequeños hacen eso, y por eso el harness recuerda los subagentes en marcha por tipo y prompt: uno idéntico no se relanza, y el modelo recibe un mensaje que le dice que no lo vuelva a lanzar y siga con otra cosa. Sin terminal, al acabar el run la CLI espera a los que queden y hace otro run con sus informes, hasta cinco rondas.
+
+Tampoco aquí todo salió bien: la respuesta correcta estaba en el texto final de 2 de las 3, ninguna reescribió `NOTAS.md` con ella como se le pidió, y en la que se ve arriba el modelo se inventó la respuesta antes de que llegara el informe. Hacer otra cosa mientras esperas exige no adivinar lo que vendrá, y eso un 7B no siempre lo respeta.
+
+Así que sí: delegar también paraleliza. Pero en una máquina con un solo servidor local, lo que ganas seguro es la ventana. El resto depende de cómo tengas configurado el servidor, y de que el modelo sepa esperar.
+
+## Lo que falta
+
+El harness ya sabe repartir el trabajo. Lo que queda fuera de esta parte:
+
+- **Transcripts de los subagentes**: lo que hizo cada uno no se guarda; llega con las sesiones, en la parte 8.
+- **`/agents` y lo que gastan en pantalla**: verlos desde la interfaz es de la parte 9.
+- **Definiciones de usuario**: el lab solo lee las del proyecto, como con las skills.
+- **Herramientas MCP en modo `plan`**: el lab no tiene la lista de herramientas de solo lectura que permitiría alguna; en `plan` no pasa ninguna.
+- **Una sola tarea medida**: 10 y 10 ejecuciones con `qwen2.5:7b`, más pilotos y una demo de 3.
+
+El orden previsto para lo que viene está en la [página de la serie](/blog/series/asistente-codigo-local). Antes, lo esencial de esta parte:
+
+- **Un subagente es otro bucle con otra ventana**: lo que lee se queda allí y al principal vuelve el informe.
+- **Delegar actúa antes que el clearing**: las lecturas no llegan a entrar en la ventana del principal.
+- **El prompt es todo lo que sabe el subagente**: escríbelo entero, con lo que hay que hacer y cómo.
+- **Los permisos solo se restringen**: el modo efectivo es el más restrictivo, y `plan` solo lee.
+- **Delegar cuesta**: más tokens en total, y 450 en cada petición solo por tener la herramienta.
+- **El paralelo, en local, depende del servidor**: Ollama atiende una petición a la vez si no lo configuras.
