@@ -245,8 +245,9 @@ rules:
       paralelo y el segundo plano con deduplicación y rondas de espera. En plan
       el lab deniega lo que puede escribir aunque una regla allow lo permita
       (revisión de la PR #6 del lab, 2026-11-26); harness tenía el mismo fallo
-      (su evaluate solo convertía ask en deny) y lo corrige en su rama
-      fix/plan-mode-allow-rules (762730a, desde master), pendiente de integrar. Quedan para la parte 8 los
+      (su evaluate solo convertía ask en deny) y lo corrigió en master
+      (762730a, 2026-11-26), así que en plan los dos se comportan igual.
+      Quedan para la parte 8 los
       transcripts de los subagentes y restoreFinished de las tareas; para la
       parte 9, /agents, el consumo de los subagentes en el pie, su sección de
       /context y los turnos automáticos de la interfaz (quiet y onNotify).
