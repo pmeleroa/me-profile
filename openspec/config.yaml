@@ -244,9 +244,9 @@ rules:
       trabajo del subagente sin debatir qué modelo poner), el modo plan, el
       paralelo y el segundo plano con deduplicación y rondas de espera. En plan
       el lab deniega lo que puede escribir aunque una regla allow lo permita
-      (revisión de la PR #6 del lab, 2026-11-26); harness tiene el fallo que
-      eso corrige (su evaluate solo convierte ask en deny) y debe igualarlo:
-      trabajo en harness, no en el lab. Quedan para la parte 8 los
+      (revisión de la PR #6 del lab, 2026-11-26); harness tenía el mismo fallo
+      (su evaluate solo convertía ask en deny) y lo corrige en su rama
+      fix/plan-mode-allow-rules (762730a, desde master), pendiente de integrar. Quedan para la parte 8 los
       transcripts de los subagentes y restoreFinished de las tareas; para la
       parte 9, /agents, el consumo de los subagentes en el pie, su sección de
       /context y los turnos automáticos de la interfaz (quiet y onNotify).
