@@ -165,6 +165,7 @@
     - Lo que no trae, porque es de la parte 9: `restoreFinished` y `readTasks`, `summarizeSession` completo (el lab tiene un resumen reducido y privado para `listSessions`), `dropPrompts` de `forkSession`, y los comandos `/resume`, `/sessions`, `/fork n` y `/tasks` con su menú.
     - La presentación: `formatResumed` sin tema de colores, y la línea `sesión: <id>` de la cabecera del lab.
 - [ ] 1.12 Pedir confirmación al autor, registrar la pregunta y la respuesta literales, hacer push de la rama y abrir la PR del lab, con el credential helper de `gh` y la cuenta `pmeleroa` si git da 403. Tras el merge del autor, crear el tag `parte-8` sobre `main` y verificar con `git ls-remote --tags origin parte-8` y `git describe --tags`
+  - Registro parcial (2026-11-26; **falta el merge del autor y el tag**). Pregunta literal: «Parte 8, tarea 1.12: ¿hago push de la rama feat/add-sessions de pmeleroa/lab-harness-local (4 commits sobre origin/main: b142667, 486bcdf, 2ffb71f y 8f9ed5e; escaneo de datos privados limpio) y abro su PR contra main? El merge lo haces tú; después creo el tag parte-8 sobre main.» → «Sí, push y PR». Push con el token de `pmeleroa` solo para el comando (sin 403) y [PR #7](https://github.com/pmeleroa/lab-harness-local/pull/7), «feat: sesiones y registro de aprobaciones (parte 8)». Después se subió a la misma PR `2d0a5dd` (las consultas del `meta` y de la reparación en `sesiones-consultas.txt`, que cita el post), con el escaneo de 1.10 repetido sobre él sin resultados.
 
 ## 2. Post
 
@@ -251,9 +252,11 @@
     - **Q07**: los 3 enlaces internos existen en `dist/`. Los 5 externos que no dependen del tag responden 200 con `curl -L` (ripgrep, bubblewrap, el clon del lab, la descarga de jq y la guía de WSL2). Los 11 que apuntan a `parte-8` responden 200 contra la rama `feat/add-sessions` y quedan pendientes del tag.
     - **Q08**: sin `<script>`, `set:html`, `dangerouslySetInnerHTML` ni tokens en el MDX (`grep` exit 1). Los `export const` son tres objetos de estilo estáticos para el diagrama, sin datos de fuera. Las salidas citadas no tienen rutas ni datos privados (1.10).
 - [ ] 4.3 Antes de archivar, preguntar al autor si confirma publicar este post y registrar la pregunta y la respuesta literales. Con confirmación, dejar `draft: false`. Sin ella, `draft: true` y registrar que no hubo confirmación. Verificar con `grep -n '^draft:'` sobre el MDX
+  - Registro parcial (2026-11-26; **sin confirmación todavía**). Pregunta literal: «Parte 8, tarea 4.3: ¿confirmas que se publique el post «Guardar no es restaurar: retomar el trabajo y saber qué hizo el agente» (draft: false, publishDate 2026-11-26) al integrar su PR? Antes de archivar faltan el tag parte-8 (tras tu merge de la PR #7 del lab) y la comprobación de extractos y enlaces contra ese tag.» → «Aún no, quiero revisarlo». El MDX sigue en `draft: false` solo para QA; si no hay confirmación antes de archivar, pasa a `draft: true`.
 
 ## Workflow follow-up
 
 - Hacer push de la rama `feat/add-sessions-traceability-post` y abrir la PR del post en borrador contra `main`, con la confirmación del autor.
+  - Hecho (2026-11-26). Pregunta literal: «Parte 8: ¿hago push de la rama feat/add-sessions-traceability-post de me-profile (2 commits: 9e8712e, el post y la serie; 59abf69, el change y config.yaml) y abro la PR del post en borrador contra main?» → «Sí, push y PR en borrador». [PR #54](https://github.com/pmeleroa/me-profile/pull/54), en borrador.
 - Integrar la PR del lab y crear el tag `parte-8` sobre `main` antes de publicar el post, porque sus enlaces dependen de él. El merge lo hace el autor.
 - Archivar el change en la misma rama antes del merge y ejecutar `openspec validate --all --strict`.
