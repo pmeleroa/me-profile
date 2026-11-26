@@ -218,7 +218,7 @@ npm run -s dev -- --workspace ~/tienda-planes --context-window 8192 \
 node examples/comprobar-delegacion.mjs con.txt con-traza.txt
 ```
 
-Los dos prompts dicen lo mismo; el segundo, además, delega. Que el prompt del subagente vaya escrito, y que pida leer enteros, no es capricho: sin eso, el modelo de 7B no lo hacía (lo verás en la nota de pilotos). `comprobar-delegacion.mjs` da por buena una ejecución si la respuesta nombra los seis ficheros **y** la traza muestra que se leyeron enteros y sin error, el principal o el subagente, en las rutas del workspace. Sin la segunda condición, un resumen inventado a partir de los nombres contaría como acierto, y también uno tras leer rutas que no existen. Al terminar, borra `~/tienda-planes` y los cuatro ficheros.
+Los dos prompts dicen lo mismo; el segundo, además, delega. Que el prompt del subagente vaya escrito, y que pida leer enteros, no es capricho: en las pruebas previas, sin eso, el modelo de 7B no leía los ficheros, o los leía a trozos. `comprobar-delegacion.mjs` da por buena una ejecución si la respuesta nombra los seis ficheros **y** la traza muestra que se leyeron enteros y sin error, el principal o el subagente, en las rutas del workspace. Sin la segunda condición, un resumen inventado a partir de los nombres contaría como acierto, y también uno tras leer rutas que no existen. Al terminar, borra `~/tienda-planes` y los cuatro ficheros.
 
 Sin subagente, el principal lee los seis ficheros en un turno y el contexto le salta del 24 % al 79 %:
 
@@ -263,21 +263,13 @@ Las dos salidas completas están en [`delegacion-sin.txt`](https://github.com/pm
 
 El contexto máximo es lo que ocupó el turno más grande, entrada más salida, sobre una ventana de 8.192. Sin subagente, el principal pasa muy por encima del umbral de clearing de la parte 3 (3.686 tokens) y no limpia nada, porque solo hay seis resultados. Con subagente, se queda por debajo de ese umbral en las diez: la tarea está hecha y la ventana, libre para la siguiente. El fallo con subagente fue un resumen que se saltó `zones.ts`, aunque el subagente lo había leído.
 
-**Nota de pilotos.** Antes de esas 20 ejecuciones probé otras preguntas, y lo que salió es parte de la lección:
-
-- **Una pregunta de un dato**, que obligaba a seguir los `import` de tres ficheros: 0 de 11. El modelo buscaba con patrones que no aparecen o leía rutas inventadas, con y sin subagente.
-- **El prompt escrito por el principal**: cuando el principal redactaba él el prompt del subagente, lo dejaba en «Explore … and summarize their purpose», y el `explore` buscaba con `Grep` sin llegar a usar `Read` (0 de 4). El principal escribía después un resumen verosímil a partir de los nombres.
-- **Sin pedir los ficheros enteros**: los leía con `limit` 1, 10 o 20. Las instrucciones de `explore` le dicen que lea «solo las partes relevantes».
-- **Sin pedir primer plano**: con el prompt del subagente escrito, el modelo lo lanzó en segundo plano por su cuenta (2 de 2).
-- **Sin pedir que delegara**, con `Agent` disponible y el prompt de la columna sin subagente: no delegó en ninguna de 3. De lo que pasó entonces va la sección siguiente.
-
 Son pocas ejecuciones, con un solo modelo pequeño y una sola tarea, así que tómalas como lo que son. Lo que el harness hace *siempre* (que solo vuelva el informe, el modo `plan`, los límites, un solo nivel) lo cubren los tests deterministas de `npm test`.
 
 ## Lo que cuesta, y cuándo no delegar
 
 La tabla tiene una columna que no sale gratis. Delegar costó una mediana de 13.290 tokens frente a 8.448: **un 57 % más**, y once segundos más. Pero leer no se paga dos veces. El subagente hizo las seis lecturas por 7.807, algo menos que el principal sin delegar, porque lleva cuatro herramientas y no todas. Lo que se suma es el principal: 5.479 tokens en dos peticiones, la que delega y la que recibe el informe, cada una con su system prompt y todas sus herramientas, más el informe, que copia en su respuesta. Es un coste fijo por delegación: el principal nunca ve las lecturas, así que no crece con lo que lea el subagente.
 
-Y 8.448 es el mejor caso de no delegar: los seis ficheros caben por poco bajo el umbral de compactación y la tarea acaba ahí. Hace falta muy poco para que no quepan, y lo pone la propia herramienta. Medí la misma pregunta trivial con y sin ella: 1.793 tokens de entrada con `--no-agents` y 2.243 con `Agent`. **Su descripción ocupa 450 tokens en cada petición.** En el piloto en que el modelo no delegó, esos 450 tokens bastaron: las mismas seis lecturas cruzaron el umbral de compactación en dos de tres ejecuciones, y después de compactar ninguna de las dos hizo el resumen: una respondió que los ficheros no existían y la otra preguntó si seguía. Es la [salida del piloto](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-piloto.txt):
+Y 8.448 es el mejor caso de no delegar: los seis ficheros caben por poco bajo el umbral de compactación y la tarea acaba ahí. Hace falta muy poco para que no quepan, y lo pone la propia herramienta. Medí la misma pregunta trivial con y sin ella: 1.793 tokens de entrada con `--no-agents` y 2.243 con `Agent`. **Su descripción ocupa 450 tokens en cada petición.** Lo comprobé con `Agent` disponible y el prompt de la columna sin subagente: el modelo no delegó en ninguna de 3 ejecuciones, y esos 450 tokens bastaron: las mismas seis lecturas cruzaron el umbral de compactación en dos de tres ejecuciones, y después de compactar ninguna de las dos hizo el resumen: una respondió que los ficheros no existían y la otra preguntó si seguía. Es la [salida de una de ellas](https://github.com/pmeleroa/lab-harness-local/blob/parte-7/examples/salidas/delegacion-piloto.txt):
 
 ```text
 ctx 2,5k/8,2k (30%)
@@ -290,17 +282,17 @@ Esas dos ejecuciones costaron 12.037 y 12.324 tokens, con la compactación inclu
 
 Si la sesión sigue, la cuenta cambia otra vez, porque cada petición reenvía la conversación entera. Sin delegar, el principal termina con 6,4k en la ventana, y su siguiente petición ya pasa del umbral de compactación: compactará antes de contestar. Con subagente termina en 3,0k y ni llega al del clearing. Esto no lo medí: sale de los umbrales de la parte 3 y de los números de la tabla.
 
-Las dos rutas acaban igual, con un resumen donde estaban los ficheros. Lo que cambia es quién lo escribe y cuándo. **Delegar es compactar por adelantado**: el resumen lo escribe el subagente al principio, a propósito y con el prompt de la tarea. Sin delegar, lo escribe el principal cuando el umbral le obliga, con lo que el modelo decida guardar, y en el piloto eso se llevó la tarea por delante.
+Las dos rutas acaban igual, con un resumen donde estaban los ficheros. Lo que cambia es quién lo escribe y cuándo. **Delegar es compactar por adelantado**: el resumen lo escribe el subagente al principio, a propósito y con el prompt de la tarea. Sin delegar, lo escribe el principal cuando el umbral le obliga, con lo que el modelo decida guardar, y en esas ejecuciones eso se llevó la tarea por delante.
 
 Tampoco todos los tokens tienen por qué costar lo mismo. De esos 13.290, 7.807 son del subagente, y son el trabajo más mecánico: leer y resumir. Con el campo `model` de su definición, esa parte puede ir a un modelo más pequeño del mismo servidor, y el principal se queda con el suyo para lo que exige razonar. Qué modelo poner y cuánto se ahorra es elegir modelo, que queda fuera de esta serie, y no lo medí. Antes de probarlo, dos peros:
 
 - **El modelo pequeño también tiene que saber hacerlo**: con el de 7B ya hizo falta escribir el prompt entero y pedir los ficheros enteros, y uno menor tiene menos margen.
 - **En una sola máquina, los dos modelos tienen que caber a la vez**: la [FAQ de Ollama](https://docs.ollama.com/faq) dice que carga varios a la vez si caben en la memoria disponible. Si no, encola las peticiones y descarga el que esté ocioso para cargar el otro, y cada delegación pagaría una carga a la ida y otra a la vuelta.
 
-Lo demás que cuesta salió en los pilotos:
+Lo demás que cuesta:
 
 - **El informe pierde información**: el resumen que se saltó `zones.ts` es eso. Si el subagente no lo dice, el principal no puede saberlo.
-- **El prompt también pierde**: el subagente no ve la conversación, así que un prompt reescrito con prisa («Explore … and summarize») le quitó justo lo que importaba, que había que leer.
+- **El prompt también pierde**: el subagente no ve la conversación, así que un prompt reescrito con prisa le quita justo lo que importa. En las pruebas previas, cuando el principal lo redactaba, se quedaba en «Explore … and summarize» y el subagente no llegaba a leer.
 - **El subagente no sabe lo que tú sabes**: cualquier contexto que no esté en el prompt no existe para él.
 
 De ahí sale cuándo no delegar:
@@ -345,7 +337,7 @@ El harness ya sabe repartir el trabajo. Lo que queda fuera de esta parte:
 - **`/agents` y lo que gastan en pantalla**: verlos desde la interfaz es de la parte 9.
 - **Definiciones de usuario**: el lab solo lee las del proyecto, como con las skills.
 - **Herramientas MCP en modo `plan`**: el lab no tiene la lista de herramientas de solo lectura que permitiría alguna; en `plan` no pasa ninguna.
-- **Una sola tarea medida**: 10 y 10 ejecuciones con `qwen2.5:7b`, más pilotos y una demo de 3. Ni la sesión que sigue ni un subagente con otro modelo.
+- **Una sola tarea medida**: 10 y 10 ejecuciones con `qwen2.5:7b`, más 3 sin pedir delegar y una demo de 3. Ni la sesión que sigue ni un subagente con otro modelo.
 
 El orden previsto para lo que viene está en la [página de la serie](/blog/series/asistente-codigo-local). Antes, lo esencial de esta parte:
 
