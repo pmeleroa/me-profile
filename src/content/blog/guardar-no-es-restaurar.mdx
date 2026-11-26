@@ -1,0 +1,445 @@
+---
+title: "Guardar no es restaurar: retomar el trabajo y saber qué hizo el agente"
+description: "Octava guía de la serie Asistente de código local: un transcript al que solo se añade, retomar y bifurcar una sesión, lo que retomar deja fuera a propósito y un registro de quién autorizó cada acción, leído con jq."
+publishDate: 2026-11-26
+category: "Guía"
+tags: ["harness", "sesiones", "trazabilidad", "llm-local", "ollama"]
+draft: false
+series:
+  id: asistente-codigo-local
+  part: 8
+---
+export const solo = {padding: "0.35rem 0.6rem", border: "2px solid var(--color-accent)", background: "var(--color-accent-glow)", borderRadius: "6px", overflowWrap: "anywhere"};
+export const ambas = {padding: "0.35rem 0.6rem", border: "1px solid var(--color-border-2)", borderRadius: "6px", overflowWrap: "anywhere"};
+export const marca = {textAlign: "center"};
+
+Un escenario inventado, pero corriente. Le pides al asistente un cambio que no acaba en una sentada: una función, su test y el commit. A mitad, cortas: el agente pregunta algo que prefieres pensar con calma, o te llaman. Al día siguiente escribes «sigue con lo de ayer» y el agente no sabe de qué le hablas, porque cada pregunta empieza de cero. Y en `git diff` hay un cambio en `src/cart.ts` que no recuerdas. ¿Lo pediste tú? ¿Lo aprobaste, o lo dejó pasar una regla?
+
+Esta guía es la octava de la serie *Asistente de código local*. En la [anterior](/blog/delegar-no-es-paralelizar) el harness aprendió a repartir el trabajo entre subagentes. Aquí aprende a recordarlo, y la idea es esta: **todo se guarda, no todo se restaura**. Hay un solo fichero por sesión, con dos lecturas. Retomar lee lo mínimo para seguir, y la trazabilidad lo lee todo para saber qué pasó. Lo que retomar deja fuera, lo deja a propósito, y sigue en el fichero, a la vista.
+
+## Prerrequisitos y clonado
+
+Los comandos son para una terminal Linux. En Windows, usa WSL2 ([guía de instalación de Microsoft](https://learn.microsoft.com/es-es/windows/wsl/install)). Necesitas lo de las guías anteriores: Node.js 22 o superior, [ripgrep](https://github.com/BurntSushi/ripgrep#installation), [bubblewrap](https://github.com/containers/bubblewrap) y Ollama con `qwen2.5:7b`. Esta parte añade [jq](https://jqlang.org/download/), para leer las sesiones: `sudo apt install jq`.
+
+```bash
+git clone --branch parte-8 https://github.com/pmeleroa/lab-harness-local.git
+cd lab-harness-local
+npm install
+npm test
+```
+
+El repositorio es [pmeleroa/lab-harness-local](https://github.com/pmeleroa/lab-harness-local/tree/parte-8) y todos los enlaces y extractos de esta guía apuntan al tag `parte-8`. Los tests no necesitan modelo y no tocan tu `~/.harness`, porque corren con un `HOME` temporal. Las ejecuciones que verás usaron Ollama 0.40.18 con la ventana en **8.192** (`OLLAMA_CONTEXT_LENGTH=8192 ollama serve`), en un contenedor Linux con bubblewrap.
+
+## Cada pregunta empieza de cero
+
+Hasta la parte 7, cada `npm run dev -- "<pregunta>"` es un proceso con una sola pregunta. Cuando acaba, se pierde todo: la conversación, lo que leyó y lo que hizo cada subagente. Así quedan sin cubrir dos necesidades corrientes:
+
+- **Retomar el trabajo**: seguir mañana donde lo dejaste hoy, sin volver a explicarlo.
+- **Saber qué hizo el agente y por qué**: qué ficheros tocó, qué comandos lanzó y quién autorizó cada cosa.
+
+Para la segunda, la respuesta rápida es git. Git dice qué cambió en disco, y eso no lo sustituye nada. Pero se queda corto:
+
+- **No dice por qué ni cómo**: ni qué le pediste, ni qué contestaste cuando preguntó.
+- **No ve lo que no cambia nada**: las lecturas, los comandos de solo lectura, un `git add` que no llegó a commit.
+- **No ve lo que no llegó a pasar**: un comando que denegaste o un commit que bloqueó un hook.
+- **No ve a los subagentes**: lo que leyó un `explore` no deja rastro en el repositorio.
+- **No distingue quién decidió**: un `Edit` que aprobaste y uno que dejó pasar `acceptEdits` quedan igual en el diff.
+
+Lo que falta es el registro de la sesión. Y el mismo registro sirve para las dos cosas.
+
+## Un fichero, dos lecturas
+
+Cada ejecución añade líneas a un fichero JSONL, una por registro: cada mensaje, cada decisión de permisos, el consumo de cada turno, cada compactación, cada subagente y cada comando en segundo plano. Nada se reescribe. Encima de ese fichero hay dos lecturas:
+
+<figure style={{margin: "2rem 0"}}>
+  <div role="img" aria-label="Diagrama de un transcript con doce registros en orden: meta del primer arranque, tu pregunta, el asistente pide un Edit, approval del Edit aprobado una vez, el resultado del Edit, subagent con su fichero en agents, task de un comando en segundo plano, compact con el resumen, un mensaje después del compact, approval de un Bash que decide una regla de sesión, usage del turno y meta del segundo arranque. Retomar lee solo el compact y los mensajes de después. La trazabilidad lee los doce. Los registros que solo ve la trazabilidad están resaltados: los dos meta, los approval, el subagent, el task, el usage y los mensajes de antes del compact." style={{maxWidth: "36rem", marginInline: "auto", fontSize: "0.85rem", color: "var(--color-text)"}}>
+    <div aria-hidden="true" style={{display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto auto", gap: "0.3rem", alignItems: "center"}}>
+      <div style={{fontWeight: 600}}>Registro</div>
+      <div style={{fontWeight: 600, textAlign: "center"}}>Retomar</div>
+      <div style={{fontWeight: 600, textAlign: "center"}}>Trazabilidad</div>
+      <div style={solo}><code>meta</code> primer arranque: modelo y ventana</div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>message</code> tu pregunta</div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>message</code> el asistente pide un <code>Edit</code></div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>approval</code> <code>Edit</code>: tú, una vez</div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>message</code> el resultado del <code>Edit</code></div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>subagent</code> terminó → <code>agents/&lt;uuid&gt;.jsonl</code></div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>task</code> un comando en segundo plano, exit 0</div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={ambas}><code>compact</code> el resumen de lo anterior</div>
+      <div style={marca}>✓</div>
+      <div style={marca}>✓</div>
+      <div style={ambas}><code>message</code> lo que vino después</div>
+      <div style={marca}>✓</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>approval</code> <code>Bash</code>: una regla de sesión</div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>usage</code> los tokens del turno</div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+      <div style={solo}><code>meta</code> segundo arranque: otra invocación</div>
+      <div style={marca}>—</div>
+      <div style={marca}>✓</div>
+    </div>
+  </div>
+  <figcaption style={{marginTop: "1rem", fontSize: "0.85rem", color: "var(--color-text)"}}>Lo resaltado es lo que solo ve la trazabilidad. Retomar empieza en el último <code>compact</code> y se queda con los mensajes. En la sesión de la demo, el fichero acabó con 87 registros, y retomarlo carga 40 mensajes.</figcaption>
+</figure>
+
+De ahí salen las dos propiedades que importan:
+
+- **Retomar es barato**: lee la conversación desde el último `compact`, y no crece con todo lo demás.
+- **La trazabilidad es completa**: la compactación no borra nada, y lo que retomar no lee sigue ahí.
+
+## El transcript
+
+Cada sesión es un fichero en `~/.harness/sessions/<workspace>-<hash>/<id>.jsonl`. La carpeta se llama como el directorio del workspace, más 8 caracteres del hash de su ruta real: `tienda-demo-924c9f5d`. Se lee con `ls`, no choca entre dos proyectos con el mismo nombre en rutas distintas y no depende de cómo escribas la ruta. Por qué va fuera del workspace lo verás en «Lo que cuesta guardarlo todo».
+
+| Registro | Qué guarda |
+| --- | --- |
+| `meta` | Un arranque: workspace, modelo y ventana de esa invocación y, en un fork, de qué sesión viene. |
+| `message` | Cada mensaje, en el orden en que pasa. |
+| `approval` | Quién decidió cada llamada a una herramienta, y por qué. |
+| `usage` | Los tokens de cada turno. |
+| `compact` | La conversación se compactó. |
+| `subagent` | Un subagente terminó; su conversación está en `<id>/agents/<uuid>.jsonl`. |
+| `task` | Un comando en segundo plano empezó o terminó, con su exit code. |
+
+El almacén es corto ([`src/session/jsonl-store.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/src/session/jsonl-store.ts)). Solo añade, y retiene el `meta` hasta que llega algo que guardar:
+
+```ts
+append(r: SessionRecord): void {
+  if (r.type === "meta" && !this.exists()) {
+    this.held.push(r);
+    return;
+  }
+  const pending = this.held.splice(0);
+  mkdirSync(this.dir, { recursive: true });
+  appendFileSync(this.file, [...pending, r].map((x) => `${JSON.stringify(x)}\n`).join(""));
+}
+```
+
+Tres decisiones caben en esas líneas:
+
+- **No hay fichero hasta el primer mensaje**: arrancar y salir sin hacer nada no deja una sesión vacía.
+- **Cada línea es un registro completo**: un corte a mitad de escritura pierde como mucho la última, y al leer se salta.
+- **La compactación no borra**: la de la [parte 3](/blog/compactar-es-lo-facil) sustituye la conversación en memoria, pero en el fichero solo añade un registro `compact`.
+
+Los subagentes de la parte 7 tienen su propio fichero, con la sesión que los lanzó en su `meta`, y el principal apunta a él con un registro `subagent`. Los comandos en segundo plano de la parte 5 dejan un `task` al empezar y otro al acabar.
+
+Al probarlo encontré un agujero en «todo se guarda». El bucle escribía los `tool_result` de un turno todos juntos, al final. Si el turno tenía un `Edit` y después un `Bash`, y cortabas en la pregunta del `Bash`, el `Edit` ya se había ejecutado y su resultado no quedaba en ningún sitio. Ahora cada resultado se escribe al acabar su llamada ([`src/core/loop.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/src/core/loop.ts)):
+
+```ts
+// Cada resultado se escribe al acabar su llamada (o su lote en paralelo), en orden: un corte a mitad de turno no
+// pierde los de las tools que ya corrieron. Al leer, los mensajes de usuario seguidos se fusionan en uno.
+const done = (rs: ToolResultBlock[]) => {
+  results.push(...rs);
+  if (rs.length) this.deps.session.append({ type: "message", ts: now(), message: { role: "user", content: rs } });
+};
+```
+
+## Retomar
+
+Tres flags, y el resto lo hace el arranque:
+
+- **`-c, --continue`**: retoma la sesión más reciente de este workspace.
+- **`-r, --resume <id>`**: retoma una concreta, por id o por un prefijo que no sea ambiguo. La cabecera de cada arranque imprime el id.
+- **`--fork-session`**: con cualquiera de los dos, sigue en una copia y la original no cambia.
+
+Retomar lee solo los `message`, desde el último `compact`, y fusiona los mensajes seguidos del mismo rol, como hace el bucle (`readMessages`, en el mismo fichero del almacén). Un `compact` vacía lo leído hasta ahí y lo cambia por su resumen; todo lo que no es un `message`, se salta.
+
+Un corte deja un problema. Si pulsas Ctrl+C mientras el agente espera tu permiso, el proceso sale y la llamada se queda sin resultado. Y una conversación con un `tool_use` sin su `tool_result` no se puede enviar: las APIs la rechazan. Al retomar, la llamada que falta recibe un resultado sintético, `Session ended before this tool ran.`. `harness`, el proyecto del que sale este lab, hace eso solo en memoria. Pero entonces la siguiente retomada, o un fork, vuelve a encontrar el `tool_use` suelto, ya en mitad de la conversación, donde la reparación no mira. En el lab, la reparación se escribe ([`src/index.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/src/index.ts)):
+
+```ts
+if (resumed) {
+  const read = JsonlSessionStore.readMessages(resumed.file);
+  // La reparación se escribe: si solo estuviera en memoria, la siguiente retomada (o un fork) leería otra vez el
+  // tool_use sin su tool_result, ya en mitad de la conversación, donde repairTranscript no mira.
+  const missing = missingResults(read);
+  if (missing.length) session.append({ type: "message", ts: new Date().toISOString(), message: { role: "user", content: missing } });
+  agent.restore(repairTranscript(read), session);
+}
+```
+
+Si la sesión usó herramientas MCP que ahora no están conectadas, el arranque también lo avisa: el modelo las verá en la conversación, pero no podrá llamarlas.
+
+### Verlo actuar
+
+La demo trabaja sobre una copia de la tienda de las partes 4 a 6, con su propio git. La tarea es la del escenario del principio: una función, su test y el commit.
+
+```bash
+cp -r examples/demo ~/tienda-demo
+(cd ~/tienda-demo && git init -q && git add -A && git commit -qm "chore: estado inicial")
+npm run -s dev -- --workspace ~/tienda-demo --context-window 8192 \
+  "Añade a src/cart.ts una función exportada itemCount(items: Item[]): number que sume las quantity, crea test/cart.test.ts con un test de itemCount que importe describe, it y expect de vitest, y haz git add -A y git commit en dos llamadas a Bash distintas, siguiendo la convención del proyecto."
+```
+
+Contesté las preguntas como lo haría alguien que revisa: sí al `Edit` y al test, no a dos `git add -A && git commit` en una sola llamada (había pedido dos), «siempre» al `git add -A` y Ctrl+C cuando llegó la pregunta del commit. El final de la [salida](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/examples/salidas/sesiones-1-cambio.txt):
+
+```text
+? Bash git add -A
+  run: git add -A
+  [y] sí / [a] siempre: Bash(git add *) / [n] no (o escribe por qué): a
+> Bash {"description":"Add all changes to the staging area","command":"git add -A"}
+  ok (38 ms)
+  | (no output)
+…
+> Bash {"command":"git add -A","description":"Añadir todos los cambios a la stages area"}
+  ok (13 ms)
+  | (no output)
+
+? Bash git commit -m "feat(cart): add itemCount function and test"
+  run: git commit -m "feat(cart): add itemCount function and test"
+  [y] sí / [a] siempre: Bash(git commit *) / [n] no (o escribe por qué):
+interrumpido
+```
+
+El segundo `git add -A` ya no pregunta: lo cubre el «siempre». Iba en el mismo turno que el commit, así que el transcript tiene su resultado y el del commit no. Después, la segunda invocación:
+
+```bash
+npm run -s dev -- --workspace ~/tienda-demo --context-window 8192 --continue \
+  "Sigue: añade a test/cart.test.ts un caso con un carrito vacío y haz el commit."
+```
+
+```text
+↻ sesión e6b58a58 retomada · 1 prompts · ahora
+  tú:     Añade a src/cart.ts una función exportada itemCount(items: Item[]): number que sume las…
+  agente: ### Paso 4: Agregar los cambios con Git Ejecutaremos `git add -A` para agregar los camb…
+
+~ limpiados 2 resultados antiguos: 4,0k -> 3,8k tokens
+…
+? Bash git add -A
+  run: git add -A
+  [y] sí / [a] siempre: Bash(git add *) / [n] no (o escribe por qué): y
+```
+
+Retomó la conversación, el commit cortado recibió su resultado sintético en el transcript y el `git add -A` volvió a preguntar. Lo de la última línea es a propósito, y es la sección siguiente. El resto de esa invocación salió como sale con un 7B: más `git add -A` repetidos, que rechacé con motivo, intentos de `Edit` con un input inválido y un commit que el hook bloqueó por el mensaje. Acabó sin commit ([salida completa](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/examples/salidas/sesiones-2-continue.txt)).
+
+La tercera, con `--fork-session`, probó otra alternativa en una copia ([salida](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/examples/salidas/sesiones-3-fork.txt)). La original se quedó en sus 87 líneas, y la copia empieza con un `meta` que dice de dónde viene: su `forkedFrom` apunta a `e6b58a58`, con 85 registros copiados. Pero **el fork copia la conversación, no el disco**: su `Edit` cambió el mismo `src/cart.ts` que ve la original. Para probar de verdad otra vía, una rama de git.
+
+Cada invocación es una ejecución real, sin repetir para elegir. No fue la primera sesión. En el primer intento, con un `explore` al principio, el modelo pasó a escribir las llamadas como texto en lugar de hacerlas: de las tres invocaciones que siguieron al `explore`, solo una llamó a las herramientas, y a medias, y el modelo acabó imitando sus propias respuestas. Ese intento está publicado [tal como salió](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/examples/salidas/sesiones-intento.txt). Lo que el harness hace siempre al guardar y retomar lo cubren los tests deterministas de `npm test`.
+
+## Lo que no se restaura, a propósito
+
+Retomar trae la conversación y nada más. Cuatro cosas se quedan fuera a propósito:
+
+- **El modo de permisos**: sale de `--permission-mode` o del `settings.json`, nunca de la sesión. Una sesión que arrancó en `acceptEdits` sigue en `default` si no lo pides.
+- **Los «siempre»**: son reglas de esa sesión, en memoria. En la demo, `git add -A` volvió a preguntar. Si quieres que una regla dure, va al `settings.json`.
+- **Lo leído**: `Edit` exige que el modelo haya leído el fichero en esta invocación. En el primer intento, un `Edit` tras retomar falló con `File has not been read yet`, porque el que había leído el fichero era el subagente. En la demo, el modelo releyó antes de editar.
+- **El modelo y la ventana**: salen de los flags de esta invocación, y cada arranque deja su `meta`.
+
+Los dos `meta` de la sesión de la demo, con `jq`:
+
+```text
+$ jq -c 'select(.type == "meta") | {ts, model, contextWindow}' "$S"
+{"ts":"2026-11-26T11:40:02.744Z","model":"qwen2.5:7b","contextWindow":8192}
+{"ts":"2026-11-26T11:41:52.816Z","model":"qwen2.5:7b","contextWindow":8192}
+```
+
+La objeción es obvia: es fricción. Si ya dije «siempre», ¿por qué me lo vuelve a preguntar? Porque ese «siempre» lo diste en un contexto: aquella tarea, aquel día, aquel modo. Retomar puede llegar días después, con otro estado del repositorio, con otro modelo o desde un fork que ya cambió los ficheros. Un permiso que se restaura sin que lo veas es un permiso que no sabes que tienes, y lo peor sería restaurar `bypass` sin avisar. Lo leído, igual: el fichero puede haber cambiado desde entonces, y en la demo el fork lo cambió. Lo que quieres que dure lo escribes en `settings.json`, donde se ve y se versiona. El precio es una pregunta más, y el «siempre» de entonces sigue en el registro, con su fecha.
+
+## Quién decidió cada acción
+
+El motor de las partes 4 y 5 ya decidía cada llamada con su motivo, y el bucle lo emitía como un evento que se perdía. Ahora deja una línea `approval` por decisión, también por las automáticas, entre la llamada y su resultado:
+
+```ts
+| {
+    type: "approval";
+    ts: string;
+    toolUseId: string;
+    tool: string;
+    decision: "allow" | "deny";
+    origin: ApprovalOrigin;
+    reason: string;
+    rule?: string;
+    ruleSource?: RuleSource;
+    answer?: "once" | "always" | "no";
+    feedback?: string;
+  }
+```
+
+`reason` es el motivo del motor tal cual, y `origin` dice quién decidió:
+
+| `origin` | Quién decide |
+| --- | --- |
+| `rule` | Una regla, con su texto y de dónde viene: `settings`, `flag` (`--allow`, `--deny`), `session` (un «siempre») o `builtin`. |
+| `mode` | El modo: `bypass`, `acceptEdits` o `plan`. |
+| `policy` | El motor solo: leer dentro del workspace, un comando de solo lectura, lanzar un subagente. |
+| `user` | Tú, con `answer` y, si dijiste que no con un texto, ese texto en `feedback`. |
+| `hook` | Un hook `PreToolUse` que bloqueó la llamada antes de llegar al motor. |
+
+El origen se calcula donde se decide, no a partir del texto. `Decision` gana un campo `origin` en [`src/policy/engine.ts`](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/src/policy/engine.ts) y cada `return` del motor lo pone, y las reglas recuerdan de dónde vienen al cargarse. Leer `reason` habría sido más corto, pero cualquier cambio de redacción rompería la traza.
+
+Sin las automáticas no se podría contestar la pregunta más incómoda: ¿por qué se ejecutó esto si yo no dije nada? La respuesta está en un `policy` con `read inside workspace`, o en un `mode` con `acceptEdits: write inside workspace`. Cuesta una línea de JSON por llamada, poco al lado del resultado, que ya se guardaba.
+
+Hay un caso en el que el evento de antes mentía. Varias lecturas en el mismo turno corren en paralelo y se evalúan antes de que contestes a la primera pregunta. Si a la primera le dices «siempre», la segunda ya está cubierta, y el bucle la reevalúa en lugar de volver a preguntar. Antes eso salía como un «una vez» tuyo, con el motivo de la otra pregunta. Ahora sale como lo que es, la regla que acabas de crear:
+
+```ts
+if (settled.by === "policy") {
+  const again = settled.decision;
+  allowed = again.kind === "allow";
+  if (!allowed) denyMessage = `Permission denied: ${again.reason}.`;
+  this.recordApproval(call, fromDecision(again));
+```
+
+Una llamada que no llegó a decidirse no tiene `approval`: una con el input inválido, una herramienta que no existe o un corte durante la pregunta. Cualquier otra llamada con resultado y sin `approval` sería un fallo del harness, y un test lo comprueba. Las decisiones de un subagente van a su propio transcript.
+
+`harness` no tiene este registro. Es lo primero que el lab hace antes que él, y queda apuntado para llevarlo allí.
+
+## Leer lo que pasó
+
+Para leer el fichero no hay un comando nuevo: basta `jq`. Primero, las sesiones del workspace, de la más reciente a la más antigua, con su primer prompt:
+
+```bash
+for f in $(ls -t ~/.harness/sessions/tienda-demo-*/*.jsonl); do jq -rn --arg id "$(basename "$f" .jsonl)" 'first(inputs | select(.type == "message" and .message.role == "user")) | "\($id[:8])  \(.message.content[0].text[:70])"' "$f"; done
+```
+
+```text
+eed0eae7  Lee enteros con Read, sin limit ni offset, src/cart.ts, src/pricing.ts
+742e58fb  Usa un subagente explore, sin run_in_background, con este prompt: «Lee
+b2341b49  Añade a src/cart.ts una función exportada itemCount(items: Item[]): nu
+e6b58a58  Añade a src/cart.ts una función exportada itemCount(items: Item[]): nu
+```
+
+El fork, `b2341b49`, empieza igual que su original. Con la sesión en `S`, y en `R` lo que devolvió cada llamada (una denegación también es un error):
+
+```bash
+S=$(ls ~/.harness/sessions/*/e6b58a58*.jsonl)
+R=$(jq -s 'map(select(.type == "message") | .message.content[] | select(.type == "tool_result") | {(.tool_use_id): (if .is_error then "error" else "ok" end)}) | add' "$S")
+```
+
+**Qué ficheros tocó**:
+
+```bash
+jq -r --argjson r "$R" 'select(.type == "message") | .message.content[] | select(.type == "tool_use" and (.name == "Edit" or .name == "Write")) | "\(.id)  \($r[.id] // "-")  \(.name) \(.input.file_path)"' "$S"
+```
+
+```text
+call_zfc6co2m  error  Edit src/cart.ts
+call_4dg9wnnr  error  Edit test/cart.test.ts
+call_cmwyu6m1  ok  Edit src/cart.ts
+call_p64c4lkr  ok  Write test/cart.test.ts
+…
+call_j8t8qrlp  error  Edit test/cart.test.ts
+call_ztxro9rv  ok  Edit test/cart.test.ts
+```
+
+Nueve intentos y tres que tocaron algo. Varios de los errores son llamadas con un input inválido, que la salida de la terminal ni enseña porque no llegan a arrancar. **Qué comandos lanzó** es la misma consulta con `Bash`, y suma los `task` de segundo plano con su exit code:
+
+```bash
+jq -r --argjson r "$R" 'if .type == "task" then "\(.id)  \(.status) \(.exitCode // "")  & \(.description)" else (select(.type == "message") | .message.content[] | select(.type == "tool_use" and .name == "Bash") | "\(.id)  \($r[.id] // "-")  $ \(.input.command)") end' "$S"
+```
+
+```text
+call_yi7ni766  error  $ git add -A && git commit -m "feat(cart): add itemCount and test"
+call_1q8mbe74  error  $ git add -A && git commit -m "feat(cart): add itemCount and test"
+call_stfiylph  ok  $ git add -A
+call_6s28fo7d  ok  $ git add -A
+call_bupz6s7d  error  $ git commit -m "feat(cart): add itemCount function and test"
+…
+call_j09hvwlp  error  $ git add -A && git commit -m 'Add itemCount function and test for cart empty state'
+```
+
+Y **quién aprobó cada acción**, en el principal y en sus subagentes, sin lo que decide sola la política. Para verlo todo, quita `and .origin != "policy"`:
+
+```bash
+jq -r 'select(.type == "approval" and .origin != "policy") | "\(.toolUseId)  " + ([.tool, .decision, .origin, .answer, .ruleSource, .rule, .feedback] | map(select(. != null)) | join("  "))' "$S" $(ls "${S%.jsonl}"/agents/*.jsonl 2>/dev/null)
+```
+
+```text
+call_cmwyu6m1  Edit  allow  user  once
+call_p64c4lkr  Write  allow  user  once
+call_yi7ni766  Bash  deny  user  no  no: haz git add -A y git commit en dos llamadas a Bash distintas, como te pedí
+call_1q8mbe74  Bash  deny  user  no  no: primero solo git add -A, y el commit en otra llamada
+call_stfiylph  Bash  allow  user  always  Bash(git add *)
+call_6s28fo7d  Bash  allow  rule  session  Bash(git add *)
+call_wxtd60tc  Bash  allow  user  once
+…
+call_ztxro9rv  Edit  allow  user  once
+…
+call_j09hvwlp  Bash  deny  hook
+```
+
+Las tres juntas responden a la pregunta del principio. Por ejemplo, el `Edit` que metió el caso del carrito vacío dentro del primer test (`call_ztxro9rv`) es `ok` en la primera y `user once` en la tercera. Lo aprobé yo sin ver el diff: el permiso dice que lo autoricé, y `git diff` dice lo que hizo. Lo que los permisos no controlan, como en la parte 4, queda por lo menos atribuido. El commit cortado, `call_bupz6s7d`, es el que recibió el resultado sintético al retomar:
+
+```text
+$ jq -r 'select(.type == "message") | .message.content[] | select(.type == "tool_result" and .content == "Session ended before this tool ran.") | .tool_use_id' "$S"
+call_bupz6s7d
+```
+
+La salida completa de todas estas consultas está en [`sesiones-consultas.txt`](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/examples/salidas/sesiones-consultas.txt), con la de una sesión aparte en la que un `explore` deja su transcript en `agents/` y sus decisiones dentro. La compactación también se ve: en una ejecución con `--context-window 4096`, el fichero tiene un registro `compact` y, antes de él, los tres mensajes que sustituyó ([salida](https://github.com/pmeleroa/lab-harness-local/blob/parte-8/examples/salidas/sesiones-compactar.txt)).
+
+### Lo que ocupa frente a lo que carga
+
+Las dos lecturas no cuestan lo mismo. Lo medí sobre la sesión de la demo: los bytes y los registros salen del fichero, los tokens estimados del estimador del lab, y los de entrada de la primera petición, del `usage` que devuelve Ollama.
+
+| | Registros | Bytes | Tokens |
+| --- | --- | --- | --- |
+| El fichero al hacer el `--continue` | 33 | 11.315 | ~2.823 estimados |
+| Lo que cargó ese `--continue` | 15 mensajes | | ~1.315 estimados |
+| La primera petición tras retomar | | | 3.374 de entrada |
+| La primera petición de la sesión | | | 2.537 de entrada |
+| El fichero al final | 87 | 27.506 | ~6.853 estimados |
+| Lo que cargaría retomarla ahora | 40 mensajes | | ~2.855 estimados |
+
+La primera petición de la sesión es casi todo fijo: el system prompt, las definiciones de las herramientas y la pregunta. La primera tras retomar tiene unos 840 tokens reales más, que son la conversación retomada, ya con la limpieza de la parte 3, y el cambio de pregunta. Al final, el fichero ocupa más del doble de lo que retomarlo cargaría. Es una sola sesión, así que no te prometo la proporción en otra.
+
+## Lo que cuesta guardarlo todo
+
+El transcript guarda todo lo que leyó el agente, también lo que leyó fuera del workspace con un permiso de una vez. Si estuviera dentro del workspace, como en `harness`, tendría tres problemas:
+
+- **Lo leerías sin preguntar**: leer dentro del workspace se permite solo, así que otra sesión leería lo que esta leyó fuera, saltándose el perímetro de la parte 4.
+- **Grep lo encontraría**: los transcripts saldrían en las búsquedas, con todo lo que contienen.
+- **El agente podría reescribirlo**: con `Edit`, `Write` o `Bash`, y su registro dejaría de valer.
+
+Por eso las sesiones viven en `~/.harness/sessions` y están protegidas por capas:
+
+- **Escribirlas no se puede**: una regla `deny` integrada, la primera que mira el motor, que gana a cualquier `allow` y también a `bypass`.
+- **Bash y los servidores MCP no las ven**: la ruta está entre las que el sandbox de la parte 5 oculta, junto a las credenciales.
+- **Leerlas pregunta**: es una lectura fuera del workspace, y en `plan` se deniega. No se prohíbe, porque leer tus sesiones con permiso es legítimo.
+
+La regla integrada, con su motivo:
+
+```ts
+const root = this.cfg.sessionsRoot;
+if (access === "write" && root && isInside(root, absPath))
+  return byRule("deny", { raw: SESSIONS_RULE, tool: "Edit", source: "builtin" }, SESSIONS_DENY_REASON);
+```
+
+En el contenedor de las pruebas, un `cat ~/.harness/sessions/*/*.jsonl` desde la sesión de `Bash` del lab no encuentra nada, porque dentro del sandbox esa carpeta está vacía. Lo demás que cuesta:
+
+- **Con `--sandbox none`, `Bash` podría escribirlas**: la regla mira el comando, y el sandbox es la defensa real.
+- **Crece sin límite**: nada rota ni borra sesiones. Se borran con `rm -r ~/.harness/sessions`.
+- **Mover el proyecto cambia la clave**: `--continue` deja de encontrar las sesiones anteriores, aunque siguen ahí y su `meta` guarda la ruta original.
+- **No es a prueba de manipulación**: nada impide que tú edites el fichero. Es un registro para ti, no un justificante.
+
+## Lo que falta
+
+El harness ya recuerda. Lo que queda fuera de esta parte:
+
+- **El replay y las evals**: volver a ejecutar una sesión grabada y medir con ella son de una serie propia sobre evaluación, y el registro `approval` es la base de ese replay.
+- **`/resume`, `/sessions`, `/fork n` y `/tasks`**: ver y elegir sesiones desde la interfaz, y las tareas que terminaron, son de la parte 9.
+- **Borrar o rotar sesiones**: hoy, a mano.
+- **`harness` aún no tiene esto**: ni el registro `approval`, ni las sesiones fuera del workspace, ni la reparación escrita. Lo tendrá.
+- **Una sola sesión medida**: con `qwen2.5:7b`, más el intento fallido y siete pruebas previas para ajustar la tarea.
+
+El orden previsto para lo que viene está en la [página de la serie](/blog/series/asistente-codigo-local). Antes, lo esencial de esta parte:
+
+- **Un fichero, dos lecturas**: retomar lee la conversación desde el último `compact`, y la trazabilidad lo lee todo.
+- **Solo se añade**: la compactación añade un registro, cada resultado se escribe al acabar su llamada y una reparación queda escrita.
+- **Retomar no restaura los permisos**: ni el modo, ni los «siempre», ni lo leído, ni el modelo. Lo que quieras que dure, en `settings.json`.
+- **Cada decisión deja su `approval`**: también las automáticas, con quién decidió calculado donde se decide.
+- **`jq` basta para leerlo**: qué tocó, qué lanzó y quién lo aprobó, en tres consultas.
+- **Guardarlo todo obliga a protegerlo**: fuera del workspace, sin escritura para el agente y oculto al sandbox.
