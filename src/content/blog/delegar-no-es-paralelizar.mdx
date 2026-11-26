@@ -85,17 +85,18 @@ Tampoco compiten. El subagente tiene su propia ventana con su propio clearing y 
 
 ## La tool `Agent`
 
-El modelo ve `Agent` como una herramienta más, con tres campos: una descripción corta, el prompt completo para el subagente y el tipo de subagente. La descripción que lee el modelo dice cuándo usarla y, sobre todo, cómo escribir el prompt:
+El modelo ve `Agent` como una herramienta más, con tres campos: una descripción corta, el prompt completo para el subagente y el tipo de subagente. La descripción que lee el modelo dice cuándo usarla y, sobre todo, cómo escribir el prompt. En el código está en inglés; esta es su traducción:
 
 ```text
-Launches a subagent that works autonomously on a task in its own context window and returns a final report.
-Use it for work that would fill this conversation with intermediate output (broad searches, reading many files,
-a self-contained change), or to run independent investigations in parallel.
-- The subagent does not see this conversation. Write a self-contained prompt: the goal, relevant paths and
-  what the report must contain.
-- Only its final message comes back to you, and the user does not see it: relay what matters.
+Lanza un subagente que trabaja por su cuenta en una tarea, en su propia ventana de contexto,
+y devuelve un informe final. Úsalo para trabajo que llenaría esta conversación de salida
+intermedia (búsquedas amplias, leer muchos ficheros, un cambio autocontenido) o para hacer
+en paralelo investigaciones independientes.
+- El subagente no ve esta conversación. Escribe un prompt autocontenido: el objetivo, las rutas relevantes y
+  lo que debe contener el informe.
+- Solo te vuelve su último mensaje, y el usuario no lo ve: transmite lo que importe.
 …
-- Do not delegate what a couple of direct tool calls can do: a single Read or grep is faster.
+- No delegues lo que resuelven un par de llamadas directas: un solo Read o grep es más rápido.
 ```
 
 Al ejecutarla, el harness construye otro `Agent`, el mismo objeto que el principal, con su registro de herramientas, su política de permisos y su propia sesión de `Bash`:
