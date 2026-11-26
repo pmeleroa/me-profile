@@ -188,7 +188,7 @@ export function narrowMode(current: PermissionMode, requested?: PermissionMode):
 }
 ```
 
-El orden va de `plan` a `bypass`, pasando por `default` y `acceptEdits`. `plan` es nuevo en esta parte, y es el que las partes 4 y 5 dejaron pendiente: **todo lo que preguntaría se deniega**. Leer dentro del workspace y los comandos de solo lectura pasan; escribir, los comandos que pueden escribir y las herramientas MCP, no. Es el modo de `explore`, y también puedes arrancar el principal en él con `--permission-mode plan`.
+El orden va de `plan` a `bypass`, pasando por `default` y `acceptEdits`. `plan` es nuevo en esta parte, y es el que las partes 4 y 5 dejaron pendiente: **todo lo que preguntaría se deniega**. Leer dentro del workspace y los comandos de solo lectura pasan; escribir, los comandos que pueden escribir y las herramientas MCP, no, aunque una regla `allow` los permita. Es el modo de `explore`, y también puedes arrancar el principal en él con `--permission-mode plan`.
 
 Lo demás del motor de las partes 4 y 5 se mantiene:
 
@@ -217,7 +217,7 @@ npm run -s dev -- --workspace ~/tienda-planes --context-window 8192 \
 node examples/comprobar-delegacion.mjs con.txt con-traza.txt
 ```
 
-Los dos prompts dicen lo mismo; el segundo, además, delega. Que el prompt del subagente vaya escrito, y que pida leer enteros, no es capricho: sin eso, el modelo de 7B no lo hacía (lo verás en la nota de pilotos). `comprobar-delegacion.mjs` da por buena una ejecución si la respuesta nombra los seis ficheros **y** la traza muestra que se leyeron enteros, el principal o el subagente. Sin la segunda condición, un resumen inventado a partir de los nombres contaría como acierto. Al terminar, borra `~/tienda-planes` y los cuatro ficheros.
+Los dos prompts dicen lo mismo; el segundo, además, delega. Que el prompt del subagente vaya escrito, y que pida leer enteros, no es capricho: sin eso, el modelo de 7B no lo hacía (lo verás en la nota de pilotos). `comprobar-delegacion.mjs` da por buena una ejecución si la respuesta nombra los seis ficheros **y** la traza muestra que se leyeron enteros y sin error, el principal o el subagente, en las rutas del workspace. Sin la segunda condición, un resumen inventado a partir de los nombres contaría como acierto, y también uno tras leer rutas que no existen. Al terminar, borra `~/tienda-planes` y los cuatro ficheros.
 
 Sin subagente, el principal lee los seis ficheros en un turno y el contexto le salta del 24 % al 79 %:
 

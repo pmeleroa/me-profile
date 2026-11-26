@@ -240,9 +240,13 @@ rules:
       parte-6 y en la rama de la parte 7).
       Desde add-delegation-post, el lab converge con harness en subagentes: la
       tool Agent, los tipos explore y general, las definiciones de
-      .harness/agents (con model, que el post 7 solo nombra en una línea y sin
-      debatir qué modelo poner), el modo plan, el paralelo y el segundo plano
-      con deduplicación y rondas de espera. Quedan para la parte 8 los
+      .harness/agents (con model, que el post 7 presenta como opción para el
+      trabajo del subagente sin debatir qué modelo poner), el modo plan, el
+      paralelo y el segundo plano con deduplicación y rondas de espera. En plan
+      el lab deniega lo que puede escribir aunque una regla allow lo permita
+      (revisión de la PR #6 del lab, 2026-11-26); harness tiene el fallo que
+      eso corrige (su evaluate solo convierte ask en deny) y debe igualarlo:
+      trabajo en harness, no en el lab. Quedan para la parte 8 los
       transcripts de los subagentes y restoreFinished de las tareas; para la
       parte 9, /agents, el consumo de los subagentes en el pie, su sección de
       /context y los turnos automáticos de la interfaz (quiet y onNotify).
